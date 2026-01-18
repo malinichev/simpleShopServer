@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sports-shop-server
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - MONGODB_URI=mongodb://mongo:27017/sports-shop
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - S3_ENDPOINT=http://minio:9000
+    depends_on:
+      - mongo
+      - redis
+      - minio
+    networks:
+      - sports-shop-network
+
+  mongo:
+    image: mongo:7
+    container_name: sports-shop-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - sports-shop-network
+
+  redis:
+    image: redis:alpine
+    container_name: sports-shop-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - sports-shop-network
+
+  minio:
+    image: minio/minio
+    container_name: sports-shop-minio
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - sports-shop-network
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/sports-shop --ignore-existing;
+      /usr/bin/mc anonymous set public myminio/sports-shop;
+      exit 0;
+      "
+    networks:
+      - sports-shop-network
+
+volumes:
+  mongo-data:
+  redis-data:
+  minio-data:
+
+networks:
+  sports-shop-network:
+    driver: bridge
