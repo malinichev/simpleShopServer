@@ -45,16 +45,15 @@ async function bootstrap() {
     .setTitle('Sports Shop API')
     .setDescription('Backend API для интернет-магазина женской спортивной одежды')
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
+    .addBearerAuth({
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+            name: 'JWT',
+            description: 'Enter JWT token',
+            in: 'header',
+        },
+        'JWT-auth',
     )
     .addTag('auth', 'Аутентификация и авторизация')
     .addTag('users', 'Управление пользователями')

@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './modules/health/health.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import {
   configuration,
   appConfig,
@@ -50,9 +54,9 @@ import {
     // Health checks
     HealthModule,
 
-    // Модули приложения будут добавлены здесь
-    // AuthModule,
-    // UsersModule,
+    // Модули приложения
+    AuthModule,
+    UsersModule,
     // ProductsModule,
     // CategoriesModule,
     // OrdersModule,
@@ -67,6 +71,12 @@ import {
     // JobsModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    // Глобальный guard для JWT аутентификации
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}
