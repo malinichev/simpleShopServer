@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   ApiTags,
@@ -20,15 +21,21 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto } from './dto/password-reset.dto';
-import { AuthResponseDto } from './dto/auth-response.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  ChangePasswordDto,
+  AuthResponseDto,
+  TokensDto,
+} from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@/modules/users/entities/user.entity';
+import { UpdateUserDto } from '@/modules/users/dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -37,6 +44,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Регистрация нового пользователя' })
   @ApiResponse({
     status: 201,
@@ -49,16 +57,16 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
     const result = await this.authService.register(registerDto);
-    
-    // Устанавливаем refresh token в HTTP-only cookie
+
     this.setRefreshTokenCookie(response, result.refreshToken);
-    
+
     return result;
   }
 
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @UseGuards(AuthGuard('local'))
   @ApiOperation({ summary: 'Вход в систему' })
   @ApiBody({ type: LoginDto })
@@ -73,10 +81,9 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
     const result = await this.authService.login(req.user as User);
-    
-    // Устанавливаем refresh token в HTTP-only cookie
+
     this.setRefreshTokenCookie(response, result.refreshToken);
-    
+
     return result;
   }
 
@@ -91,10 +98,9 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
     await this.authService.logout(user._id.toString());
-    
-    // Удаляем refresh token cookie
+
     this.clearRefreshTokenCookie(response);
-    
+
     return { message: 'Успешный выход из системы' };
   }
 
@@ -106,30 +112,39 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Токены успешно обновлены',
-    type: AuthResponseDto,
+    type: TokensDto,
   })
   @ApiResponse({ status: 401, description: 'Недействительный refresh token' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthResponseDto> {
-    const result = await this.authService.refresh(req.user as User);
-    
-    // Обновляем refresh token в cookie
-    this.setRefreshTokenCookie(response, result.refreshToken);
-    
-    return result;
+  ): Promise<TokensDto> {
+    const user = req.user as User;
+    const refreshToken = req['refreshTokenValue'] as string;
+
+    const tokens = await this.authService.refreshTokens(
+      user._id.toString(),
+      refreshToken,
+    );
+
+    this.setRefreshTokenCookie(response, tokens.refreshToken);
+
+    return tokens;
   }
 
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Запрос на сброс пароля' })
   @ApiResponse({ status: 200, description: 'Письмо отправлено (если email существует)' })
   async forgotPassword(
     @Body() forgotPasswordDto: ForgotPasswordDto,
   ): Promise<{ message: string }> {
-    return this.authService.forgotPassword(forgotPasswordDto.email);
+    await this.authService.forgotPassword(forgotPasswordDto.email);
+    return {
+      message: 'Если пользователь с таким email существует, на него будет отправлено письмо с инструкциями',
+    };
   }
 
   @Public()
@@ -141,10 +156,11 @@ export class AuthController {
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
   ): Promise<{ message: string }> {
-    return this.authService.resetPassword(
+    await this.authService.resetPassword(
       resetPasswordDto.token,
-      resetPasswordDto.newPassword,
+      resetPasswordDto.password,
     );
+    return { message: 'Пароль успешно изменён' };
   }
 
   @Public()
@@ -154,7 +170,8 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Email успешно подтверждён' })
   @ApiResponse({ status: 400, description: 'Недействительный или истёкший токен' })
   async verifyEmail(@Body('token') token: string): Promise<{ message: string }> {
-    return this.authService.verifyEmail(token);
+    await this.authService.verifyEmail(token);
+    return { message: 'Email успешно подтверждён' };
   }
 
   @Get('me')
@@ -175,7 +192,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   async updateProfile(
     @CurrentUser() user: User,
-    @Body() updateData: Partial<User>,
+    @Body() updateData: UpdateUserDto,
   ) {
     return this.authService.updateProfile(user._id.toString(), updateData);
   }
@@ -191,14 +208,13 @@ export class AuthController {
     @CurrentUser() user: User,
     @Body() changePasswordDto: ChangePasswordDto,
   ): Promise<{ message: string }> {
-    return this.authService.changePassword(
+    await this.authService.changePassword(
       user._id.toString(),
-      changePasswordDto.currentPassword,
-      changePasswordDto.newPassword,
+      changePasswordDto,
     );
+    return { message: 'Пароль успешно изменён' };
   }
 
-  // Вспомогательные методы для работы с cookies
   private setRefreshTokenCookie(response: Response, refreshToken: string): void {
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,

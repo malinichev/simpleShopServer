@@ -8,6 +8,9 @@ import { UsersModule } from '@/modules/users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { RefreshTokenGuard } from './guards/refresh-token.guard';
 
 @Module({
   imports: [
@@ -22,7 +25,15 @@ import { LocalStrategy } from './strategies/local.strategy';
     JwtStrategy,
     JwtRefreshStrategy,
     LocalStrategy,
+    JwtAuthGuard,
+    RolesGuard,
+    RefreshTokenGuard,
   ],
-  exports: [AuthService],
+  exports: [
+    AuthService,
+    JwtAuthGuard,
+    RolesGuard,
+    RefreshTokenGuard,
+  ],
 })
 export class AuthModule {}

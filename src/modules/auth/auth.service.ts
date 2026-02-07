@@ -8,8 +8,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '@/modules/users/users.service';
 import { RegisterDto } from './dto/register.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '@/modules/users/entities/user.entity';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { TokensDto } from './dto/tokens.dto';
 
 @Injectable()
 export class AuthService {
@@ -19,15 +21,31 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
-    // Проверяем, существует ли пользователь с таким email
-    const existingUser = await this.usersService.findByEmail(registerDto.email);
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await this.usersService.validatePassword(
+      password,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    return user;
+  }
+
+  async register(dto: RegisterDto): Promise<AuthResponseDto> {
+    const existingUser = await this.usersService.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Пользователь с таким email уже существует');
     }
 
-    // Создаём пользователя
-    const user = await this.usersService.create(registerDto);
+    const user = await this.usersService.create(dto);
 
     // Генерируем токен для подтверждения email
     const verificationToken = await this.usersService.generateEmailVerificationToken(user._id.toString());
@@ -35,10 +53,7 @@ export class AuthService {
     // TODO: Отправить email с токеном подтверждения через Mail Service
     // await this.mailService.sendVerificationEmail(user.email, verificationToken);
 
-    // Генерируем токены
     const tokens = await this.generateTokens(user);
-
-    // Сохраняем refresh token
     await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
 
     return {
@@ -48,10 +63,7 @@ export class AuthService {
   }
 
   async login(user: User): Promise<AuthResponseDto> {
-    // Генерируем токены
     const tokens = await this.generateTokens(user);
-
-    // Сохраняем refresh token
     await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
 
     return {
@@ -61,71 +73,59 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<void> {
-    // Удаляем refresh token из БД
     await this.usersService.updateRefreshToken(userId, null);
   }
 
-  async refresh(user: User): Promise<AuthResponseDto> {
-    // Генерируем новые токены
-    const tokens = await this.generateTokens(user);
+  async refreshTokens(userId: string, refreshToken: string): Promise<TokensDto> {
+    const isValid = await this.usersService.validateRefreshToken(userId, refreshToken);
+    if (!isValid) {
+      throw new UnauthorizedException('Недействительный refresh token');
+    }
 
-    // Обновляем refresh token в БД
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Пользователь не найден');
+    }
+
+    const tokens = await this.generateTokens(user);
     await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
 
-    return {
-      user: this.usersService.sanitizeUser(user),
-      ...tokens,
-    };
+    return tokens;
   }
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
+  async forgotPassword(email: string): Promise<void> {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
       // Не раскрываем информацию о существовании пользователя
-      return {
-        message: 'Если пользователь с таким email существует, на него будет отправлено письмо с инструкциями',
-      };
+      return;
     }
 
-    // Генерируем токен для сброса пароля
     const resetToken = await this.usersService.generatePasswordResetToken(user._id.toString());
 
     // TODO: Отправить email с токеном сброса пароля через Mail Service
     // await this.mailService.sendPasswordResetEmail(user.email, resetToken);
-
-    return {
-      message: 'Если пользователь с таким email существует, на него будет отправлено письмо с инструкциями',
-    };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(token: string, password: string): Promise<void> {
     try {
-      await this.usersService.resetPassword(token, newPassword);
-      return { message: 'Пароль успешно изменён' };
+      await this.usersService.resetPassword(token, password);
     } catch (error) {
       throw new BadRequestException('Недействительный или истёкший токен');
     }
   }
 
-  async verifyEmail(token: string): Promise<{ message: string }> {
+  async verifyEmail(token: string): Promise<void> {
     try {
-      const  hashedToken = await this.usersService.verifyEmail(token);
-      // return { message: 'Email успешно подтверждён' };
-      return { message: JSON.stringify(hashedToken ?? '') };
+      await this.usersService.verifyEmail(token);
     } catch (error) {
       throw new BadRequestException('Недействительный или истёкший токен');
     }
   }
 
-  async changePassword(
-    userId: string,
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<{ message: string }> {
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     try {
-      await this.usersService.changePassword(userId, currentPassword, newPassword);
-      return { message: 'Пароль успешно изменён' };
+      await this.usersService.changePassword(userId, dto.currentPassword, dto.newPassword);
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
@@ -147,10 +147,7 @@ export class AuthService {
     return this.usersService.sanitizeUser(user);
   }
 
-  private async generateTokens(user: User): Promise<{
-    accessToken: string;
-    refreshToken: string;
-  }> {
+  private async generateTokens(user: User): Promise<TokensDto> {
     const payload = {
       sub: user._id.toString(),
       email: user.email,
@@ -167,9 +164,6 @@ export class AuthService {
       }),
     ]);
 
-    return {
-      accessToken,
-      refreshToken,
-    };
+    return { accessToken, refreshToken };
   }
 }

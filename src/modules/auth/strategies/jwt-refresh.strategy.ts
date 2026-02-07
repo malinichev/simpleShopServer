@@ -30,26 +30,19 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
 
   async validate(req: Request, payload: JwtRefreshPayload) {
     const refreshToken = req.cookies?.refreshToken;
-    
+
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token не найден');
     }
 
     const user = await this.usersService.findById(payload.sub);
-    
+
     if (!user) {
       throw new UnauthorizedException('Пользователь не найден');
     }
 
-    // Проверяем, что refresh token совпадает с сохранённым в БД
-    const isValidToken = await this.usersService.validateRefreshToken(
-      user._id.toString(),
-      refreshToken,
-    );
-
-    if (!isValidToken) {
-      throw new UnauthorizedException('Недействительный refresh token');
-    }
+    // Прикрепляем refreshToken к запросу для использования в контроллере
+    req['refreshTokenValue'] = refreshToken;
 
     return user;
   }

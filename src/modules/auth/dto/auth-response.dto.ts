@@ -11,11 +11,3 @@ export class AuthResponseDto {
   @ApiProperty()
   refreshToken: string;
 }
-
-export class TokensDto {
-  @ApiProperty()
-  accessToken: string;
-
-  @ApiProperty()
-  refreshToken: string;
-}

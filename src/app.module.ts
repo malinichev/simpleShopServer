@@ -7,6 +7,7 @@ import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
   configuration,
   appConfig,
@@ -76,6 +77,11 @@ import {
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Глобальный guard для проверки ролей
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })
