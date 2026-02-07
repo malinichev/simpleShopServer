@@ -1,12 +1,11 @@
-import {
-  Entity,
-  ObjectIdColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  Index,
-} from 'typeorm';
-import { UserRole } from '@/common/decorators/roles.decorator';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/common/entities/base.entity';
+
+export enum UserRole {
+  CUSTOMER = 'customer',
+  MANAGER = 'manager',
+  ADMIN = 'admin',
+}
 
 export interface Address {
   id: string;
@@ -23,10 +22,7 @@ export interface Address {
 }
 
 @Entity('users')
-export class User {
-  @ObjectIdColumn()
-  _id: string;
-
+export class User extends BaseEntity {
   @Column({ unique: true })
   email: string;
 
@@ -69,9 +65,6 @@ export class User {
   @Column({ nullable: true })
   refreshToken?: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Column('simple-array', { default: [] })
+  wishlist: string[]; // product IDs
 }

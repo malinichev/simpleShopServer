@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole } from '@/common/decorators/roles.decorator';
-import { Address } from '../entities/user.entity';
+import { UserRole, Address } from '../entities/user.entity';
 
 export class UserResponseDto {
   @ApiProperty()
@@ -30,9 +29,24 @@ export class UserResponseDto {
   @ApiProperty()
   isEmailVerified: boolean;
 
+  @ApiProperty({ type: [String] })
+  wishlist: string[];
+
   @ApiProperty()
   createdAt: Date;
 
   @ApiProperty()
   updatedAt: Date;
+}
+
+export class UserStatsDto {
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  byRole: {
+    customer: number;
+    manager: number;
+    admin: number;
+  };
 }
