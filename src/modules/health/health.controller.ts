@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {ApiTags, ApiOperation, ApiResponse, ApiBearerAuth} from '@nestjs/swagger';
 import {
   HealthCheck,
   HealthCheckService,
@@ -15,6 +15,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @ApiBearerAuth('JWT-auth')
   @HealthCheck()
   @ApiOperation({ summary: 'Health check' })
   @ApiResponse({ status: 200, description: 'Service is healthy' })
@@ -23,6 +24,7 @@ export class HealthController {
   }
 
   @Get('ready')
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Readiness check' })
   @ApiResponse({ status: 200, description: 'Service is ready' })
   ready() {

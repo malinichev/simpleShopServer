@@ -29,14 +29,13 @@ import { UserRole } from './entities/user.entity';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from './entities/user.entity';
 
-// TODO: Replace with real guards from Auth module
-// import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
-// import { RolesGuard } from '@/modules/auth/guards/roles.guard';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 
-@ApiTags('Users')
-@ApiBearerAuth()
+@ApiTags('users')
+@ApiBearerAuth('JWT-auth')
 @Controller('users')
-// @UseGuards(JwtAuthGuard, RolesGuard) // TODO: Uncomment when Auth module is ready
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
