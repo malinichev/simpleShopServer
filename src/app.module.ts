@@ -11,6 +11,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { CartModule } from './modules/cart/cart.module';
+import { PromotionsModule } from './modules/promotions/promotions.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
@@ -81,9 +82,9 @@ import {
     ProductsModule,
     UploadModule,
     CartModule,
+    PromotionsModule,
     // OrdersModule,
     // ReviewsModule,
-    // PromotionsModule,
     // WishlistModule,
     // MailModule,
     // AnalyticsModule,
