@@ -10,6 +10,7 @@ import { UsersModule } from './modules/users/users.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { CartModule } from './modules/cart/cart.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
@@ -79,8 +80,8 @@ import {
     CategoriesModule,
     ProductsModule,
     UploadModule,
+    CartModule,
     // OrdersModule,
-    // CartModule,
     // ReviewsModule,
     // PromotionsModule,
     // WishlistModule,
