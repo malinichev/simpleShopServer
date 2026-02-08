@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { BullModule } from '@nestjs/bullmq';
 import { APP_GUARD } from '@nestjs/core';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './modules/health/health.module';
@@ -8,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
+import { UploadModule } from './modules/upload/upload.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
@@ -40,6 +42,19 @@ import {
       envFilePath: ['.env.development', '.env'],
     }),
 
+    // BullMQ (очереди задач)
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('redis.host'),
+          port: configService.get<number>('redis.port'),
+          password: configService.get<string>('redis.password'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
+
     // Rate limiting
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
@@ -63,12 +78,12 @@ import {
     UsersModule,
     CategoriesModule,
     ProductsModule,
+    UploadModule,
     // OrdersModule,
     // CartModule,
     // ReviewsModule,
     // PromotionsModule,
     // WishlistModule,
-    // UploadModule,
     // MailModule,
     // AnalyticsModule,
     // HealthModule,
