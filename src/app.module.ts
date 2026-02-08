@@ -7,6 +7,7 @@ import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { ProductsModule } from './modules/products/products.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
@@ -35,6 +36,7 @@ import {
         mailConfig,
         throttleConfig,
       ],
+
       envFilePath: ['.env.development', '.env'],
     }),
 
@@ -60,7 +62,7 @@ import {
     AuthModule,
     UsersModule,
     CategoriesModule,
-    // ProductsModule,
+    ProductsModule,
     // OrdersModule,
     // CartModule,
     // ReviewsModule,

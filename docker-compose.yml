@@ -76,6 +76,20 @@ services:
     networks:
       - sports-shop-network
 
+  mongo-express:
+    image: mongo-express:latest
+    container_name: sports-shop-mongo-express
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017/
+      - ME_CONFIG_BASICAUTH=false
+    depends_on:
+      - mongo
+    networks:
+      - sports-shop-network
+
 volumes:
   mongo-data:
   redis-data:
