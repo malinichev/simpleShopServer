@@ -9,6 +9,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,10 +26,12 @@ import {
   UserResponseDto,
   UserStatsDto,
 } from './dto';
-import { Roles, ROLES_KEY } from '@/common/decorators/roles.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from './entities/user.entity';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from './entities/user.entity';
+import { OrdersService } from '@/modules/orders/orders.service';
+import { OrderQueryDto } from '@/modules/orders/dto';
 
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
@@ -37,7 +41,11 @@ import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    @Inject(forwardRef(() => OrdersService))
+    private readonly ordersService: OrdersService,
+  ) {}
 
   @Get('stats')
   @Roles(UserRole.ADMIN)
@@ -95,14 +103,12 @@ export class UsersController {
 
   @Get(':id/orders')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get user orders (admin only) - placeholder' })
+  @ApiOperation({ summary: 'Get user orders (admin only)' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: 'List of user orders' })
+  @ApiResponse({ status: 200, description: 'Paginated list of user orders' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserOrders(@Param('id') id: string): Promise<any[]> {
-    // Verify user exists
+  async getUserOrders(@Param('id') id: string, @Query() query: OrderQueryDto) {
     await this.usersService.findByIdOrFail(id);
-    // TODO: Implement when Orders module is ready
-    return [];
+    return this.ordersService.findByUser(id, query);
   }
 }

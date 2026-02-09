@@ -93,7 +93,7 @@ export class CreatePromotionDto {
   @IsDateString()
   startDate: string;
 
-  @ApiProperty({ example: '2024-08-31T23:59:59.000Z' })
+  @ApiProperty({ example: '2028-08-31T23:59:59.000Z' })
   @IsDateString()
   endDate: string;
 

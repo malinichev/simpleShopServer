@@ -12,6 +12,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { CartModule } from './modules/cart/cart.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
@@ -83,7 +84,7 @@ import {
     UploadModule,
     CartModule,
     PromotionsModule,
-    // OrdersModule,
+    OrdersModule,
     // ReviewsModule,
     // WishlistModule,
     // MailModule,
