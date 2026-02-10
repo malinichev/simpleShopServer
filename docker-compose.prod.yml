@@ -4,27 +4,24 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: sports-shop-server
-    restart: unless-stopped
+    restart: always
     ports:
       - '4000:4000'
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
     env_file:
-      - .env.development
+      - .env
     depends_on:
       - mongo
       - redis
       - minio
-    volumes:
-      - ./src:/app/src
-    command: pnpm run start:dev
     networks:
       - sports-shop-network
 
   mongo:
     image: mongo:7
     container_name: sports-shop-mongo
-    restart: unless-stopped
+    restart: always
     ports:
       - '27017:27017'
     volumes:
@@ -35,7 +32,7 @@ services:
   redis:
     image: redis:alpine
     container_name: sports-shop-redis
-    restart: unless-stopped
+    restart: always
     ports:
       - '6379:6379'
     volumes:
@@ -46,13 +43,13 @@ services:
   minio:
     image: minio/minio
     container_name: sports-shop-minio
-    restart: unless-stopped
+    restart: always
     ports:
       - '9000:9000'
       - '9001:9001'
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -66,25 +63,10 @@ services:
     entrypoint: >
       /bin/sh -c "
       sleep 5;
-      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc alias set myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
       /usr/bin/mc mb myminio/sports-shop --ignore-existing;
-      /usr/bin/mc anonymous set public myminio/sports-shop;
       exit 0;
       "
-    networks:
-      - sports-shop-network
-
-  mongo-express:
-    image: mongo-express:latest
-    container_name: sports-shop-mongo-express
-    restart: unless-stopped
-    ports:
-      - '8081:8081'
-    environment:
-      - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017/
-      - ME_CONFIG_BASICAUTH=false
-    depends_on:
-      - mongo
     networks:
       - sports-shop-network
 

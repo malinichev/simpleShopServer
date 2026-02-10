@@ -1,50 +1,37 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# Install dependencies
-RUN npm ci
-
-# Copy source code
 COPY . .
-
-# Build the application
-RUN npm run build
+RUN pnpm run build
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:24-alpine
+
+RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
-
-# Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
-
-# Change ownership of the app directory
 RUN chown -R nestjs:nodejs /app
 
-# Switch to non-root user
 USER nestjs
 
-# Expose port
 EXPOSE 4000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:4000/api/health || exit 1
 
-# Start the application
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]
