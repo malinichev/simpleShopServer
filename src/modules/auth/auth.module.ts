@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersModule } from '@/modules/users/users.module';
+import { MailModule } from '@/modules/mail/mail.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
@@ -15,6 +16,7 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
 @Module({
   imports: [
     UsersModule,
+    MailModule,
     PassportModule,
     JwtModule.register({}), // Конфигурация будет передаваться динамически в сервисе
     ConfigModule,

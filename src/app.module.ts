@@ -15,6 +15,8 @@ import { PromotionsModule } from './modules/promotions/promotions.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { MailModule } from './modules/mail/mail.module';
+import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
@@ -89,10 +91,8 @@ import {
     OrdersModule,
     ReviewsModule,
     WishlistModule,
-    // MailModule,
-    // AnalyticsModule,
-    // HealthModule,
-    // JobsModule,
+    MailModule,
+    JobsModule,
   ],
   controllers: [],
   providers: [

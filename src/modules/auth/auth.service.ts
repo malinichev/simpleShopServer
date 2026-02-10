@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '@/modules/users/users.service';
+import { MailService } from '@/modules/mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '@/modules/users/entities/user.entity';
@@ -19,6 +20,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private mailService: MailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -50,8 +52,11 @@ export class AuthService {
     // Генерируем токен для подтверждения email
     const verificationToken = await this.usersService.generateEmailVerificationToken(user._id.toString());
 
-    // TODO: Отправить email с токеном подтверждения через Mail Service
-    // await this.mailService.sendVerificationEmail(user.email, verificationToken);
+    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? ['http://localhost:3000'];
+    await this.mailService.sendEmailVerification(user.email, {
+      firstName: user.firstName,
+      verificationUrl: `${corsOrigins[0]}/verify-email?token=${verificationToken}`,
+    });
 
     const tokens = await this.generateTokens(user);
     await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
@@ -103,8 +108,12 @@ export class AuthService {
 
     const resetToken = await this.usersService.generatePasswordResetToken(user._id.toString());
 
-    // TODO: Отправить email с токеном сброса пароля через Mail Service
-    // await this.mailService.sendPasswordResetEmail(user.email, resetToken);
+    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? ['http://localhost:3000'];
+    await this.mailService.sendPasswordReset(user.email, {
+      firstName: user.firstName,
+      resetUrl: `${corsOrigins[0]}/reset-password?token=${resetToken}`,
+      expiresIn: '1 час',
+    });
   }
 
   async resetPassword(token: string, password: string): Promise<void> {
