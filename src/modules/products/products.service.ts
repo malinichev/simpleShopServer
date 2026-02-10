@@ -281,6 +281,10 @@ export class ProductsService implements OnModuleDestroy {
     return `${prefix}-${timestamp}-${random}`;
   }
 
+  async count(): Promise<number> {
+    return this.productsRepository.count();
+  }
+
   private async invalidateCache(): Promise<void> {
     const keys = await this.redis.keys(`${CACHE_PREFIX}:*`);
     if (keys.length > 0) {

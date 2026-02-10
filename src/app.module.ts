@@ -16,6 +16,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { MailModule } from './modules/mail/mail.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
@@ -92,6 +93,7 @@ import {
     ReviewsModule,
     WishlistModule,
     MailModule,
+    AnalyticsModule,
     JobsModule,
   ],
   controllers: [],
