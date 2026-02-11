@@ -44,7 +44,6 @@ export class ProductsController {
   })
   @ApiResponse({ status: 200, description: 'Paginated list of products' })
   async findAll(@Query() query: ProductQueryDto) {
-    console.log({ query });
     return this.productsService.findAll(query);
   }
 

@@ -12,8 +12,18 @@ import { CartService } from '@/modules/cart/cart.service';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
-import { Order, OrderStatus, OrderItem, OrderHistory } from './entities/order.entity';
-import { CreateOrderDto, OrderQueryDto, OrderResponseDto, OrderStats } from './dto';
+import {
+  Order,
+  OrderStatus,
+  OrderItem,
+  OrderHistory,
+} from './entities/order.entity';
+import {
+  CreateOrderDto,
+  OrderQueryDto,
+  OrderResponseDto,
+  OrderStats,
+} from './dto';
 import { Address } from '@/modules/users/entities/user.entity';
 import { PaginatedResult } from '@/common/types/pagination.types';
 
@@ -36,7 +46,6 @@ export class OrdersService {
 
   async create(userId: string, dto: CreateOrderDto): Promise<Order> {
     // 1. Получить корзину пользователя
-    console.log({ userId, dto });
     const cart = await this.cartService.getCart(userId);
     if (!cart.items || cart.items.length === 0) {
       throw new BadRequestException('Корзина пуста');
@@ -141,7 +150,9 @@ export class OrdersService {
 
     // 9. Обновить stock товаров
     for (const item of orderItems) {
-      const product = await this.productsService.findById(item.productId.toString());
+      const product = await this.productsService.findById(
+        item.productId.toString(),
+      );
       const variant = product.variants.find((v) => v.id === item.variantId);
       if (variant) {
         const newStock = Math.max(variant.stock - item.quantity, 0);
@@ -183,7 +194,10 @@ export class OrdersService {
     return order;
   }
 
-  async findByUser(userId: string, query: OrderQueryDto): Promise<PaginatedResult<Order>> {
+  async findByUser(
+    userId: string,
+    query: OrderQueryDto,
+  ): Promise<PaginatedResult<Order>> {
     return this.ordersRepository.findByUser(userId, query);
   }
 
@@ -225,7 +239,10 @@ export class OrdersService {
       throw new ForbiddenException('Нет прав для отмены этого заказа');
     }
 
-    if (!isAdmin && ![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)) {
+    if (
+      !isAdmin &&
+      ![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)
+    ) {
       throw new BadRequestException(
         'Отмена возможна только для заказов в статусе "ожидает" или "подтверждён"',
       );
@@ -237,7 +254,9 @@ export class OrdersService {
 
     // Вернуть stock товаров
     for (const item of order.items) {
-      const product = await this.productsService.findById(item.productId.toString());
+      const product = await this.productsService.findById(
+        item.productId.toString(),
+      );
       const variant = product.variants.find((v) => v.id === item.variantId);
       if (variant) {
         await this.productsService.updateStock(
@@ -270,17 +289,23 @@ export class OrdersService {
   }
 
   async getStats(dateFrom?: Date, dateTo?: Date): Promise<OrderStats> {
-    const revenueStats = await this.ordersRepository.getRevenueStats(dateFrom, dateTo);
+    const revenueStats = await this.ordersRepository.getRevenueStats(
+      dateFrom,
+      dateTo,
+    );
     const ordersByStatus = await this.ordersRepository.countByStatus();
-    const ordersByPaymentStatus = await this.ordersRepository.countByPaymentStatus();
+    const ordersByPaymentStatus =
+      await this.ordersRepository.countByPaymentStatus();
     const totalOrders = await this.ordersRepository.count();
 
     return {
       totalOrders,
       totalRevenue: revenueStats.totalRevenue,
-      averageOrderValue: revenueStats.count > 0
-        ? Math.round((revenueStats.totalRevenue / revenueStats.count) * 100) / 100
-        : 0,
+      averageOrderValue:
+        revenueStats.count > 0
+          ? Math.round((revenueStats.totalRevenue / revenueStats.count) * 100) /
+            100
+          : 0,
       ordersByStatus,
       ordersByPaymentStatus,
     };
@@ -304,7 +329,13 @@ export class OrdersService {
 
   toResponseDto(
     order: Order,
-    user?: { _id: ObjectId; email: string; firstName: string; lastName: string; phone?: string },
+    user?: {
+      _id: ObjectId;
+      email: string;
+      firstName: string;
+      lastName: string;
+      phone?: string;
+    },
   ): OrderResponseDto {
     return {
       _id: order._id.toString(),
@@ -339,10 +370,15 @@ export class OrdersService {
     };
   }
 
-  private async resolveShippingAddress(userId: string, dto: CreateOrderDto): Promise<Address> {
+  private async resolveShippingAddress(
+    userId: string,
+    dto: CreateOrderDto,
+  ): Promise<Address> {
     if (dto.shippingAddressId) {
       const user = await this.usersService.findByIdOrFail(userId);
-      const address = user.addresses.find((a) => a.id === dto.shippingAddressId);
+      const address = user.addresses.find(
+        (a) => a.id === dto.shippingAddressId,
+      );
       if (!address) {
         throw new BadRequestException('Адрес не найден');
       }
@@ -365,10 +401,15 @@ export class OrdersService {
       };
     }
 
-    throw new BadRequestException('Необходимо указать адрес доставки (shippingAddressId или shippingAddress)');
+    throw new BadRequestException(
+      'Необходимо указать адрес доставки (shippingAddressId или shippingAddress)',
+    );
   }
 
-  private validateStatusTransition(current: OrderStatus, next: OrderStatus): void {
+  private validateStatusTransition(
+    current: OrderStatus,
+    next: OrderStatus,
+  ): void {
     const allowed: Record<OrderStatus, OrderStatus[]> = {
       [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
       [OrderStatus.CONFIRMED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
