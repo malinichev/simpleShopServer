@@ -24,7 +24,11 @@ async function createAdmin() {
 
     if (existingUser) {
       console.log('❌ Администратор уже существует:', adminData.email);
-      process.exit(1);
+      const userIid = existingUser._id.toString();
+      await usersService.delete(userIid);
+      console.log('❌ Удалили его:', adminData.email);
+      // console.log({ existingUser['_id'] });
+      // process.exit(1);
     }
 
     // Создаем админа

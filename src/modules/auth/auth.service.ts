@@ -50,16 +50,24 @@ export class AuthService {
     const user = await this.usersService.create(dto);
 
     // Генерируем токен для подтверждения email
-    const verificationToken = await this.usersService.generateEmailVerificationToken(user._id.toString());
+    const verificationToken =
+      await this.usersService.generateEmailVerificationToken(
+        user._id.toString(),
+      );
 
-    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? ['http://localhost:3000'];
+    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [
+      'http://localhost:3001',
+    ];
     await this.mailService.sendEmailVerification(user.email, {
       firstName: user.firstName,
       verificationUrl: `${corsOrigins[0]}/verify-email?token=${verificationToken}`,
     });
 
     const tokens = await this.generateTokens(user);
-    await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
+    await this.usersService.updateRefreshToken(
+      user._id.toString(),
+      tokens.refreshToken,
+    );
 
     return {
       user: this.usersService.sanitizeUser(user),
@@ -69,7 +77,10 @@ export class AuthService {
 
   async login(user: User): Promise<AuthResponseDto> {
     const tokens = await this.generateTokens(user);
-    await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
+    await this.usersService.updateRefreshToken(
+      user._id.toString(),
+      tokens.refreshToken,
+    );
 
     return {
       user: this.usersService.sanitizeUser(user),
@@ -81,8 +92,14 @@ export class AuthService {
     await this.usersService.updateRefreshToken(userId, null);
   }
 
-  async refreshTokens(userId: string, refreshToken: string): Promise<TokensDto> {
-    const isValid = await this.usersService.validateRefreshToken(userId, refreshToken);
+  async refreshTokens(
+    userId: string,
+    refreshToken: string,
+  ): Promise<TokensDto> {
+    const isValid = await this.usersService.validateRefreshToken(
+      userId,
+      refreshToken,
+    );
     if (!isValid) {
       throw new UnauthorizedException('Недействительный refresh token');
     }
@@ -93,7 +110,10 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user);
-    await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
+    await this.usersService.updateRefreshToken(
+      user._id.toString(),
+      tokens.refreshToken,
+    );
 
     return tokens;
   }
@@ -106,9 +126,13 @@ export class AuthService {
       return;
     }
 
-    const resetToken = await this.usersService.generatePasswordResetToken(user._id.toString());
+    const resetToken = await this.usersService.generatePasswordResetToken(
+      user._id.toString(),
+    );
 
-    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? ['http://localhost:3000'];
+    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [
+      'http://localhost:3000',
+    ];
     await this.mailService.sendPasswordReset(user.email, {
       firstName: user.firstName,
       resetUrl: `${corsOrigins[0]}/reset-password?token=${resetToken}`,
@@ -134,7 +158,11 @@ export class AuthService {
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     try {
-      await this.usersService.changePassword(userId, dto.currentPassword, dto.newPassword);
+      await this.usersService.changePassword(
+        userId,
+        dto.currentPassword,
+        dto.newPassword,
+      );
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
