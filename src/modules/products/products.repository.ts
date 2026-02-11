@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { Product, ProductStatus } from './entities/product.entity';
-import { CreateProductDto, UpdateProductDto, ProductQueryDto, SortOption } from './dto';
+import { ProductQueryDto, SortOption } from './dto';
 import {
   PaginatedResult,
   createPaginationMeta,
@@ -38,6 +38,7 @@ export class ProductsRepository {
         { name: { $regex: query.search, $options: 'i' } },
         { description: { $regex: query.search, $options: 'i' } },
         { shortDescription: { $regex: query.search, $options: 'i' } },
+        { sku: { $regex: query.search, $options: 'i' } },
       ];
     }
 
@@ -95,20 +96,26 @@ export class ProductsRepository {
   }
 
   async findBySlug(slug: string): Promise<Product | null> {
-    return this.repository.findOne({ where: { slug } as Record<string, unknown> });
+    return this.repository.findOne({
+      where: { slug } as Record<string, unknown>,
+    });
   }
 
   async findById(id: ObjectId | string): Promise<Product | null> {
     try {
       const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      return this.repository.findOne({ where: { _id: objectId } as Record<string, unknown> });
+      return this.repository.findOne({
+        where: { _id: objectId } as Record<string, unknown>,
+      });
     } catch {
       return null;
     }
   }
 
   async findBySku(sku: string): Promise<Product | null> {
-    return this.repository.findOne({ where: { sku } as Record<string, unknown> });
+    return this.repository.findOne({
+      where: { sku } as Record<string, unknown>,
+    });
   }
 
   async create(data: Partial<Product>): Promise<Product> {
@@ -116,7 +123,10 @@ export class ProductsRepository {
     return this.repository.save(product);
   }
 
-  async update(id: ObjectId | string, data: Partial<Product>): Promise<Product | null> {
+  async update(
+    id: ObjectId | string,
+    data: Partial<Product>,
+  ): Promise<Product | null> {
     const objectId = typeof id === 'string' ? new ObjectId(id) : id;
     await this.repository.update(
       { _id: objectId } as Record<string, unknown>,
@@ -137,17 +147,23 @@ export class ProductsRepository {
     await Promise.all(deletePromises);
   }
 
-  async bulkUpdateStatus(ids: ObjectId[], status: ProductStatus): Promise<void> {
+  async bulkUpdateStatus(
+    ids: ObjectId[],
+    status: ProductStatus,
+  ): Promise<void> {
     const updatePromises = ids.map((id) =>
-      this.repository.update(
-        { _id: id } as Record<string, unknown>,
-        { status },
-      ),
+      this.repository.update({ _id: id } as Record<string, unknown>, {
+        status,
+      }),
     );
     await Promise.all(updatePromises);
   }
 
-  async updateStock(id: ObjectId | string, variantId: string, stock: number): Promise<void> {
+  async updateStock(
+    id: ObjectId | string,
+    variantId: string,
+    stock: number,
+  ): Promise<void> {
     const product = await this.findById(id);
     if (!product) return;
 
@@ -156,17 +172,20 @@ export class ProductsRepository {
     );
 
     const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      { variants },
-    );
+    await this.repository.update({ _id: objectId } as Record<string, unknown>, {
+      variants,
+    });
   }
 
-  async findRelated(productId: ObjectId | string, limit: number): Promise<Product[]> {
+  async findRelated(
+    productId: ObjectId | string,
+    limit: number,
+  ): Promise<Product[]> {
     const product = await this.findById(productId);
     if (!product) return [];
 
-    const objectId = typeof productId === 'string' ? new ObjectId(productId) : productId;
+    const objectId =
+      typeof productId === 'string' ? new ObjectId(productId) : productId;
 
     return this.repository.find({
       where: {
@@ -180,23 +199,29 @@ export class ProductsRepository {
     });
   }
 
-  async incrementSoldCount(id: ObjectId | string, quantity: number): Promise<void> {
+  async incrementSoldCount(
+    id: ObjectId | string,
+    quantity: number,
+  ): Promise<void> {
     const product = await this.findById(id);
     if (!product) return;
 
     const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      { soldCount: product.soldCount + quantity },
-    );
+    await this.repository.update({ _id: objectId } as Record<string, unknown>, {
+      soldCount: product.soldCount + quantity,
+    });
   }
 
-  async updateRating(id: ObjectId | string, rating: number, count: number): Promise<void> {
+  async updateRating(
+    id: ObjectId | string,
+    rating: number,
+    count: number,
+  ): Promise<void> {
     const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      { rating, reviewsCount: count },
-    );
+    await this.repository.update({ _id: objectId } as Record<string, unknown>, {
+      rating,
+      reviewsCount: count,
+    });
   }
 
   async count(): Promise<number> {

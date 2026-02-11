@@ -53,6 +53,7 @@ export class ProductsService implements OnModuleDestroy {
     const cacheKey = `${CACHE_PREFIX}:list:${JSON.stringify(query)}`;
 
     const cached = await this.redis.get(cacheKey);
+
     if (cached) {
       return JSON.parse(cached);
     }
@@ -159,7 +160,9 @@ export class ProductsService implements OnModuleDestroy {
     if (dto.slug && dto.slug !== product.slug) {
       const existingBySlug = await this.productsRepository.findBySlug(dto.slug);
       if (existingBySlug && existingBySlug._id.toString() !== id) {
-        throw new ConflictException(`Товар со slug "${dto.slug}" уже существует`);
+        throw new ConflictException(
+          `Товар со slug "${dto.slug}" уже существует`,
+        );
       }
     }
 
@@ -176,14 +179,19 @@ export class ProductsService implements OnModuleDestroy {
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.slug !== undefined) updateData.slug = dto.slug;
     if (dto.description !== undefined) updateData.description = dto.description;
-    if (dto.shortDescription !== undefined) updateData.shortDescription = dto.shortDescription;
+    if (dto.shortDescription !== undefined)
+      updateData.shortDescription = dto.shortDescription;
     if (dto.sku !== undefined) updateData.sku = dto.sku;
     if (dto.price !== undefined) updateData.price = dto.price;
-    if (dto.compareAtPrice !== undefined) updateData.compareAtPrice = dto.compareAtPrice;
-    if (dto.categoryId !== undefined) updateData.categoryId = new ObjectId(dto.categoryId);
+    if (dto.compareAtPrice !== undefined)
+      updateData.compareAtPrice = dto.compareAtPrice;
+    if (dto.categoryId !== undefined)
+      updateData.categoryId = new ObjectId(dto.categoryId);
     if (dto.tags !== undefined) updateData.tags = dto.tags;
-    if (dto.images !== undefined) updateData.images = dto.images as ProductImage[];
-    if (dto.variants !== undefined) updateData.variants = dto.variants as ProductVariant[];
+    if (dto.images !== undefined)
+      updateData.images = dto.images as ProductImage[];
+    if (dto.variants !== undefined)
+      updateData.variants = dto.variants as ProductVariant[];
     if (dto.attributes !== undefined) updateData.attributes = dto.attributes;
     if (dto.status !== undefined) updateData.status = dto.status;
     if (dto.seo !== undefined) updateData.seo = dto.seo;
@@ -211,12 +219,19 @@ export class ProductsService implements OnModuleDestroy {
   }
 
   async bulkUpdateStatus(ids: string[], status: ProductStatus): Promise<void> {
-    const objectIds = ids.map((id) => new ObjectId(id));
+    const objectIds = ids.map((id) => {
+      console.log({ id });
+      return new ObjectId(String(id));
+    });
     await this.productsRepository.bulkUpdateStatus(objectIds, status);
     await this.invalidateCache();
   }
 
-  async updateStock(id: string, variantId: string, stock: number): Promise<Product> {
+  async updateStock(
+    id: string,
+    variantId: string,
+    stock: number,
+  ): Promise<Product> {
     const product = await this.findById(id);
 
     const variantExists = product.variants.some((v) => v.id === variantId);
@@ -239,7 +254,10 @@ export class ProductsService implements OnModuleDestroy {
     await this.invalidateCache();
   }
 
-  toResponseDto(product: Product, category?: { _id: ObjectId; name: string; slug: string }): ProductResponseDto {
+  toResponseDto(
+    product: Product,
+    category?: { _id: ObjectId; name: string; slug: string },
+  ): ProductResponseDto {
     return {
       _id: product._id.toString(),
       name: product.name,
@@ -251,7 +269,11 @@ export class ProductsService implements OnModuleDestroy {
       compareAtPrice: product.compareAtPrice,
       categoryId: product.categoryId.toString(),
       category: category
-        ? { _id: category._id.toString(), name: category.name, slug: category.slug }
+        ? {
+            _id: category._id.toString(),
+            name: category.name,
+            slug: category.slug,
+          }
         : undefined,
       tags: product.tags || [],
       images: product.images || [],
