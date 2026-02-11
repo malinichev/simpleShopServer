@@ -29,7 +29,7 @@ export class ProductsRepository {
       where.status = query.status;
     }
 
-    if (query.category) {
+    if (query.category && ObjectId.isValid(query.category)) {
       where.categoryId = new ObjectId(query.category);
     }
 

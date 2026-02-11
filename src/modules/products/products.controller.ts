@@ -39,9 +39,12 @@ export class ProductsController {
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'Получить список товаров с фильтрацией и пагинацией' })
+  @ApiOperation({
+    summary: 'Получить список товаров с фильтрацией и пагинацией',
+  })
   @ApiResponse({ status: 200, description: 'Paginated list of products' })
   async findAll(@Query() query: ProductQueryDto) {
+    console.log({ query });
     return this.productsService.findAll(query);
   }
 
@@ -51,10 +54,7 @@ export class ProductsController {
   @ApiQuery({ name: 'q', description: 'Search query', required: true })
   @ApiQuery({ name: 'limit', description: 'Max results', required: false })
   @ApiResponse({ status: 200, type: [ProductResponseDto] })
-  async search(
-    @Query('q') q: string,
-    @Query('limit') limit?: string,
-  ) {
+  async search(@Query('q') q: string, @Query('limit') limit?: string) {
     const parsedLimit = limit ? parseInt(limit, 10) : 10;
     return this.productsService.search(q, parsedLimit);
   }
@@ -83,12 +83,13 @@ export class ProductsController {
   @Get(':id/related')
   @ApiOperation({ summary: 'Получить похожие товары' })
   @ApiParam({ name: 'id', description: 'Product ID' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Max results (default 8)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Max results (default 8)',
+  })
   @ApiResponse({ status: 200, type: [ProductResponseDto] })
-  async findRelated(
-    @Param('id') id: string,
-    @Query('limit') limit?: string,
-  ) {
+  async findRelated(@Param('id') id: string, @Query('limit') limit?: string) {
     const parsedLimit = limit ? parseInt(limit, 10) : 8;
     return this.productsService.findRelated(id, parsedLimit);
   }
@@ -154,10 +155,7 @@ export class ProductsController {
   @ApiResponse({ status: 200, type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
   @ApiResponse({ status: 400, description: 'Variant not found' })
-  async updateStock(
-    @Param('id') id: string,
-    @Body() dto: UpdateStockDto,
-  ) {
+  async updateStock(@Param('id') id: string, @Body() dto: UpdateStockDto) {
     return this.productsService.updateStock(id, dto.variantId, dto.stock);
   }
 }
