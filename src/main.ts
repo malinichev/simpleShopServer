@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import * as yaml from 'js-yaml'; // или 'yamljs'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,7 +17,10 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // CORS
-  const corsOrigins = configService.get<string[]>('corsOrigins', ['http://localhost:3000']);
+  const corsOrigins = configService.get<string[]>('corsOrigins', [
+    'http://localhost:3000',
+  ]);
+
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
@@ -40,47 +44,68 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger документация
-  const config = new DocumentBuilder()
-    .setTitle('Sports Shop API')
-    .setDescription('Backend API для интернет-магазина женской спортивной одежды')
-    .setVersion('1.0')
-    .addBearerAuth({
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
-            name: 'JWT',
-            description: 'Enter JWT token',
-            in: 'header',
+  if (process.env.NODE_ENV !== 'production') {
+    // Swagger документация
+    const config = new DocumentBuilder()
+      .setTitle('Sports Shop API')
+      .setDescription(
+        'Backend API для интернет-магазина женской спортивной одежды',
+      )
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
         },
         'JWT-auth',
-    )
-    .addTag('auth', 'Аутентификация и авторизация')
-    .addTag('users', 'Управление пользователями')
-    .addTag('products', 'Товары')
-    .addTag('categories', 'Категории')
-    .addTag('orders', 'Заказы')
-    .addTag('cart', 'Корзина')
-    .addTag('reviews', 'Отзывы')
-    .addTag('promotions', 'Промокоды')
-    .addTag('wishlist', 'Список желаний')
-    .addTag('upload', 'Загрузка файлов')
-    .addTag('analytics', 'Аналитика')
-    .addTag('health', 'Health checks')
-    .build();
+      )
+      .addTag('auth', 'Аутентификация и авторизация')
+      .addTag('users', 'Управление пользователями')
+      .addTag('products', 'Товары')
+      .addTag('categories', 'Категории')
+      .addTag('orders', 'Заказы')
+      .addTag('cart', 'Корзина')
+      .addTag('reviews', 'Отзывы')
+      .addTag('promotions', 'Промокоды')
+      .addTag('wishlist', 'Список желаний')
+      .addTag('upload', 'Загрузка файлов')
+      .addTag('analytics', 'Аналитика')
+      .addTag('health', 'Health checks')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
+
+    // Создаем эндпоинт для YAML
+    app.use(`/${apiPrefix}/openapi.yaml`, (_, res) => {
+      res.setHeader('Content-Type', 'application/yaml');
+      res.send(yaml.dump(document));
+    });
+  }
 
   const port = configService.get<number>('port', 4000);
   await app.listen(port);
 
-  console.log(`🚀 Application is running on: http://localhost:${port}/${apiPrefix}`);
-  console.log(`📚 Swagger documentation: http://localhost:${port}/${apiPrefix}/docs`);
+  console.log(
+    `🚀 Application is running on: http://localhost:${port}/${apiPrefix}`,
+  );
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(
+      `📚 Swagger documentation: http://localhost:${port}/${apiPrefix}/docs`,
+    );
+    console.log(
+      `📚 Swagger yaml file: http://localhost:${port}/${apiPrefix}/openapi.yaml`,
+    );
+  }
 }
 
 bootstrap();
