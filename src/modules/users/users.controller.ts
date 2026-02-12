@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
@@ -21,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import {
+  CreateUserDto,
   UpdateUserDto,
   UserQueryDto,
   UserResponseDto,
@@ -61,6 +63,16 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Paginated list of users' })
   async findAll(@Query() query: UserQueryDto) {
     return this.usersService.findAll(query);
+  }
+
+  @Post()
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create user (admin only)' })
+  @ApiResponse({ status: 201, type: UserResponseDto })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
+  async create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
+    const user = await this.usersService.create(dto);
+    return this.usersService.sanitizeUser(user);
   }
 
   @Get(':id')
