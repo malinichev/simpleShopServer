@@ -18,6 +18,7 @@ import {
 import { OrdersService } from './orders.service';
 import {
   CreateOrderDto,
+  UpdateOrderDto,
   UpdateOrderStatusDto,
   OrderQueryDto,
   OrderResponseDto,
@@ -109,6 +110,20 @@ export class OrdersController {
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.ordersService.updateStatus(id, dto.status, user._id.toString(), dto.comment);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Обновить заказ (admin note)' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateOrderDto,
+  ) {
+    return this.ordersService.updateAdminNote(id, dto.adminNote ?? '');
   }
 
   @Post(':id/cancel')

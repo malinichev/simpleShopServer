@@ -201,6 +201,15 @@ export class OrdersService {
     return this.ordersRepository.findByUser(userId, query);
   }
 
+  async updateAdminNote(id: string, adminNote: string): Promise<Order> {
+    await this.findById(id); // throws NotFoundException if not found
+    const updated = await this.ordersRepository.update(id, { adminNote });
+    if (!updated) {
+      throw new NotFoundException('Заказ не найден');
+    }
+    return updated;
+  }
+
   async updateStatus(
     id: string,
     status: OrderStatus,
