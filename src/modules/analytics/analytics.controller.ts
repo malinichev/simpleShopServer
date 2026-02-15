@@ -96,6 +96,22 @@ export class AnalyticsController {
     return this.analyticsService.getTopCategories(parsedLimit, from, to);
   }
 
+  @Get('low-stock')
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Товары с низким остатком' })
+  @ApiQuery({ name: 'threshold', required: false, description: 'Максимальный остаток (default 5)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Количество (default 10)' })
+  @ApiResponse({ status: 200 })
+  async getLowStock(
+    @Query('threshold') threshold?: string,
+    @Query('limit') limit?: string,
+  ): Promise<Array<{ _id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
+    const parsedThreshold = threshold ? parseInt(threshold, 10) : 5;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    return this.analyticsService.getLowStockProducts(parsedThreshold, parsedLimit);
+  }
+
   @Get('customers')
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')

@@ -6,6 +6,8 @@ import {
   Param,
   Body,
   Query,
+  Inject,
+  forwardRef,
   ForbiddenException,
 } from '@nestjs/common';
 import {
@@ -16,6 +18,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
+import { UsersService } from '@/modules/users/users.service';
 import {
   CreateOrderDto,
   UpdateOrderDto,
@@ -30,7 +33,11 @@ import { User, UserRole } from '@/modules/users/entities/user.entity';
 @ApiTags('orders')
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Список заказов (user: свои, admin: все)' })
@@ -40,10 +47,20 @@ export class OrdersController {
     @CurrentUser() user: User,
     @Query() query: OrderQueryDto,
   ) {
-    if (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER) {
-      return this.ordersService.findAll(query);
-    }
-    return this.ordersService.findByUser(user._id.toString(), query);
+    const result = user.role === UserRole.ADMIN || user.role === UserRole.MANAGER
+      ? await this.ordersService.findAll(query)
+      : await this.ordersService.findByUser(user._id.toString(), query);
+
+    const userIds = [...new Set(result.data.map((o) => o.userId.toString()))];
+    const users = await this.usersService.findByIds(userIds);
+    const usersMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+    return {
+      ...result,
+      data: result.data.map((order) =>
+        this.ordersService.toResponseDto(order, usersMap.get(order.userId.toString())),
+      ),
+    };
   }
 
   @Get('stats')
@@ -81,7 +98,8 @@ export class OrdersController {
       throw new ForbiddenException('Нет доступа к этому заказу');
     }
 
-    return order;
+    const orderUser = await this.usersService.findById(order.userId.toString());
+    return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 
   @Post()
@@ -93,7 +111,8 @@ export class OrdersController {
     @CurrentUser() user: User,
     @Body() dto: CreateOrderDto,
   ) {
-    return this.ordersService.create(user._id.toString(), dto);
+    const order = await this.ordersService.create(user._id.toString(), dto);
+    return this.ordersService.toResponseDto(order, user);
   }
 
   @Patch(':id/status')
@@ -109,7 +128,9 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
   ) {
-    return this.ordersService.updateStatus(id, dto.status, user._id.toString(), dto.comment);
+    const order = await this.ordersService.updateStatus(id, dto.status, user._id.toString(), dto.comment);
+    const orderUser = await this.usersService.findById(order.userId.toString());
+    return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 
   @Patch(':id')
@@ -123,7 +144,9 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() dto: UpdateOrderDto,
   ) {
-    return this.ordersService.updateAdminNote(id, dto.adminNote ?? '');
+    const order = await this.ordersService.updateAdminNote(id, dto.adminNote ?? '');
+    const orderUser = await this.usersService.findById(order.userId.toString());
+    return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 
   @Post(':id/cancel')
@@ -139,6 +162,8 @@ export class OrdersController {
     @Param('id') id: string,
   ) {
     const isAdmin = user.role === UserRole.ADMIN;
-    return this.ordersService.cancel(id, user._id.toString(), isAdmin);
+    const order = await this.ordersService.cancel(id, user._id.toString(), isAdmin);
+    const orderUser = await this.usersService.findById(order.userId.toString());
+    return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 }

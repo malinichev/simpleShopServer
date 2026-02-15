@@ -43,6 +43,10 @@ export class UsersService {
     return this.usersRepository.findById(id);
   }
 
+  async findByIds(ids: string[]): Promise<User[]> {
+    return this.usersRepository.findByIds(ids);
+  }
+
   async findByIdOrFail(id: string): Promise<User> {
     const user = await this.findById(id);
     if (!user) {

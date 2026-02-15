@@ -28,6 +28,15 @@ export class UsersRepository {
     }
   }
 
+  async findByIds(ids: (ObjectId | string)[]): Promise<User[]> {
+    const objectIds = ids.map((id) =>
+      typeof id === 'string' ? new ObjectId(id) : id,
+    );
+    return this.repository.find({
+      where: { _id: { $in: objectIds } } as any,
+    });
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.repository.findOne({ where: { email } });
   }

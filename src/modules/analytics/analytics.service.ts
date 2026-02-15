@@ -206,6 +206,38 @@ export class AnalyticsService implements OnModuleDestroy {
     return stats;
   }
 
+  async getLowStockProducts(
+    threshold: number = 5,
+    limit: number = 10,
+  ): Promise<Array<{ _id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
+    const cacheKey = `${CACHE_PREFIX}:low-stock:${threshold}:${limit}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    const allProducts = await this.productsService.findAll({ limit: 1000 });
+    const lowStockProducts = allProducts.data
+      .map((product) => {
+        const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+        const firstImage = product.images?.[0]?.url;
+        return {
+          _id: product._id.toString(),
+          name: product.name,
+          sku: product.sku,
+          stock: totalStock,
+          price: Number(product.price),
+          image: firstImage,
+        };
+      })
+      .filter((p) => p.stock <= threshold)
+      .sort((a, b) => a.stock - b.stock)
+      .slice(0, limit);
+
+    await this.redis.set(cacheKey, JSON.stringify(lowStockProducts), 'EX', CACHE_TTL);
+    return lowStockProducts;
+  }
+
   async trackEvent(dto: TrackEventDto): Promise<void> {
     await this.analyticsQueue.add('track-event', {
       type: 'track-event',
