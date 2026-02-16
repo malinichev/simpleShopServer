@@ -22,7 +22,15 @@
     "seed:prod": "node dist/database/seeds/seed.js",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f server"
+    "docker:logs": "docker-compose logs -f server",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml --env-file .env.production up -d",
+    "docker:prod:down": "docker-compose -f docker-compose.prod.yml down",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:stop": "pm2 stop sports-shop-api",
+    "pm2:restart": "pm2 reload ecosystem.config.js --env production",
+    "pm2:logs": "pm2 logs sports-shop-api",
+    "deploy:production": "./node_modules/.bin/pm2 deploy production",
+    "deploy:setup": "./node_modules/.bin/pm2 deploy production setup"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",

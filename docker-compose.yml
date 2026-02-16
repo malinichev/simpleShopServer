@@ -1,22 +1,25 @@
+# Development only — NOT for production use.
+# For production, use: docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+
 services:
-  server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sports-shop-server
-    restart: always
-    ports:
-      - '4000:4000'
-    environment:
-      - NODE_ENV=production
-    env_file:
-      - .env
-    depends_on:
-      - mongo
-      - redis
-      - minio
-    networks:
-      - sports-shop-network
+#  server:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    container_name: sports-shop-server
+#    restart: always
+#    ports:
+#      - '4000:4000'
+#    environment:
+#      - NODE_ENV=production
+#    env_file:
+#      - .env
+#    depends_on:
+#      - mongo
+#      - redis
+#      - minio
+#    networks:
+#      - sports-shop-network
 
   mongo:
     image: mongo:7
