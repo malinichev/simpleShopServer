@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'sports-shop-api',
       script: 'dist/main.js',
-      cwd: '/var/www/sports-shop/current/server',
+      cwd: '/var/www/sports-shop/current',
       instances: 1,
       exec_mode: 'fork',
       env_production: {
@@ -32,7 +32,7 @@ module.exports = {
       path: '/var/www/sports-shop',
       'pre-deploy-local': '',
       'post-deploy':
-        'cd server && npm install && npm run build && pm2 reload ecosystem.config.js --env production',
+        'pnpm install --frozen-lockfile && pnpm run build && pm2 reload ecosystem.config.js --env production',
       'pre-setup': 'mkdir -p /var/www/sports-shop/logs',
     },
   },
