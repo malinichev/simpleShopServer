@@ -48,7 +48,7 @@ import {
         throttleConfig,
       ],
 
-      envFilePath: ['.env.development', '.env'],
+      envFilePath: ['.env.development', '.env.production', '.env'],
     }),
 
     // BullMQ (очереди задач)
