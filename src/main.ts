@@ -44,7 +44,7 @@ async function bootstrap() {
     }),
   );
 
-  if (process.env.NODE_ENV !== 'production') {
+  {
     // Swagger документация
     const config = new DocumentBuilder()
       .setTitle('Sports Shop API')
