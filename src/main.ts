@@ -37,6 +37,7 @@ async function bootstrap() {
           scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
           imgSrc: ["'self'", 'data:', 'https:'],
+          upgradeInsecureRequests: null,
         },
       },
     }),
