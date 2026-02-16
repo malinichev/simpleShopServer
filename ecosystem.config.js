@@ -26,7 +26,7 @@ module.exports = {
       user: 'deploy',
       host: '45.81.243.129',
       ref: 'origin/main',
-      repo: 'git@github.com:malinichev/simpleShopServer.git',
+      repo: 'git@github-server:malinichev/simpleShopServer.git',
       path: '/var/www/simple-shop-server',
       'pre-deploy-local': '',
       'post-deploy':
