@@ -30,7 +30,7 @@ module.exports = {
       path: '/var/www/simple-shop-server',
       'pre-deploy-local': '',
       'post-deploy':
-        'pnpm install --frozen-lockfile && pnpm run build && pm2 reload ecosystem.config.js --env production',
+        'rm -f .env.development && ln -sf /var/www/simple-shop-server/.env.production .env && pnpm install --frozen-lockfile && pnpm run build && pm2 reload ecosystem.config.js --env production',
       'pre-setup': 'mkdir -p /var/www/simple-shop-server/logs',
     },
   },
