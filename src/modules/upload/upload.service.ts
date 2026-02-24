@@ -20,6 +20,8 @@ import { UploadResponseDto } from './dto';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_RAW_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const MAX_RAW_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_WIDTH = 1920;
 const WEBP_QUALITY = 85;
 const THUMB_SIZE = 300;
@@ -96,6 +98,45 @@ export class UploadService implements OnModuleInit {
     folder: string,
   ): Promise<UploadResponseDto[]> {
     return Promise.all(files.map((file) => this.uploadImage(file, folder)));
+  }
+
+  async uploadRawFile(
+    file: Express.Multer.File,
+    folder: string,
+  ): Promise<UploadResponseDto> {
+    if (!file) {
+      throw new BadRequestException('Файл не предоставлен');
+    }
+
+    if (file.size > MAX_RAW_FILE_SIZE) {
+      throw new BadRequestException(
+        `Файл слишком большой. Максимальный размер: ${MAX_RAW_FILE_SIZE / 1024 / 1024}MB`,
+      );
+    }
+
+    if (!ALLOWED_RAW_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        `Недопустимый тип файла. Разрешены: изображения и PDF`,
+      );
+    }
+
+    if (file.mimetype === 'application/pdf') {
+      const sanitizedFolder = this.sanitizeFolder(folder);
+      const id = uuidv4();
+      const key = `${sanitizedFolder}/${id}.pdf`;
+
+      await this.uploadToS3(key, file.buffer, 'application/pdf');
+
+      return {
+        key,
+        url: this.getFileUrl(key),
+        size: file.size,
+        mimeType: 'application/pdf',
+      };
+    }
+
+    // For images — delegate to uploadImage (Sharp + WebP)
+    return this.uploadImage(file, folder);
   }
 
   async deleteFile(key: string): Promise<void> {

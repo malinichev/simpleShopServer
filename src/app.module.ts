@@ -18,6 +18,7 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { MailModule } from './modules/mail/mail.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { PagesModule } from './modules/pages/pages.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
@@ -96,6 +97,7 @@ import {
     MailModule,
     AnalyticsModule,
     SettingsModule,
+    PagesModule,
     JobsModule,
   ],
   controllers: [],

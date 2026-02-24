@@ -92,6 +92,35 @@ export class UploadController {
     return this.uploadService.uploadImages(files, folder);
   }
 
+  @Post('file')
+  @Roles(UserRole.ADMIN)
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @ApiBearerAuth('JWT-auth')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Загрузить изображение или PDF (admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiQuery({ name: 'folder', description: 'Папка в S3', example: 'pages/about', required: false })
+  @ApiResponse({ status: 201, type: UploadResponseDto })
+  @ApiResponse({ status: 400, description: 'Некорректный файл' })
+  async uploadFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('folder') folder: string = 'uploads',
+  ): Promise<UploadResponseDto> {
+    if (!file) {
+      throw new BadRequestException('Файл не предоставлен');
+    }
+    return this.uploadService.uploadRawFile(file, folder);
+  }
+
   @Delete()
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
