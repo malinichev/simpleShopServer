@@ -252,7 +252,7 @@ tail -f /var/www/simple-shop-server/logs/error.log
 
 ```bash
 ssh root@45.81.243.129
-cd /var/www/simple-shop-server
+cd ~/var/www/simple-shop-server
 
 # Статус контейнеров
 docker compose --env-file .env.production ps
@@ -263,6 +263,12 @@ docker compose --env-file .env.production restart
 # Перезапуск конкретного сервиса (например MinIO)
 docker stop sports-shop-minio && docker rm sports-shop-minio
 docker compose --env-file .env.production up -d minio
+
+docker stop sports-shop-redis && docker rm sports-shop-redis
+docker compose --env-file .env.production up -d redis
+
+docker stop sports-shop-mongo && docker rm sports-shop-mongo
+docker compose --env-file .env.production up -d mongo
 
 # Логи контейнера
 docker logs -f sports-shop-minio
