@@ -31,6 +31,7 @@ import {
   PageResponseDto,
   PagePublicResponseDto,
 } from './dto';
+import { PageFileResponseDto } from './dto/page-file-response.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/entities/user.entity';
@@ -40,14 +41,54 @@ import { UserRole } from '@/modules/users/entities/user.entity';
 export class PagesController {
   constructor(private readonly pagesService: PagesService) {}
 
-  @Get()
+  // ── Global file endpoints (declared before :slug to avoid conflicts) ──
+
+  @Get('files')
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Получить список всех страниц (admin)' })
-  @ApiResponse({ status: 200, type: [PageResponseDto] })
-  async findAll() {
-    return this.pagesService.findAll();
+  @ApiOperation({ summary: 'Список всех файлов для страниц (admin)' })
+  @ApiResponse({ status: 200, type: [PageFileResponseDto] })
+  async listFiles() {
+    return this.pagesService.listFiles();
   }
+
+  @Post('files')
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Загрузить файл в общий пул страниц (admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({ status: 201, type: PageFileResponseDto })
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Файл не предоставлен');
+    }
+    return this.pagesService.uploadFile(file);
+  }
+
+  @Delete('files')
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Удалить файл из общего пула (admin)' })
+  @ApiQuery({ name: 'key', description: 'S3 key файла', required: true })
+  @ApiResponse({ status: 204, description: 'Файл удалён' })
+  @ApiResponse({ status: 404, description: 'Файл не найден' })
+  async deleteFile(@Query('key') key: string): Promise<void> {
+    if (!key) {
+      throw new BadRequestException('Ключ файла не указан');
+    }
+    await this.pagesService.deleteFile(key);
+  }
+
+  // ── Admin single-page endpoint ──
 
   @Get('admin/:slug')
   @Roles(UserRole.ADMIN)
@@ -60,12 +101,23 @@ export class PagesController {
     return this.pagesService.findBySlug(slug);
   }
 
+  // ── Pages CRUD ──
+
+  @Get()
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Список всех страниц (admin)' })
+  @ApiResponse({ status: 200, type: [PageResponseDto] })
+  async findAll() {
+    return this.pagesService.findAll();
+  }
+
   @Public()
   @Get(':slug')
-  @ApiOperation({ summary: 'Получить публичную страницу по slug' })
+  @ApiOperation({ summary: 'Публичная страница по slug' })
   @ApiParam({ name: 'slug', description: 'Page slug' })
   @ApiResponse({ status: 200, type: PagePublicResponseDto })
-  @ApiResponse({ status: 404, description: 'Page not found or not published' })
+  @ApiResponse({ status: 404, description: 'Not found or not published' })
   async findPublic(@Param('slug') slug: string): Promise<PagePublicResponseDto> {
     const page = await this.pagesService.findPublishedBySlug(slug);
     return {
@@ -108,48 +160,5 @@ export class PagesController {
   @ApiResponse({ status: 404, description: 'Page not found' })
   async delete(@Param('slug') slug: string): Promise<void> {
     await this.pagesService.delete(slug);
-  }
-
-  @Post(':slug/files')
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth('JWT-auth')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Загрузить файл для страницы (admin)' })
-  @ApiParam({ name: 'slug', description: 'Page slug' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { file: { type: 'string', format: 'binary' } },
-      required: ['file'],
-    },
-  })
-  @ApiResponse({ status: 201, type: PageResponseDto })
-  async uploadFile(
-    @Param('slug') slug: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) {
-      throw new BadRequestException('Файл не предоставлен');
-    }
-    return this.pagesService.addFile(slug, file);
-  }
-
-  @Delete(':slug/files')
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Удалить файл страницы из S3 и из списка (admin)' })
-  @ApiParam({ name: 'slug', description: 'Page slug' })
-  @ApiQuery({ name: 'key', description: 'S3 file key', required: true })
-  @ApiResponse({ status: 200, type: PageResponseDto })
-  @ApiResponse({ status: 404, description: 'Page or file not found' })
-  async deleteFile(
-    @Param('slug') slug: string,
-    @Query('key') key: string,
-  ) {
-    if (!key) {
-      throw new BadRequestException('Ключ файла не указан');
-    }
-    return this.pagesService.removeFile(slug, key);
   }
 }

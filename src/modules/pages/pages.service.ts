@@ -4,16 +4,21 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PagesRepository } from './pages.repository';
+import { PageFilesRepository } from './page-files.repository';
 import { UploadService } from '@/modules/upload/upload.service';
-import { Page, PageFile } from './entities/page.entity';
+import { Page } from './entities/page.entity';
+import { PageFileRecord } from './entities/page-file.entity';
 import { CreatePageDto, UpdatePageDto } from './dto';
 
 @Injectable()
 export class PagesService {
   constructor(
     private readonly pagesRepository: PagesRepository,
+    private readonly pageFilesRepository: PageFilesRepository,
     private readonly uploadService: UploadService,
   ) {}
+
+  // --- Pages ---
 
   async findAll(): Promise<Page[]> {
     return this.pagesRepository.findAll();
@@ -47,7 +52,6 @@ export class PagesService {
       metaTitle: dto.metaTitle,
       metaDescription: dto.metaDescription,
       content: dto.content ?? {},
-      files: [],
       isPublished: dto.isPublished ?? false,
     });
   }
@@ -78,58 +82,34 @@ export class PagesService {
   }
 
   async delete(slug: string): Promise<void> {
-    const page = await this.findBySlug(slug);
-
-    // Delete all associated files from S3
-    if (page.files.length > 0) {
-      await Promise.allSettled(
-        page.files.map((file) => this.uploadService.deleteFile(file.key)),
-      );
-    }
-
+    await this.findBySlug(slug);
     await this.pagesRepository.delete(slug);
   }
 
-  async addFile(slug: string, file: Express.Multer.File): Promise<Page> {
-    const page = await this.findBySlug(slug);
+  // --- Global page files ---
 
-    const uploaded = await this.uploadService.uploadRawFile(
-      file,
-      `pages/${slug}`,
-    );
+  async listFiles(): Promise<PageFileRecord[]> {
+    return this.pageFilesRepository.findAll();
+  }
 
-    const pageFile: PageFile = {
+  async uploadFile(file: Express.Multer.File): Promise<PageFileRecord> {
+    const uploaded = await this.uploadService.uploadRawFile(file, 'pages');
+
+    return this.pageFilesRepository.create({
       key: uploaded.key,
       url: uploaded.url,
       name: file.originalname,
       size: uploaded.size,
       mimeType: uploaded.mimeType,
-      uploadedAt: new Date(),
-    };
-
-    const updatedFiles = [...(page.files ?? []), pageFile];
-    const updated = await this.pagesRepository.update(slug, { files: updatedFiles });
-    if (!updated) {
-      throw new NotFoundException('Страница не найдена');
-    }
-    return updated;
+    });
   }
 
-  async removeFile(slug: string, key: string): Promise<Page> {
-    const page = await this.findBySlug(slug);
-
-    const fileExists = page.files.some((f) => f.key === key);
-    if (!fileExists) {
-      throw new NotFoundException('Файл не найден в списке страницы');
+  async deleteFile(key: string): Promise<void> {
+    const record = await this.pageFilesRepository.findByKey(key);
+    if (!record) {
+      throw new NotFoundException('Файл не найден');
     }
-
     await this.uploadService.deleteFile(key);
-
-    const updatedFiles = page.files.filter((f) => f.key !== key);
-    const updated = await this.pagesRepository.update(slug, { files: updatedFiles });
-    if (!updated) {
-      throw new NotFoundException('Страница не найдена');
-    }
-    return updated;
+    await this.pageFilesRepository.deleteByKey(key);
   }
 }
