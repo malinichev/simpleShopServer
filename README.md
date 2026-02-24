@@ -175,6 +175,108 @@ docker-compose down -v
 docker-compose logs -f server
 ```
 
+## Продакшен
+
+### Расположение на сервере
+
+| Параметр | Значение |
+|---|---|
+| Сервер | `root@45.81.243.129` |
+| Путь проекта | `/var/www/simple-shop-server` |
+| Текущая версия | `/var/www/simple-shop-server/current` |
+| Env-файл | `/var/www/simple-shop-server/.env.production` |
+| Логи | `/var/www/simple-shop-server/logs/` |
+| Process manager | PM2 (пользователь `deploy`) |
+| API | `http://45.81.243.129:4000/api` |
+| MinIO | `http://45.81.243.129:9000` |
+
+### Структура деплоя
+
+```
+/var/www/simple-shop-server/
+├── current/              # Текущая версия (git clone)
+│   ├── dist/             # Скомпилированный код
+│   ├── .env -> ../.env.production   # Симлинк на env-файл
+│   └── ecosystem.config.js
+├── .env.production       # Единый env-файл для прода
+├── docker-compose.yml    # Инфраструктура (MongoDB, Redis, MinIO)
+├── logs/
+│   ├── out.log           # stdout PM2
+│   └── error.log         # stderr PM2
+└── shared/
+    └── logs/
+```
+
+### Как обновить переменные окружения на сервере
+
+```bash
+# Подключиться к серверу
+ssh root@45.81.243.129
+
+# Открыть env-файл в редакторе
+nano /var/www/simple-shop-server/.env.production
+
+# Или обновить конкретную переменную без открытия редактора
+sed -i 's|^CORS_ORIGINS=.*|CORS_ORIGINS=http://example.com,http://example.com:3001|' \
+  /var/www/simple-shop-server/.env.production
+
+# Добавить новую переменную (если её ещё нет)
+echo 'NEW_VAR=value' >> /var/www/simple-shop-server/.env.production
+
+# Применить изменения — перезапустить NestJS
+su - deploy -c "pm2 restart simple-shop-api --update-env"
+
+# Убедиться что процесс поднялся
+su - deploy -c "pm2 list"
+```
+
+> **Важно:** `.env` в папке `current/` — это симлинк на `.env.production`. Редактировать нужно именно `.env.production`.
+
+### Управление PM2
+
+```bash
+# Статус процессов (от root)
+su - deploy -c "pm2 list"
+
+# Перезапуск с подхватом новых env
+su - deploy -c "pm2 restart simple-shop-api --update-env"
+
+# Логи в реальном времени
+su - deploy -c "pm2 logs simple-shop-api"
+# или
+tail -f /var/www/simple-shop-server/logs/out.log
+tail -f /var/www/simple-shop-server/logs/error.log
+```
+
+### Управление инфраструктурой (Docker)
+
+```bash
+ssh root@45.81.243.129
+cd /var/www/simple-shop-server
+
+# Статус контейнеров
+docker compose --env-file .env.production ps
+
+# Перезапуск всей инфраструктуры
+docker compose --env-file .env.production restart
+
+# Перезапуск конкретного сервиса (например MinIO)
+docker stop sports-shop-minio && docker rm sports-shop-minio
+docker compose --env-file .env.production up -d minio
+
+# Логи контейнера
+docker logs -f sports-shop-minio
+docker logs -f sports-shop-mongo
+```
+
+### Ключевые особенности прод-конфига
+
+- `S3_ENDPOINT` и `S3_PUBLIC_URL` должны указывать на публичный IP (`http://45.81.243.129:9000`), а не `localhost`
+- MinIO бакет `sports-shop` настроен на публичный read-доступ
+- MinIO слушает на `0.0.0.0:9000` (доступен снаружи)
+- MongoDB и Redis привязаны к `127.0.0.1` (только localhost)
+- `CORS_ORIGINS` должен содержать URL админки (через запятую если несколько)
+
 ## Лицензия
 
 MIT
