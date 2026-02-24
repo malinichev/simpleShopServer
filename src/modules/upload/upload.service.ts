@@ -28,15 +28,16 @@ const THUMB_SIZE = 300;
 export class UploadService implements OnModuleInit {
   private readonly s3: S3Client;
   private readonly bucket: string;
-  private readonly endpoint: string;
+  private readonly publicUrl: string;
   private readonly logger = new Logger(UploadService.name);
 
   constructor(private readonly configService: ConfigService) {
-    this.endpoint = this.configService.get<string>('s3.endpoint')!;
+    const endpoint = this.configService.get<string>('s3.endpoint')!;
+    this.publicUrl = this.configService.get<string>('s3.publicUrl')!;
     this.bucket = this.configService.get<string>('s3.bucket')!;
 
     this.s3 = new S3Client({
-      endpoint: this.endpoint,
+      endpoint,
       region: this.configService.get<string>('s3.region'),
       credentials: {
         accessKeyId: this.configService.get<string>('s3.accessKey')!,
@@ -54,9 +55,7 @@ export class UploadService implements OnModuleInit {
       const statusCode = (error as { $metadata?: { httpStatusCode?: number } })
         ?.$metadata?.httpStatusCode;
       if (statusCode === 404 || statusCode === 403) {
-        this.logger.warn(
-          `Bucket "${this.bucket}" not found, creating...`,
-        );
+        this.logger.warn(`Bucket "${this.bucket}" not found, creating...`);
         await this.s3.send(new CreateBucketCommand({ Bucket: this.bucket }));
         this.logger.log(`Bucket "${this.bucket}" created`);
       } else {
@@ -177,7 +176,7 @@ export class UploadService implements OnModuleInit {
   }
 
   getFileUrl(key: string): string {
-    return `${this.endpoint}/${this.bucket}/${key}`;
+    return `${this.publicUrl}/${this.bucket}/${key}`;
   }
 
   private validateFile(file: Express.Multer.File): void {
