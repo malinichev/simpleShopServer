@@ -6,7 +6,8 @@ import {
 import { ObjectId } from 'mongodb';
 import { CartRepository } from './cart.repository';
 import { ProductsService } from '@/modules/products/products.service';
-import { Cart, CartItem } from './entities/cart.entity';
+import { PromotionsService } from '@/modules/promotions/promotions.service';
+import { Cart } from './entities/cart.entity';
 import {
   AddToCartDto,
   CartResponseDto,
@@ -23,6 +24,7 @@ export class CartService {
   constructor(
     private readonly cartRepository: CartRepository,
     private readonly productsService: ProductsService,
+    private readonly promotionsService: PromotionsService,
   ) {}
 
   async getCart(userId?: string, sessionId?: string): Promise<CartResponseDto> {
@@ -171,13 +173,52 @@ export class CartService {
       throw new BadRequestException('Корзина пуста');
     }
 
-    // TODO: Интеграция с PromotionsModule для проверки промокода
-    // Пока используем заглушку
-    const promoDiscount = this.validatePromoCode(code);
+    // Собираем данные корзины для валидации промокода
+    const productsCache = new Map<string, Product>();
+    const cartItems: Array<{
+      productId: string;
+      categoryId?: string;
+      quantity: number;
+      price: number;
+    }> = [];
+
+    for (const item of cart.items) {
+      const productIdStr = item.productId.toString();
+      let product = productsCache.get(productIdStr);
+      if (!product) {
+        try {
+          product = await this.productsService.findById(productIdStr);
+          productsCache.set(productIdStr, product);
+        } catch {
+          continue;
+        }
+      }
+      cartItems.push({
+        productId: productIdStr,
+        categoryId: product.categoryId?.toString(),
+        quantity: item.quantity,
+        price: item.price,
+      });
+    }
+
+    const cartTotal = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
+    const result = await this.promotionsService.validate(
+      code,
+      userId ?? null,
+      { cartTotal, items: cartItems },
+    );
+
+    if (!result.valid) {
+      throw new BadRequestException(result.message ?? 'Недействительный промокод');
+    }
 
     const updated = await this.cartRepository.update(cart._id, {
       promoCode: code.toUpperCase(),
-      promoDiscount,
+      promoDiscount: result.discount,
     });
     return this.buildCartResponse(updated!);
   }
@@ -346,9 +387,7 @@ export class CartService {
     promoDiscount?: number,
   ): CartTotalsDto {
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-    const discount = promoDiscount
-      ? Math.round(subtotal * (promoDiscount / 100) * 100) / 100
-      : 0;
+    const discount = promoDiscount ? Math.min(promoDiscount, subtotal) : 0;
 
     return {
       subtotal,
@@ -358,18 +397,4 @@ export class CartService {
     };
   }
 
-  private validatePromoCode(code: string): number {
-    // Заглушка — будет заменена интеграцией с PromotionsModule
-    const promoCodes: Record<string, number> = {
-      WELCOME10: 10,
-      SALE20: 20,
-    };
-
-    const discount = promoCodes[code.toUpperCase()];
-    if (!discount) {
-      throw new BadRequestException('Недействительный промокод');
-    }
-
-    return discount;
-  }
 }

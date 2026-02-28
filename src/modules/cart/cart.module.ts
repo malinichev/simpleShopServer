@@ -6,11 +6,13 @@ import { CartService } from './cart.service';
 import { CartRepository } from './cart.repository';
 import { SessionIdMiddleware } from './middleware/session-id.middleware';
 import { ProductsModule } from '@/modules/products/products.module';
+import { PromotionsModule } from '@/modules/promotions/promotions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Cart]),
     ProductsModule,
+    PromotionsModule,
   ],
   controllers: [CartController],
   providers: [CartRepository, CartService],
