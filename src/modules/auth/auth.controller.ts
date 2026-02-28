@@ -3,7 +3,9 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
+  Param,
   UseGuards,
   Req,
   Res,
@@ -35,12 +37,16 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@/modules/users/entities/user.entity';
-import { UpdateUserDto } from '@/modules/users/dto';
+import { UpdateUserDto, CreateAddressDto, UpdateAddressDto } from '@/modules/users/dto';
+import { UsersService } from '@/modules/users/users.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -213,6 +219,46 @@ export class AuthController {
       changePasswordDto,
     );
     return { message: 'Пароль успешно изменён' };
+  }
+
+  @Post('me/addresses')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Добавить адрес доставки' })
+  @ApiResponse({ status: 201, description: 'Адрес добавлен' })
+  async addAddress(
+    @CurrentUser() user: User,
+    @Body() dto: CreateAddressDto,
+  ) {
+    const updated = await this.usersService.addAddress(user._id.toString(), dto);
+    return this.usersService.sanitizeUser(updated);
+  }
+
+  @Patch('me/addresses/:addressId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Обновить адрес доставки' })
+  @ApiResponse({ status: 200, description: 'Адрес обновлён' })
+  async updateAddress(
+    @CurrentUser() user: User,
+    @Param('addressId') addressId: string,
+    @Body() dto: UpdateAddressDto,
+  ) {
+    const updated = await this.usersService.updateAddress(user._id.toString(), addressId, dto);
+    return this.usersService.sanitizeUser(updated);
+  }
+
+  @Delete('me/addresses/:addressId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Удалить адрес доставки' })
+  @ApiResponse({ status: 200, description: 'Адрес удалён' })
+  async removeAddress(
+    @CurrentUser() user: User,
+    @Param('addressId') addressId: string,
+  ) {
+    const updated = await this.usersService.removeAddress(user._id.toString(), addressId);
+    return this.usersService.sanitizeUser(updated);
   }
 
   private setRefreshTokenCookie(response: Response, refreshToken: string): void {
