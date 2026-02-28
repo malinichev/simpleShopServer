@@ -1,30 +1,8 @@
-# Development only — NOT for production use.
-# For production, use: docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
-
 services:
-#  server:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    container_name: sports-shop-server
-#    restart: always
-#    ports:
-#      - '4000:4000'
-#    environment:
-#      - NODE_ENV=production
-#    env_file:
-#      - .env
-#    depends_on:
-#      - mongo
-#      - redis
-#      - minio
-#    networks:
-#      - sports-shop-network
-
   mongo:
     image: mongo:7
     container_name: sports-shop-mongo
-    restart: always
+    restart: unless-stopped
     ports:
       - '27017:27017'
     volumes:
@@ -35,7 +13,7 @@ services:
   redis:
     image: redis:alpine
     container_name: sports-shop-redis
-    restart: always
+    restart: unless-stopped
     ports:
       - '6379:6379'
     volumes:
@@ -46,16 +24,31 @@ services:
   minio:
     image: minio/minio
     container_name: sports-shop-minio
-    restart: always
+    restart: unless-stopped
     ports:
       - '9000:9000'
       - '9001:9001'
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - sports-shop-network
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/sports-shop --ignore-existing;
+      /usr/bin/mc anonymous set public myminio/sports-shop;
+      exit 0;
+      "
     networks:
       - sports-shop-network
 
@@ -70,20 +63,6 @@ services:
       - ME_CONFIG_BASICAUTH=false
     depends_on:
       - mongo
-    networks:
-      - sports-shop-network
-
-  createbuckets:
-    image: minio/mc
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      /usr/bin/mc alias set myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
-      /usr/bin/mc mb myminio/sports-shop --ignore-existing;
-      exit 0;
-      "
     networks:
       - sports-shop-network
 

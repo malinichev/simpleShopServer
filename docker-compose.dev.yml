@@ -1,26 +1,4 @@
 services:
-  server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sports-shop-server
-    restart: unless-stopped
-    ports:
-      - '4000:4000'
-    environment:
-      - NODE_ENV=development
-    env_file:
-      - .env.development
-    depends_on:
-      - mongo
-      - redis
-      - minio
-    volumes:
-      - ./src:/app/src
-    command: pnpm run start:dev
-    networks:
-      - sports-shop-network
-
   mongo:
     image: mongo:7
     container_name: sports-shop-mongo
