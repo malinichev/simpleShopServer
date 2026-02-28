@@ -7,7 +7,12 @@ import { ObjectId } from 'mongodb';
 import { CartRepository } from './cart.repository';
 import { ProductsService } from '@/modules/products/products.service';
 import { Cart, CartItem } from './entities/cart.entity';
-import { AddToCartDto, CartResponseDto, CartItemResponseDto, CartTotalsDto } from './dto';
+import {
+  AddToCartDto,
+  CartResponseDto,
+  CartItemResponseDto,
+  CartTotalsDto,
+} from './dto';
 import { Product } from '@/modules/products/entities/product.entity';
 
 const GUEST_CART_TTL_DAYS = 7;
@@ -25,12 +30,18 @@ export class CartService {
     return this.buildCartResponse(cart);
   }
 
-  async addItem(userId: string | undefined, sessionId: string | undefined, dto: AddToCartDto): Promise<CartResponseDto> {
+  async addItem(
+    userId: string | undefined,
+    sessionId: string | undefined,
+    dto: AddToCartDto,
+  ): Promise<CartResponseDto> {
     const product = await this.productsService.findById(dto.productId);
     const variant = product.variants.find((v) => v.id === dto.variantId);
 
     if (!variant) {
-      throw new BadRequestException(`Вариант с id "${dto.variantId}" не найден`);
+      throw new BadRequestException(
+        `Вариант с id "${dto.variantId}" не найден`,
+      );
     }
 
     if (variant.stock < dto.quantity) {
@@ -42,13 +53,17 @@ export class CartService {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
     const existingIndex = cart.items.findIndex(
-      (item) => item.variantId === dto.variantId && item.productId.toString() === dto.productId,
+      (item) =>
+        item.variantId === dto.variantId &&
+        item.productId.toString() === dto.productId,
     );
 
     if (existingIndex >= 0) {
       const newQuantity = cart.items[existingIndex].quantity + dto.quantity;
       if (newQuantity > 10) {
-        throw new BadRequestException('Максимальное количество одного товара — 10');
+        throw new BadRequestException(
+          'Максимальное количество одного товара — 10',
+        );
       }
       if (newQuantity > variant.stock) {
         throw new BadRequestException(
@@ -67,7 +82,9 @@ export class CartService {
       });
     }
 
-    const updated = await this.cartRepository.update(cart._id, { items: cart.items });
+    const updated = await this.cartRepository.update(cart._id, {
+      items: cart.items,
+    });
     return this.buildCartResponse(updated!);
   }
 
@@ -83,13 +100,17 @@ export class CartService {
       return this.removeItem(userId, sessionId, variantId);
     }
 
-    const itemIndex = cart.items.findIndex((item) => item.variantId === variantId);
+    const itemIndex = cart.items.findIndex(
+      (item) => item.variantId === variantId,
+    );
     if (itemIndex < 0) {
       throw new NotFoundException('Товар не найден в корзине');
     }
 
     const item = cart.items[itemIndex];
-    const product = await this.productsService.findById(item.productId.toString());
+    const product = await this.productsService.findById(
+      item.productId.toString(),
+    );
     const variant = product.variants.find((v) => v.id === variantId);
 
     if (variant && quantity > variant.stock) {
@@ -101,23 +122,36 @@ export class CartService {
     cart.items[itemIndex].quantity = quantity;
     cart.items[itemIndex].price = variant?.price ?? product.price;
 
-    const updated = await this.cartRepository.update(cart._id, { items: cart.items });
+    const updated = await this.cartRepository.update(cart._id, {
+      items: cart.items,
+    });
     return this.buildCartResponse(updated!);
   }
 
-  async removeItem(userId: string | undefined, sessionId: string | undefined, variantId: string): Promise<CartResponseDto> {
+  async removeItem(
+    userId: string | undefined,
+    sessionId: string | undefined,
+    variantId: string,
+  ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
-    const filteredItems = cart.items.filter((item) => item.variantId !== variantId);
+    const filteredItems = cart.items.filter(
+      (item) => item.variantId !== variantId,
+    );
     if (filteredItems.length === cart.items.length) {
       throw new NotFoundException('Товар не найден в корзине');
     }
 
-    const updated = await this.cartRepository.update(cart._id, { items: filteredItems });
+    const updated = await this.cartRepository.update(cart._id, {
+      items: filteredItems,
+    });
     return this.buildCartResponse(updated!);
   }
 
-  async clearCart(userId: string | undefined, sessionId: string | undefined): Promise<void> {
+  async clearCart(
+    userId: string | undefined,
+    sessionId: string | undefined,
+  ): Promise<void> {
     const cart = await this.findOrCreateCart(userId, sessionId);
     await this.cartRepository.update(cart._id, {
       items: [],
@@ -126,7 +160,11 @@ export class CartService {
     });
   }
 
-  async applyPromo(userId: string | undefined, sessionId: string | undefined, code: string): Promise<CartResponseDto> {
+  async applyPromo(
+    userId: string | undefined,
+    sessionId: string | undefined,
+    code: string,
+  ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
     if (cart.items.length === 0) {
@@ -144,7 +182,10 @@ export class CartService {
     return this.buildCartResponse(updated!);
   }
 
-  async removePromo(userId: string | undefined, sessionId: string | undefined): Promise<CartResponseDto> {
+  async removePromo(
+    userId: string | undefined,
+    sessionId: string | undefined,
+  ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
     const updated = await this.cartRepository.update(cart._id, {
@@ -154,7 +195,10 @@ export class CartService {
     return this.buildCartResponse(updated!);
   }
 
-  async mergeCarts(userId: string, sessionId: string): Promise<CartResponseDto> {
+  async mergeCarts(
+    userId: string,
+    sessionId: string,
+  ): Promise<CartResponseDto> {
     const guestCart = await this.cartRepository.findBySessionId(sessionId);
     let userCart = await this.cartRepository.findByUserId(userId);
 
@@ -204,7 +248,10 @@ export class CartService {
     return this.buildCartResponse(updated!);
   }
 
-  private async findOrCreateCart(userId?: string, sessionId?: string): Promise<Cart> {
+  private async findOrCreateCart(
+    userId?: string,
+    sessionId?: string,
+  ): Promise<Cart> {
     let cart: Cart | null = null;
 
     if (userId) {
@@ -294,7 +341,10 @@ export class CartService {
     };
   }
 
-  private calculateTotals(items: CartItemResponseDto[], promoDiscount?: number): CartTotalsDto {
+  private calculateTotals(
+    items: CartItemResponseDto[],
+    promoDiscount?: number,
+  ): CartTotalsDto {
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
     const discount = promoDiscount
       ? Math.round(subtotal * (promoDiscount / 100) * 100) / 100
