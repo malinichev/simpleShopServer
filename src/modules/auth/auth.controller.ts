@@ -39,6 +39,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@/modules/users/entities/user.entity';
 import { UpdateUserDto, CreateAddressDto, UpdateAddressDto } from '@/modules/users/dto';
 import { UsersService } from '@/modules/users/users.service';
+import { TokenAudience } from '@/common/types';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -62,9 +63,10 @@ export class AuthController {
     @Body() registerDto: RegisterDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
+    const audience = TokenAudience.WEB;
     const result = await this.authService.register(registerDto);
 
-    this.setRefreshTokenCookie(response, result.refreshToken);
+    this.setRefreshTokenCookie(response, result.refreshToken, audience);
 
     return result;
   }
@@ -86,9 +88,10 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
-    const result = await this.authService.login(req.user as User);
+    const audience = (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
+    const result = await this.authService.login(req.user as User, audience);
 
-    this.setRefreshTokenCookie(response, result.refreshToken);
+    this.setRefreshTokenCookie(response, result.refreshToken, audience);
 
     return result;
   }
@@ -103,9 +106,10 @@ export class AuthController {
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
-    await this.authService.logout(user._id.toString());
+    const audience = ((user as any).__tokenAudience as TokenAudience) || TokenAudience.WEB;
+    await this.authService.logout(user._id.toString(), audience);
 
-    this.clearRefreshTokenCookie(response);
+    this.clearRefreshTokenCookie(response, audience);
 
     return { message: 'Успешный выход из системы' };
   }
@@ -127,13 +131,15 @@ export class AuthController {
   ): Promise<TokensDto> {
     const user = req.user as User;
     const refreshToken = req['refreshTokenValue'] as string;
+    const audience = (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
 
     const tokens = await this.authService.refreshTokens(
       user._id.toString(),
       refreshToken,
+      audience,
     );
 
-    this.setRefreshTokenCookie(response, tokens.refreshToken);
+    this.setRefreshTokenCookie(response, tokens.refreshToken, audience);
 
     return tokens;
   }
@@ -261,21 +267,29 @@ export class AuthController {
     return this.usersService.sanitizeUser(updated);
   }
 
-  private setRefreshTokenCookie(response: Response, refreshToken: string): void {
-    response.cookie('refreshToken', refreshToken, {
+  private getCookieName(audience: TokenAudience): string {
+    return audience === TokenAudience.ADMIN_PANEL ? 'refreshToken_admin' : 'refreshToken';
+  }
+
+  private setRefreshTokenCookie(
+    response: Response,
+    refreshToken: string,
+    audience: TokenAudience,
+  ): void {
+    response.cookie(this.getCookieName(audience), refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
       path: '/',
     });
   }
 
-  private clearRefreshTokenCookie(response: Response): void {
-    response.clearCookie('refreshToken', {
+  private clearRefreshTokenCookie(response: Response, audience: TokenAudience): void {
+    response.clearCookie(this.getCookieName(audience), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       path: '/',
     });
   }

@@ -11,6 +11,7 @@ import {
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
 } from '@/common/types/pagination.types';
+import { TokenAudience } from '@/common/types';
 
 @Injectable()
 export class UsersRepository {
@@ -93,11 +94,25 @@ export class UsersRepository {
     };
   }
 
-  async updateRefreshToken(id: ObjectId | string, token: string | null): Promise<void> {
+  async updateRefreshToken(
+    id: ObjectId | string,
+    token: string | null,
+    audience: TokenAudience,
+  ): Promise<void> {
     const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+    const user = await this.findById(objectId);
+    const refreshTokens = user?.refreshTokens ? { ...user.refreshTokens } : {};
+
+    if (token) {
+      refreshTokens[audience] = token;
+    } else {
+      delete refreshTokens[audience];
+    }
+
+    const hasTokens = Object.keys(refreshTokens).length > 0;
     await this.repository.update(
       { _id: objectId } as any,
-      { refreshToken: token ?? undefined },
+      { refreshTokens: hasTokens ? refreshTokens : null } as any,
     );
   }
 

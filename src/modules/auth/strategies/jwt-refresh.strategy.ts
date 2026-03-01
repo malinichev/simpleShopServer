@@ -4,10 +4,12 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { UsersService } from '@/modules/users/users.service';
+import { TokenAudience } from '@/common/types';
 
 export interface JwtRefreshPayload {
   sub: string;
   email: string;
+  aud: TokenAudience;
 }
 
 @Injectable()
@@ -19,7 +21,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
-          return request?.cookies?.refreshToken;
+          // Try admin cookie first, then web cookie
+          return request?.cookies?.refreshToken_admin || request?.cookies?.refreshToken;
         },
       ]),
       ignoreExpiration: false,
@@ -29,7 +32,10 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
   }
 
   async validate(req: Request, payload: JwtRefreshPayload) {
-    const refreshToken = req.cookies?.refreshToken;
+    // Determine which cookie was used based on payload audience
+    const audience = payload.aud || TokenAudience.WEB;
+    const cookieName = audience === TokenAudience.ADMIN_PANEL ? 'refreshToken_admin' : 'refreshToken';
+    const refreshToken = req.cookies?.[cookieName];
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token не найден');
@@ -41,8 +47,9 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       throw new UnauthorizedException('Пользователь не найден');
     }
 
-    // Прикрепляем refreshToken к запросу для использования в контроллере
+    // Attach refreshToken and audience to request for use in controller
     req['refreshTokenValue'] = refreshToken;
+    req['tokenAudience'] = audience;
 
     return user;
   }

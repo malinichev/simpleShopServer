@@ -3,6 +3,7 @@ import {
   ConflictException,
   BadRequestException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -10,9 +11,10 @@ import { UsersService } from '@/modules/users/users.service';
 import { MailService } from '@/modules/mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { User } from '@/modules/users/entities/user.entity';
+import { User, UserRole } from '@/modules/users/entities/user.entity';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { TokensDto } from './dto/tokens.dto';
+import { TokenAudience } from '@/common/types';
 
 @Injectable()
 export class AuthService {
@@ -63,10 +65,12 @@ export class AuthService {
       verificationUrl: `${corsOrigins[0]}/verify-email?token=${verificationToken}`,
     });
 
-    const tokens = await this.generateTokens(user);
+    const audience = TokenAudience.WEB;
+    const tokens = await this.generateTokens(user, audience);
     await this.usersService.updateRefreshToken(
       user._id.toString(),
       tokens.refreshToken,
+      audience,
     );
 
     return {
@@ -75,11 +79,21 @@ export class AuthService {
     };
   }
 
-  async login(user: User): Promise<AuthResponseDto> {
-    const tokens = await this.generateTokens(user);
+  async login(
+    user: User,
+    audience: TokenAudience = TokenAudience.WEB,
+  ): Promise<AuthResponseDto> {
+    if (audience === TokenAudience.ADMIN_PANEL) {
+      if (user.role !== UserRole.ADMIN && user.role !== UserRole.MANAGER) {
+        throw new UnauthorizedException('Недостаточно прав для входа в панель администратора');
+      }
+    }
+
+    const tokens = await this.generateTokens(user, audience);
     await this.usersService.updateRefreshToken(
       user._id.toString(),
       tokens.refreshToken,
+      audience,
     );
 
     return {
@@ -88,17 +102,19 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string): Promise<void> {
-    await this.usersService.updateRefreshToken(userId, null);
+  async logout(userId: string, audience: TokenAudience): Promise<void> {
+    await this.usersService.updateRefreshToken(userId, null, audience);
   }
 
   async refreshTokens(
     userId: string,
     refreshToken: string,
+    audience: TokenAudience,
   ): Promise<TokensDto> {
     const isValid = await this.usersService.validateRefreshToken(
       userId,
       refreshToken,
+      audience,
     );
     if (!isValid) {
       throw new UnauthorizedException('Недействительный refresh token');
@@ -109,10 +125,18 @@ export class AuthService {
       throw new UnauthorizedException('Пользователь не найден');
     }
 
-    const tokens = await this.generateTokens(user);
+    // Re-check role for admin audience (in case role was downgraded)
+    if (audience === TokenAudience.ADMIN_PANEL) {
+      if (user.role !== UserRole.ADMIN && user.role !== UserRole.MANAGER) {
+        throw new ForbiddenException('Недостаточно прав для панели администратора');
+      }
+    }
+
+    const tokens = await this.generateTokens(user, audience);
     await this.usersService.updateRefreshToken(
       user._id.toString(),
       tokens.refreshToken,
+      audience,
     );
 
     return tokens;
@@ -184,10 +208,15 @@ export class AuthService {
     return this.usersService.sanitizeUser(user);
   }
 
-  private async generateTokens(user: User): Promise<TokensDto> {
+  private async generateTokens(
+    user: User,
+    audience: TokenAudience,
+  ): Promise<TokensDto> {
     const payload = {
       sub: user._id.toString(),
       email: user.email,
+      role: user.role,
+      aud: audience,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

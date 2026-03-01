@@ -62,8 +62,8 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   passwordResetExpires?: Date;
 
-  @Column({ nullable: true })
-  refreshToken?: string;
+  @Column('json', { nullable: true, default: null })
+  refreshTokens?: Record<string, string>;
 
   @Column('simple-array', { default: [] })
   wishlist: string[]; // product IDs

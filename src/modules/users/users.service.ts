@@ -20,6 +20,7 @@ import {
   UpdateAddressDto,
 } from './dto';
 import { PaginatedResult } from '@/common/types/pagination.types';
+import { TokenAudience } from '@/common/types';
 
 @Injectable()
 export class UsersService {
@@ -112,17 +113,29 @@ export class UsersService {
     return bcrypt.compare(password, hashedPassword);
   }
 
-  async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
+  async updateRefreshToken(
+    userId: string,
+    refreshToken: string | null,
+    audience: TokenAudience,
+  ): Promise<void> {
     const hashedToken = refreshToken ? await bcrypt.hash(refreshToken, 12) : null;
-    await this.usersRepository.updateRefreshToken(userId, hashedToken);
+    await this.usersRepository.updateRefreshToken(userId, hashedToken, audience);
   }
 
-  async validateRefreshToken(userId: string, token: string): Promise<boolean> {
+  async validateRefreshToken(
+    userId: string,
+    token: string,
+    audience: TokenAudience,
+  ): Promise<boolean> {
     const user = await this.findById(userId);
-    if (!user || !user.refreshToken) {
+    if (!user || !user.refreshTokens) {
       return false;
     }
-    return bcrypt.compare(token, user.refreshToken);
+    const storedHash = user.refreshTokens[audience];
+    if (!storedHash) {
+      return false;
+    }
+    return bcrypt.compare(token, storedHash);
   }
 
   async generateEmailVerificationToken(userId: string): Promise<string> {
@@ -203,7 +216,7 @@ export class UsersService {
       password: hashedPassword,
       passwordResetToken: undefined,
       passwordResetExpires: undefined,
-      refreshToken: undefined,
+      refreshTokens: null,
     } as any);
 
     return this.findByIdOrFail(user._id.toString());
@@ -225,7 +238,7 @@ export class UsersService {
 
     await this.usersRepository.update(userId, {
       password: hashedPassword,
-      refreshToken: undefined,
+      refreshTokens: null,
     } as any);
   }
 
