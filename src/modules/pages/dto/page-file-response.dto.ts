@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PageFileResponseDto {
-  @ApiProperty() _id: string;
+  @ApiProperty() id: string;
   @ApiProperty() key: string;
   @ApiProperty() url: string;
   @ApiProperty() name: string;

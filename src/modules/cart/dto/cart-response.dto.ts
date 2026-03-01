@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CartItemProductDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   name: string;
@@ -73,7 +73,7 @@ export class CartTotalsDto {
 
 export class CartResponseDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty({ type: [CartItemResponseDto] })
   items: CartItemResponseDto[];

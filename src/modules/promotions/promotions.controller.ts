@@ -93,7 +93,7 @@ export class PromotionsController {
   @ApiResponse({ status: 200, type: ValidatePromoResponseDto })
   async validate(
     @Body() dto: ValidatePromoDto,
-    @CurrentUser('_id') userId?: string,
+    @CurrentUser('id') userId?: string,
   ) {
     return this.promotionsService.validate(
       dto.code,

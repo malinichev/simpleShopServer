@@ -3,7 +3,7 @@ import { PromotionType } from '../entities/promotion.entity';
 
 export class PromotionResponseDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   code: string;

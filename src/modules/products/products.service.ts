@@ -276,7 +276,7 @@ export class ProductsService implements OnModuleDestroy {
     category?: { id: string; name: string; slug: string },
   ): ProductResponseDto {
     return {
-      _id: product.id,
+      id: product.id,
       name: product.name,
       slug: product.slug,
       description: product.description,
@@ -287,7 +287,7 @@ export class ProductsService implements OnModuleDestroy {
       categoryId: product.categoryId,
       category: category
         ? {
-            _id: category.id,
+            id: category.id,
             name: category.name,
             slug: category.slug,
           }

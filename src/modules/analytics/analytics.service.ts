@@ -209,7 +209,7 @@ export class AnalyticsService implements OnModuleDestroy {
   async getLowStockProducts(
     threshold: number = 5,
     limit: number = 10,
-  ): Promise<Array<{ _id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
+  ): Promise<Array<{ id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
     const cacheKey = `${CACHE_PREFIX}:low-stock:${threshold}:${limit}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -222,7 +222,7 @@ export class AnalyticsService implements OnModuleDestroy {
         const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
         const firstImage = product.images?.[0]?.url;
         return {
-          _id: product.id,
+          id: product.id,
           name: product.name,
           sku: product.sku,
           stock: totalStock,

@@ -393,7 +393,7 @@ export async function seedProducts(
       sku: data.sku,
       price: data.price,
       compareAtPrice: data.compareAtPrice,
-      categoryId: category._id,
+      categoryId: category.id,
       tags: data.tags,
       images: [],
       variants: generateVariants(data.colorCount, data.sku, data.price),

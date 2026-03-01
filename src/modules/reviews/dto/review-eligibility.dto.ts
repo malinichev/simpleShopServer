@@ -16,7 +16,7 @@ export class EligibleOrderItemDto {
 
 export class EligibleOrderDto {
   @ApiProperty({ description: 'ID заказа' })
-  _id: string;
+  id: string;
 
   @ApiProperty({ description: 'Номер заказа' })
   orderNumber: string;

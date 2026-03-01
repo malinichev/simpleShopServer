@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 class UserBriefDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   firstName: string;
@@ -13,7 +13,7 @@ class UserBriefDto {
 
 export class ReviewResponseDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   productId: string;

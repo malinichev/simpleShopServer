@@ -9,7 +9,7 @@ import { ProductStatus } from '../entities/product.entity';
 
 class CategoryBriefDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   name: string;
@@ -20,7 +20,7 @@ class CategoryBriefDto {
 
 export class ProductResponseDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   name: string;

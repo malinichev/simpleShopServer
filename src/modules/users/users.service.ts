@@ -303,7 +303,7 @@ export class UsersService {
 
   sanitizeUser(user: User): UserResponseDto {
     return {
-      _id: user.id,
+      id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,

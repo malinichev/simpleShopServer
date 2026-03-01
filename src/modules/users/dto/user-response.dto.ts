@@ -3,7 +3,7 @@ import { UserRole, Address } from '../entities/user.entity';
 
 export class UserResponseDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   email: string;

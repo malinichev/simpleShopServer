@@ -34,7 +34,7 @@ async function createAdmin() {
 
     if (existingUser) {
       console.log('❌ Администратор уже существует:', adminData.email);
-      const userIid = existingUser._id.toString();
+      const userIid = existingUser.id;
       await usersService.delete(userIid);
       console.log('❌ Удалили его:', adminData.email);
       // console.log({ existingUser['_id'] });
@@ -43,7 +43,7 @@ async function createAdmin() {
 
     if (existingUser2) {
       console.log('❌ Администратор уже существует:', adminData2.email);
-      const userIid = existingUser2._id.toString();
+      const userIid = existingUser2.id;
       await usersService.delete(userIid);
       console.log('❌ Удалили его:', adminData2.email);
       // console.log({ existingUser['_id'] });

@@ -5,7 +5,7 @@ import type { Address } from '@/modules/users/entities/user.entity';
 
 class OrderUserBriefDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   email: string;
@@ -22,7 +22,7 @@ class OrderUserBriefDto {
 
 export class OrderResponseDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   orderNumber: string;

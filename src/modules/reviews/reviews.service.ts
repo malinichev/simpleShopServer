@@ -230,14 +230,14 @@ export class ReviewsService implements OnModuleDestroy {
     const isAnonymous = review.isAnonymous ?? false;
 
     return {
-      _id: review.id,
+      id: review.id,
       productId: review.productId,
       userId: review.userId,
       user: isAnonymous
         ? undefined
         : user
           ? {
-              _id: user.id,
+              id: user.id,
               firstName: user.firstName,
               lastName: user.lastName,
             }
@@ -283,7 +283,7 @@ export class ReviewsService implements OnModuleDestroy {
         ),
       )
       .map((order) => ({
-        _id: order.id,
+        id: order.id,
         orderNumber: order.orderNumber,
         createdAt: order.createdAt,
         items: order.items

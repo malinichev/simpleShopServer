@@ -56,7 +56,7 @@ export class OrdersService {
     // 3. Проверить наличие товаров и собрать items
     const orderItems: Partial<OrderItemEntity>[] = [];
     for (const cartItem of cart.items) {
-      const product = await this.productsService.findById(cartItem.product._id);
+      const product = await this.productsService.findById(cartItem.product.id);
       const variant = product.variants.find((v) => v.id === cartItem.variantId);
 
       if (!variant) {
@@ -72,7 +72,7 @@ export class OrdersService {
       }
 
       orderItems.push({
-        productId: cartItem.product._id,
+        productId: cartItem.product.id,
         variantId: cartItem.variantId,
         name: product.name,
         sku: variant.sku,
@@ -342,12 +342,12 @@ export class OrdersService {
     },
   ): OrderResponseDto {
     return {
-      _id: order.id,
+      id: order.id,
       orderNumber: order.orderNumber,
       userId: order.userId,
       user: user
         ? {
-            _id: user.id,
+            id: user.id,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,

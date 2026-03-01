@@ -352,7 +352,7 @@ export class CartService {
 
       items.push({
         product: {
-          _id: product.id,
+          id: product.id,
           name: product.name,
           slug: product.slug,
           image: product.images?.[0]?.url,
@@ -376,7 +376,7 @@ export class CartService {
     const totals = this.calculateTotals(items, cart.promoDiscount);
 
     return {
-      _id: cart.id,
+      id: cart.id,
       items,
       promoCode: cart.promoCode,
       promoDiscount: cart.promoDiscount,

@@ -106,7 +106,7 @@ export class AnalyticsController {
   async getLowStock(
     @Query('threshold') threshold?: string,
     @Query('limit') limit?: string,
-  ): Promise<Array<{ _id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
+  ): Promise<Array<{ id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
     const parsedThreshold = threshold ? parseInt(threshold, 10) : 5;
     const parsedLimit = limit ? parseInt(limit, 10) : 10;
     return this.analyticsService.getLowStockProducts(parsedThreshold, parsedLimit);

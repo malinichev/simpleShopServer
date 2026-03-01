@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PageResponseDto {
-  @ApiProperty() _id: string;
+  @ApiProperty() id: string;
   @ApiProperty() slug: string;
   @ApiProperty() title: string;
   @ApiPropertyOptional() metaTitle?: string;

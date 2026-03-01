@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class WishlistItemDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   name: string;

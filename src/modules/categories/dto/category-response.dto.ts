@@ -13,7 +13,7 @@ class SeoResponseDto {
 
 export class CategoryResponseDto {
   @ApiProperty()
-  _id: string;
+  id: string;
 
   @ApiProperty()
   name: string;
