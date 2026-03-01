@@ -59,9 +59,6 @@ const promotionsData = [
 export async function seedPromotions(dataSource: DataSource): Promise<void> {
   const repository = dataSource.getRepository(Promotion);
 
-  await repository.delete({});
-  console.log('  Cleared promotions table');
-
   const promotions = promotionsData.map((p) => repository.create(p));
   await repository.save(promotions);
   console.log(`  Seeded ${promotions.length} promotions`);

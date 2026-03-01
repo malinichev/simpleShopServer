@@ -23,6 +23,21 @@ async function runSeeds(): Promise<void> {
     await dataSource.initialize();
     console.log('Connected to database\n');
 
+    // Clear all tables respecting FK constraints
+    const tables = [
+      'analytics_daily', 'page_files', 'pages', 'payment_methods', 'shipping_methods', 'settings',
+      'reviews', 'order_items', 'cart_items', 'carts', 'orders',
+      'product_variants', 'products', 'categories', 'promotions', 'users',
+    ];
+    for (const table of tables) {
+      try {
+        await dataSource.query(`TRUNCATE TABLE "${table}" CASCADE`);
+      } catch {
+        // Table may not exist yet on first run (synchronize will create it)
+      }
+    }
+    console.log('Cleared all tables\n');
+
     console.log('[1/4] Seeding users...');
     await seedUsers(dataSource);
     console.log('');

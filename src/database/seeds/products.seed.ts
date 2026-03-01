@@ -376,11 +376,6 @@ export async function seedProducts(
   const productRepository = dataSource.getRepository(Product);
   const variantRepository = dataSource.getRepository(ProductVariantEntity);
 
-  // Clear in correct order (variants first due to FK)
-  await variantRepository.delete({});
-  await productRepository.delete({});
-  console.log('  Cleared products and variants tables');
-
   for (const data of productsData) {
     const category = categoryMap.get(data.categorySlug);
     if (!category) {

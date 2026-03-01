@@ -32,9 +32,6 @@ const usersData = [
 export async function seedUsers(dataSource: DataSource): Promise<void> {
   const repository = dataSource.getRepository(User);
 
-  await repository.delete({});
-  console.log('  Cleared users table');
-
   const users = await Promise.all(
     usersData.map(async (userData) => {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
