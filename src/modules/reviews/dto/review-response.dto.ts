@@ -40,6 +40,9 @@ export class ReviewResponseDto {
   images: string[];
 
   @ApiProperty()
+  isAnonymous: boolean;
+
+  @ApiProperty()
   isApproved: boolean;
 
   @ApiPropertyOptional()

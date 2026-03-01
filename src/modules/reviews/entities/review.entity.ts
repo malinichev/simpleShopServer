@@ -29,6 +29,9 @@ export class Review extends BaseEntity {
   @Column('simple-array', { default: [] })
   images: string[];
 
+  @Column({ default: false })
+  isAnonymous: boolean;
+
   @Index()
   @Column({ default: false })
   isApproved: boolean;

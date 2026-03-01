@@ -7,6 +7,7 @@ import { ReviewsService } from './reviews.service';
 import { ReviewsController } from './reviews.controller';
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { ProductsModule } from '@/modules/products/products.module';
+import { UsersModule } from '@/modules/users/users.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ProductsModule } from '@/modules/products/products.module';
     ConfigModule,
     OrdersModule,
     ProductsModule,
+    UsersModule,
   ],
   controllers: [ReviewsController],
   providers: [ReviewsRepository, ReviewsService],

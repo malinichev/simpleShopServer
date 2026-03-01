@@ -24,6 +24,7 @@ import {
   AdminReplyDto,
   ReviewQueryDto,
   ReviewResponseDto,
+  ReviewEligibilityDto,
 } from './dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
@@ -34,6 +35,23 @@ import { User, UserRole } from '@/modules/users/entities/user.entity';
 @Controller()
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
+
+  // === Auth: проверка права на отзыв ===
+
+  @Get('products/:productId/reviews/can-review')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Проверить возможность оставить отзыв' })
+  @ApiParam({ name: 'productId', description: 'Product ID' })
+  @ApiResponse({ status: 200, type: ReviewEligibilityDto })
+  async checkReviewEligibility(
+    @CurrentUser() user: User,
+    @Param('productId') productId: string,
+  ) {
+    return this.reviewsService.checkReviewEligibility(
+      user._id.toString(),
+      productId,
+    );
+  }
 
   // === Public: отзывы товара ===
 

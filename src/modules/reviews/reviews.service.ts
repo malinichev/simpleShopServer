@@ -12,12 +12,14 @@ import Redis from 'ioredis';
 import { ReviewsRepository } from './reviews.repository';
 import { OrdersService } from '@/modules/orders/orders.service';
 import { ProductsService } from '@/modules/products/products.service';
+import { UsersService } from '@/modules/users/users.service';
 import { Review } from './entities/review.entity';
 import {
   CreateReviewDto,
   UpdateReviewDto,
   ReviewQueryDto,
   ReviewResponseDto,
+  ReviewEligibilityDto,
 } from './dto';
 import { PaginatedResult } from '@/common/types/pagination.types';
 import { OrderStatus } from '@/modules/orders/entities/order.entity';
@@ -33,6 +35,7 @@ export class ReviewsService implements OnModuleDestroy {
     private readonly reviewsRepository: ReviewsRepository,
     private readonly ordersService: OrdersService,
     private readonly productsService: ProductsService,
+    private readonly usersService: UsersService,
     private readonly configService: ConfigService,
   ) {
     this.redis = new Redis({
@@ -87,6 +90,7 @@ export class ReviewsService implements OnModuleDestroy {
       title: dto.title,
       text: dto.text,
       images: dto.images || [],
+      isAnonymous: dto.isAnonymous ?? false,
       isApproved: false,
     });
 
@@ -97,7 +101,7 @@ export class ReviewsService implements OnModuleDestroy {
   async findByProduct(
     productId: string,
     query: ReviewQueryDto,
-  ): Promise<PaginatedResult<Review>> {
+  ): Promise<PaginatedResult<ReviewResponseDto>> {
     const cacheKey = `${CACHE_PREFIX}:product:${productId}:${JSON.stringify(query)}`;
 
     const cached = await this.redis.get(cacheKey);
@@ -110,8 +114,19 @@ export class ReviewsService implements OnModuleDestroy {
       query,
     );
 
-    await this.redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
-    return result;
+    // Populate user data
+    const userIds = [...new Set(result.data.map((r) => r.userId.toString()))];
+    const users = await this.usersService.findByIds(userIds);
+    const usersMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+    const data = result.data.map((review) => {
+      const user = usersMap.get(review.userId.toString());
+      return this.toResponseDto(review, user);
+    });
+
+    const response = { data, meta: result.meta };
+    await this.redis.set(cacheKey, JSON.stringify(response), 'EX', CACHE_TTL);
+    return response;
   }
 
   async findAll(query: ReviewQueryDto): Promise<PaginatedResult<Review>> {
@@ -216,27 +231,82 @@ export class ReviewsService implements OnModuleDestroy {
     review: Review,
     user?: { _id: ObjectId; firstName: string; lastName: string },
   ): ReviewResponseDto {
+    const isAnonymous = review.isAnonymous ?? false;
+
     return {
       _id: review._id.toString(),
       productId: review.productId.toString(),
       userId: review.userId.toString(),
-      user: user
-        ? {
-            _id: user._id.toString(),
-            firstName: user.firstName,
-            lastName: user.lastName,
-          }
-        : undefined,
+      user: isAnonymous
+        ? undefined
+        : user
+          ? {
+              _id: user._id.toString(),
+              firstName: user.firstName,
+              lastName: user.lastName,
+            }
+          : undefined,
       orderId: review.orderId.toString(),
       rating: review.rating,
       title: review.title,
       text: review.text,
       images: review.images || [],
+      isAnonymous,
       isApproved: review.isApproved,
       adminReply: review.adminReply,
       adminReplyAt: review.adminReplyAt,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
+    };
+  }
+
+  async checkReviewEligibility(
+    userId: string,
+    productId: string,
+  ): Promise<ReviewEligibilityDto> {
+    const userObjectId = new ObjectId(userId);
+    const productObjectId = new ObjectId(productId);
+
+    // Check if user already reviewed this product
+    const existing = await this.reviewsRepository.findByProductAndUser(
+      productObjectId,
+      userObjectId,
+    );
+    if (existing) {
+      return { canReview: false, eligibleOrders: [], hasReviewed: true };
+    }
+
+    // Find delivered orders for this user
+    const ordersResult = await this.ordersService.findByUser(userId, {
+      status: OrderStatus.DELIVERED,
+      limit: 100,
+    });
+
+    // Filter orders that contain this product
+    const eligibleOrders = ordersResult.data
+      .filter((order) =>
+        order.items.some(
+          (item) => item.productId.toString() === productId,
+        ),
+      )
+      .map((order) => ({
+        _id: order._id.toString(),
+        orderNumber: order.orderNumber,
+        createdAt: order.createdAt,
+        items: order.items
+          .filter((item) => item.productId.toString() === productId)
+          .map((item) => ({
+            name: item.name,
+            image: item.image,
+            size: item.size,
+            color: item.color,
+          })),
+      }));
+
+    return {
+      canReview: eligibleOrders.length > 0,
+      eligibleOrders,
+      hasReviewed: false,
     };
   }
 

@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsInt,
   IsOptional,
+  IsBoolean,
   IsArray,
   IsUrl,
   Min,
@@ -42,4 +43,9 @@ export class CreateReviewDto {
   @ArrayMaxSize(5)
   @IsUrl({}, { each: true })
   images?: string[];
+
+  @ApiPropertyOptional({ description: 'Hide author name', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }
