@@ -1,5 +1,4 @@
 import { Entity, Column, Index } from 'typeorm';
-import { ObjectId } from 'mongodb';
 import { BaseEntity } from '@/common/entities/base.entity';
 
 export enum PromotionType {
@@ -22,13 +21,13 @@ export class Promotion extends BaseEntity {
   @Column({ type: 'enum', enum: PromotionType })
   type: PromotionType;
 
-  @Column('decimal')
+  @Column('decimal', { precision: 10, scale: 2 })
   value: number;
 
-  @Column('decimal', { nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
   minOrderAmount?: number;
 
-  @Column('decimal', { nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
   maxDiscount?: number;
 
   @Column({ nullable: true })
@@ -40,27 +39,27 @@ export class Promotion extends BaseEntity {
   @Column({ default: 0 })
   usedCount: number;
 
-  @Column('simple-array', { default: [] })
-  categoryIds: ObjectId[];
+  @Column('uuid', { array: true, default: () => "ARRAY[]::uuid[]" })
+  categoryIds: string[];
 
-  @Column('simple-array', { default: [] })
-  productIds: ObjectId[];
+  @Column('uuid', { array: true, default: () => "ARRAY[]::uuid[]" })
+  productIds: string[];
 
-  @Column('simple-array', { default: [] })
-  excludeProductIds: ObjectId[];
+  @Column('uuid', { array: true, default: () => "ARRAY[]::uuid[]" })
+  excludeProductIds: string[];
 
   @Index()
-  @Column()
+  @Column({ type: 'timestamp' })
   startDate: Date;
 
   @Index()
-  @Column()
+  @Column({ type: 'timestamp' })
   endDate: Date;
 
   @Index()
   @Column({ default: true })
   isActive: boolean;
 
-  @Column('json', { default: {} })
+  @Column('jsonb', { default: {} })
   userUsage: Record<string, number>;
 }

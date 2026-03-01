@@ -1,35 +1,27 @@
-import { Entity, Column, Index } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Entity, Column, Index, OneToMany } from 'typeorm';
 import { BaseEntity } from '@/common/entities/base.entity';
-
-export interface CartItem {
-  productId: ObjectId;
-  variantId: string;
-  quantity: number;
-  price: number;
-  addedAt: Date;
-}
+import { CartItemEntity } from './cart-item.entity';
 
 @Entity('carts')
 export class Cart extends BaseEntity {
   @Index()
-  @Column({ nullable: true })
-  userId?: ObjectId;
+  @Column('uuid', { nullable: true })
+  userId?: string;
 
   @Index()
   @Column({ nullable: true })
   sessionId?: string;
 
-  @Column('json', { default: [] })
-  items: CartItem[];
+  @OneToMany(() => CartItemEntity, (item) => item.cart, { cascade: true })
+  items: CartItemEntity[];
 
   @Column({ nullable: true })
   promoCode?: string;
 
-  @Column('decimal', { nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
   promoDiscount?: number;
 
   @Index()
-  @Column()
+  @Column({ type: 'timestamp' })
   expiresAt: Date;
 }

@@ -1,20 +1,34 @@
-import { Entity, Column, Index } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '@/common/entities/base.entity';
+import { Product } from '@/modules/products/entities/product.entity';
+import { User } from '@/modules/users/entities/user.entity';
+import { Order } from '@/modules/orders/entities/order.entity';
 
 @Entity('reviews')
 @Index(['productId', 'userId'], { unique: true })
 export class Review extends BaseEntity {
   @Index()
-  @Column()
-  productId: ObjectId;
+  @Column('uuid')
+  productId: string;
+
+  @ManyToOne(() => Product)
+  @JoinColumn({ name: 'productId' })
+  product?: Product;
 
   @Index()
-  @Column()
-  userId: ObjectId;
+  @Column('uuid')
+  userId: string;
 
-  @Column()
-  orderId: ObjectId;
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'userId' })
+  user?: User;
+
+  @Column('uuid')
+  orderId: string;
+
+  @ManyToOne(() => Order)
+  @JoinColumn({ name: 'orderId' })
+  order?: Order;
 
   @Index()
   @Column({ type: 'int' })
@@ -26,7 +40,7 @@ export class Review extends BaseEntity {
   @Column('text')
   text: string;
 
-  @Column('simple-array', { default: [] })
+  @Column('text', { array: true, default: () => "ARRAY[]::text[]" })
   images: string[];
 
   @Column({ default: false })
@@ -39,6 +53,6 @@ export class Review extends BaseEntity {
   @Column({ nullable: true })
   adminReply?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   adminReplyAt?: Date;
 }

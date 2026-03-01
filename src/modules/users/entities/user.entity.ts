@@ -44,7 +44,7 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   avatar?: string;
 
-  @Column('json', { default: [] })
+  @Column('jsonb', { default: [] })
   addresses: Address[];
 
   @Column({ default: false })
@@ -53,18 +53,18 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   emailVerificationToken?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   emailVerificationExpires?: Date;
 
   @Column({ nullable: true })
   passwordResetToken?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   passwordResetExpires?: Date;
 
-  @Column('json', { nullable: true, default: null })
+  @Column('jsonb', { nullable: true, default: null })
   refreshTokens?: Record<string, string>;
 
-  @Column('simple-array', { default: [] })
+  @Column('uuid', { array: true, default: () => "ARRAY[]::uuid[]" })
   wishlist: string[]; // product IDs
 }

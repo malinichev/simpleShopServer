@@ -1,16 +1,15 @@
 import { Entity, Column, Index } from 'typeorm';
-import { ObjectId } from 'mongodb';
 import { BaseEntity } from '@/common/entities/base.entity';
 
 export interface TopProductStat {
-  productId: ObjectId;
+  productId: string;
   name: string;
   soldCount: number;
   revenue: number;
 }
 
 export interface TopCategoryStat {
-  categoryId: ObjectId;
+  categoryId: string;
   name: string;
   ordersCount: number;
   revenue: number;
@@ -19,7 +18,7 @@ export interface TopCategoryStat {
 @Entity('analytics_daily')
 export class AnalyticsDaily extends BaseEntity {
   @Index({ unique: true })
-  @Column()
+  @Column({ type: 'date' })
   date: Date;
 
   @Column({ default: 0 })
@@ -34,24 +33,24 @@ export class AnalyticsDaily extends BaseEntity {
   @Column({ default: 0 })
   ordersCount: number;
 
-  @Column('decimal', { default: 0 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   revenue: number;
 
-  @Column('decimal', { default: 0 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   averageOrderValue: number;
 
-  @Column('decimal', { default: 0 })
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
   conversionRate: number;
 
-  @Column('json', { default: [] })
+  @Column('jsonb', { default: [] })
   topProducts: TopProductStat[];
 
-  @Column('json', { default: [] })
+  @Column('jsonb', { default: [] })
   topCategories: TopCategoryStat[];
 
-  @Column('json', { default: {} })
+  @Column('jsonb', { default: {} })
   trafficSources: Record<string, number>;
 
-  @Column('json', { default: {} })
+  @Column('jsonb', { default: {} })
   deviceStats: Record<string, number>;
 }

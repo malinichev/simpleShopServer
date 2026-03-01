@@ -15,7 +15,7 @@ export class Page extends BaseEntity {
   @Column({ nullable: true })
   metaDescription: string;
 
-  @Column('json', { default: {} })
+  @Column('jsonb', { default: {} })
   content: object;
 
   @Column({ default: false })

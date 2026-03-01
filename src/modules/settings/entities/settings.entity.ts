@@ -31,7 +31,7 @@ export class Settings extends BaseEntity {
   @Column({ default: 'ru' })
   language: string;
 
-  @Column('json', {
+  @Column('jsonb', {
     default: {
       newOrder: true,
       statusChange: true,

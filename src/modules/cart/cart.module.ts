@@ -1,6 +1,7 @@
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Cart } from './entities/cart.entity';
+import { CartItemEntity } from './entities/cart-item.entity';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
 import { CartRepository } from './cart.repository';
@@ -10,7 +11,7 @@ import { PromotionsModule } from '@/modules/promotions/promotions.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Cart]),
+    TypeOrmModule.forFeature([Cart, CartItemEntity]),
     ProductsModule,
     PromotionsModule,
   ],

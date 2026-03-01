@@ -1,5 +1,4 @@
-import { Entity, Column, Index } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Entity, Column, Index, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { BaseEntity } from '@/common/entities/base.entity';
 
 export interface SEO {
@@ -23,8 +22,15 @@ export class Category extends BaseEntity {
   image?: string;
 
   @Index()
-  @Column({ nullable: true })
-  parentId?: ObjectId;
+  @Column('uuid', { nullable: true })
+  parentId?: string;
+
+  @ManyToOne(() => Category, (cat) => cat.children, { nullable: true })
+  @JoinColumn({ name: 'parentId' })
+  parent?: Category;
+
+  @OneToMany(() => Category, (cat) => cat.parent)
+  children?: Category[];
 
   @Index()
   @Column({ default: 0 })
@@ -33,10 +39,9 @@ export class Category extends BaseEntity {
   @Column({ default: true })
   isActive: boolean;
 
-  @Column('json', { nullable: true })
+  @Column('jsonb', { nullable: true })
   seo?: SEO;
 
-  // Virtual fields (not stored in DB)
-  children?: Category[];
+  // Virtual field (not stored in DB)
   productsCount?: number;
 }

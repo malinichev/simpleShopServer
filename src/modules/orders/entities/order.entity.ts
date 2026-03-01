@@ -1,7 +1,7 @@
-import { Entity, Column, Index } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Entity, Column, Index, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { BaseEntity } from '@/common/entities/base.entity';
-import type { Address } from '@/modules/users/entities/user.entity';
+import { User, Address } from '@/modules/users/entities/user.entity';
+import { OrderItemEntity } from './order-item.entity';
 
 export enum OrderStatus {
   PENDING = 'pending',
@@ -20,8 +20,9 @@ export enum PaymentStatus {
   REFUNDED = 'refunded',
 }
 
+/** @deprecated Use OrderItemEntity instead. Kept for backward compatibility during migration. */
 export interface OrderItem {
-  productId: ObjectId;
+  productId: string;
   variantId: string;
   name: string;
   sku: string;
@@ -37,7 +38,7 @@ export interface OrderHistory {
   status: OrderStatus;
   comment?: string;
   createdAt: Date;
-  createdBy?: ObjectId;
+  createdBy?: string;
 }
 
 @Entity('orders')
@@ -46,29 +47,33 @@ export class Order extends BaseEntity {
   orderNumber: string;
 
   @Index()
-  @Column()
-  userId: ObjectId;
+  @Column('uuid')
+  userId: string;
 
-  @Column('json')
-  items: OrderItem[];
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'userId' })
+  user?: User;
 
-  @Column('decimal')
+  @OneToMany(() => OrderItemEntity, (item) => item.order, { cascade: true })
+  items: OrderItemEntity[];
+
+  @Column('decimal', { precision: 10, scale: 2 })
   subtotal: number;
 
-  @Column('decimal', { default: 0 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   discount: number;
 
-  @Column('decimal')
+  @Column('decimal', { precision: 10, scale: 2 })
   shipping: number;
 
-  @Column('decimal')
+  @Column('decimal', { precision: 10, scale: 2 })
   total: number;
 
   @Index()
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 
-  @Column('json')
+  @Column('jsonb')
   shippingAddress: Address;
 
   @Column()
@@ -83,7 +88,7 @@ export class Order extends BaseEntity {
   @Column({ nullable: true })
   promoCode?: string;
 
-  @Column('decimal', { nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
   promoDiscount?: number;
 
   @Column({ nullable: true })
@@ -92,6 +97,6 @@ export class Order extends BaseEntity {
   @Column({ nullable: true })
   adminNote?: string;
 
-  @Column('json', { default: [] })
+  @Column('jsonb', { default: [] })
   history: OrderHistory[];
 }

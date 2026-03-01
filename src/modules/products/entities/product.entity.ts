@@ -1,6 +1,7 @@
-import { Entity, Column, Index } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Entity, Column, Index, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { BaseEntity } from '@/common/entities/base.entity';
+import { Category } from '@/modules/categories/entities/category.entity';
+import { ProductVariantEntity } from './product-variant.entity';
 
 export enum ProductStatus {
   DRAFT = 'draft',
@@ -57,29 +58,33 @@ export class Product extends BaseEntity {
   sku: string;
 
   @Index()
-  @Column('decimal')
+  @Column('decimal', { precision: 10, scale: 2 })
   price: number;
 
-  @Column('decimal', { nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
   compareAtPrice?: number;
 
   @Index()
-  @Column()
-  categoryId: ObjectId;
+  @Column('uuid')
+  categoryId: string;
 
-  @Column('simple-array', { default: [] })
+  @ManyToOne(() => Category)
+  @JoinColumn({ name: 'categoryId' })
+  category?: Category;
+
+  @Column('text', { array: true, default: () => "ARRAY[]::text[]" })
   tags: string[];
 
-  @Column('json', { default: [] })
+  @Column('jsonb', { default: [] })
   images: ProductImage[];
 
-  @Column('json', { default: [] })
-  variants: ProductVariant[];
+  @OneToMany(() => ProductVariantEntity, (variant) => variant.product, { cascade: true })
+  variants: ProductVariantEntity[];
 
-  @Column('json')
+  @Column('jsonb', { default: {} })
   attributes: ProductAttributes;
 
-  @Column('decimal', { default: 0 })
+  @Column('decimal', { precision: 3, scale: 2, default: 0 })
   rating: number;
 
   @Column({ default: 0 })
@@ -92,7 +97,7 @@ export class Product extends BaseEntity {
   @Column({ type: 'enum', enum: ProductStatus, default: ProductStatus.DRAFT })
   status: ProductStatus;
 
-  @Column('json')
+  @Column('jsonb', { default: {} })
   seo: ProductSEO;
 
   @Column({ default: true })
