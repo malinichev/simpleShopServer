@@ -57,10 +57,10 @@ const promotionsData = [
 ];
 
 export async function seedPromotions(dataSource: DataSource): Promise<void> {
-  const repository = dataSource.getMongoRepository(Promotion);
+  const repository = dataSource.getRepository(Promotion);
 
-  await repository.deleteMany({});
-  console.log('  Cleared promotions collection');
+  await repository.delete({});
+  console.log('  Cleared promotions table');
 
   const promotions = promotionsData.map((p) => repository.create(p));
   await repository.save(promotions);

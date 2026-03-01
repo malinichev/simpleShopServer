@@ -61,10 +61,10 @@ const categoriesData = [
 ];
 
 export async function seedCategories(dataSource: DataSource): Promise<Map<string, Category>> {
-  const repository = dataSource.getMongoRepository(Category);
+  const repository = dataSource.getRepository(Category);
 
-  await repository.deleteMany({});
-  console.log('  Cleared categories collection');
+  await repository.delete({});
+  console.log('  Cleared categories table');
 
   const categories = categoriesData.map((cat) => repository.create(cat));
   const saved = await repository.save(categories);

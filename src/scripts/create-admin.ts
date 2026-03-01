@@ -37,8 +37,6 @@ async function createAdmin() {
       const userIid = existingUser.id;
       await usersService.delete(userIid);
       console.log('❌ Удалили его:', adminData.email);
-      // console.log({ existingUser['_id'] });
-      // process.exit(1);
     }
 
     if (existingUser2) {
@@ -46,8 +44,6 @@ async function createAdmin() {
       const userIid = existingUser2.id;
       await usersService.delete(userIid);
       console.log('❌ Удалили его:', adminData2.email);
-      // console.log({ existingUser['_id'] });
-      // process.exit(1);
     }
 
     // Создаем админа

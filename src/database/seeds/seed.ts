@@ -6,10 +6,14 @@ import { seedProducts } from './products.seed';
 import { seedPromotions } from './promotions.seed';
 
 const dataSource = new DataSource({
-  type: 'mongodb',
-  url: process.env.MONGODB_URI || 'mongodb://localhost:27017/sports-shop',
+  type: 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USERNAME || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_DATABASE || 'sports-shop',
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-  synchronize: false,
+  synchronize: true,
 });
 
 async function runSeeds(): Promise<void> {

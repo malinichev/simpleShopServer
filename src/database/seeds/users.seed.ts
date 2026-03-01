@@ -30,10 +30,10 @@ const usersData = [
 ];
 
 export async function seedUsers(dataSource: DataSource): Promise<void> {
-  const repository = dataSource.getMongoRepository(User);
+  const repository = dataSource.getRepository(User);
 
-  await repository.deleteMany({});
-  console.log('  Cleared users collection');
+  await repository.delete({});
+  console.log('  Cleared users table');
 
   const users = await Promise.all(
     usersData.map(async (userData) => {

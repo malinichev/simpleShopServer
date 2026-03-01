@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
-import { Product, ProductStatus, ProductVariant } from '@/modules/products/entities/product.entity';
+import { Product, ProductStatus } from '@/modules/products/entities/product.entity';
+import { ProductVariantEntity } from '@/modules/products/entities/product-variant.entity';
 import { Category } from '@/modules/categories/entities/category.entity';
-import { v4 as uuid } from 'uuid';
 
 const colors = [
   { name: 'черный', hex: '#000000' },
@@ -23,14 +23,13 @@ function pickColors(count: number) {
   return shuffled.slice(0, count);
 }
 
-function generateVariants(colorCount: number, baseSku: string, basePrice: number): ProductVariant[] {
+function generateVariants(colorCount: number, baseSku: string, basePrice: number): Partial<ProductVariantEntity>[] {
   const selectedColors = pickColors(colorCount);
-  const variants: ProductVariant[] = [];
+  const variants: Partial<ProductVariantEntity>[] = [];
 
   for (const color of selectedColors) {
     for (const size of sizes) {
       variants.push({
-        id: uuid(),
         size,
         color: color.name,
         colorHex: color.hex,
@@ -374,18 +373,21 @@ export async function seedProducts(
   dataSource: DataSource,
   categoryMap: Map<string, Category>,
 ): Promise<void> {
-  const repository = dataSource.getMongoRepository(Product);
+  const productRepository = dataSource.getRepository(Product);
+  const variantRepository = dataSource.getRepository(ProductVariantEntity);
 
-  await repository.deleteMany({});
-  console.log('  Cleared products collection');
+  // Clear in correct order (variants first due to FK)
+  await variantRepository.delete({});
+  await productRepository.delete({});
+  console.log('  Cleared products and variants tables');
 
-  const products = productsData.map((data) => {
+  for (const data of productsData) {
     const category = categoryMap.get(data.categorySlug);
     if (!category) {
       throw new Error(`Category not found: ${data.categorySlug}`);
     }
 
-    return repository.create({
+    const product = productRepository.create({
       name: data.name,
       slug: data.slug,
       description: data.description,
@@ -396,7 +398,6 @@ export async function seedProducts(
       categoryId: category.id,
       tags: data.tags,
       images: [],
-      variants: generateVariants(data.colorCount, data.sku, data.price),
       attributes: {
         material: data.material,
         activity: data.activity,
@@ -413,8 +414,17 @@ export async function seedProducts(
         keywords: data.tags,
       },
     });
-  });
 
-  await repository.save(products);
-  console.log(`  Seeded ${products.length} products`);
+    const savedProduct = await productRepository.save(product);
+
+    const variants = generateVariants(data.colorCount, data.sku, data.price);
+    const variantEntities = variants.map((v) =>
+      variantRepository.create({ ...v, productId: savedProduct.id }),
+    );
+    await variantRepository.save(variantEntities);
+  }
+
+  const count = await productRepository.count();
+  const variantCount = await variantRepository.count();
+  console.log(`  Seeded ${count} products with ${variantCount} variants`);
 }
