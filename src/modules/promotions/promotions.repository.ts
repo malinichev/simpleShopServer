@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ObjectId } from 'mongodb';
 import { Promotion } from './entities/promotion.entity';
 
 @Injectable()
@@ -17,20 +16,13 @@ export class PromotionsRepository {
     });
   }
 
-  async findById(id: ObjectId | string): Promise<Promotion | null> {
-    try {
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      return this.repository.findOne({
-        where: { _id: objectId } as Record<string, unknown>,
-      });
-    } catch {
-      return null;
-    }
+  async findById(id: string): Promise<Promotion | null> {
+    return this.repository.findOne({ where: { id } });
   }
 
   async findByCode(code: string): Promise<Promotion | null> {
     return this.repository.findOne({
-      where: { code: code.toUpperCase() } as Record<string, unknown>,
+      where: { code: code.toUpperCase() },
     });
   }
 
@@ -39,29 +31,20 @@ export class PromotionsRepository {
     return this.repository.save(promotion);
   }
 
-  async update(id: ObjectId | string, data: Partial<Promotion>): Promise<Promotion | null> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      data as Record<string, unknown>,
-    );
-    return this.findById(objectId);
+  async update(id: string, data: Partial<Promotion>): Promise<Promotion | null> {
+    await this.repository.update(id, data as any);
+    return this.findById(id);
   }
 
-  async delete(id: ObjectId | string): Promise<void> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.delete({ _id: objectId } as Record<string, unknown>);
+  async delete(id: string): Promise<void> {
+    await this.repository.delete(id);
   }
 
   async incrementUsage(
-    id: ObjectId | string,
+    id: string,
     usedCount: number,
     userUsage: Record<string, number>,
   ): Promise<void> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      { usedCount, userUsage },
-    );
+    await this.repository.update(id, { usedCount, userUsage } as any);
   }
 }

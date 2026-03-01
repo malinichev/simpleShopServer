@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Repository, Not, In, ILike, MoreThanOrEqual, LessThanOrEqual, FindOptionsWhere, Between } from 'typeorm';
 import { Order, OrderStatus, PaymentStatus } from './entities/order.entity';
 import { OrderQueryDto } from './dto';
 import {
@@ -23,7 +22,7 @@ export class OrdersRepository {
     const limit = query.limit || DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    const where: FindOptionsWhere<Order> = {};
 
     if (query.status) {
       where.status = query.status;
@@ -34,35 +33,41 @@ export class OrdersRepository {
     }
 
     if (query.userId) {
-      where.userId = new ObjectId(query.userId);
+      where.userId = query.userId;
     }
+
+    // Build date/total range conditions via QueryBuilder for complex filters
+    const qb = this.repository.createQueryBuilder('order')
+      .leftJoinAndSelect('order.items', 'item');
+
+    // Apply simple where conditions
+    if (where.status) qb.andWhere('order.status = :status', { status: where.status });
+    if (where.paymentStatus) qb.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus: where.paymentStatus });
+    if (where.userId) qb.andWhere('order.userId = :userId', { userId: where.userId });
 
     if (query.search) {
-      where.$or = [
-        { orderNumber: { $regex: query.search, $options: 'i' } },
-      ];
+      qb.andWhere('order.orderNumber ILIKE :search', { search: `%${query.search}%` });
     }
 
-    if (query.dateFrom || query.dateTo) {
-      const dateFilter: Record<string, Date> = {};
-      if (query.dateFrom) dateFilter.$gte = new Date(query.dateFrom);
-      if (query.dateTo) dateFilter.$lte = new Date(query.dateTo);
-      where.createdAt = dateFilter;
+    if (query.dateFrom) {
+      qb.andWhere('order.createdAt >= :dateFrom', { dateFrom: new Date(query.dateFrom) });
+    }
+    if (query.dateTo) {
+      qb.andWhere('order.createdAt <= :dateTo', { dateTo: new Date(query.dateTo) });
     }
 
-    if (query.minTotal !== undefined || query.maxTotal !== undefined) {
-      const totalFilter: Record<string, number> = {};
-      if (query.minTotal !== undefined) totalFilter.$gte = query.minTotal;
-      if (query.maxTotal !== undefined) totalFilter.$lte = query.maxTotal;
-      where.total = totalFilter;
+    if (query.minTotal !== undefined) {
+      qb.andWhere('order.total >= :minTotal', { minTotal: query.minTotal });
+    }
+    if (query.maxTotal !== undefined) {
+      qb.andWhere('order.total <= :maxTotal', { maxTotal: query.maxTotal });
     }
 
-    const [data, total] = await this.repository.findAndCount({
-      where,
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+    qb.orderBy('order.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
 
     return {
       data,
@@ -70,22 +75,22 @@ export class OrdersRepository {
     };
   }
 
-  async findByUser(userId: ObjectId | string, query: OrderQueryDto): Promise<PaginatedResult<Order>> {
-    const userObjectId = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    return this.findAll({ ...query, userId: userObjectId.toString() });
+  async findByUser(userId: string, query: OrderQueryDto): Promise<PaginatedResult<Order>> {
+    return this.findAll({ ...query, userId });
   }
 
-  async findById(id: ObjectId | string): Promise<Order | null> {
-    try {
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      return this.repository.findOne({ where: { _id: objectId } as Record<string, unknown> });
-    } catch {
-      return null;
-    }
+  async findById(id: string): Promise<Order | null> {
+    return this.repository.findOne({
+      where: { id },
+      relations: ['items'],
+    });
   }
 
   async findByOrderNumber(orderNumber: string): Promise<Order | null> {
-    return this.repository.findOne({ where: { orderNumber } as Record<string, unknown> });
+    return this.repository.findOne({
+      where: { orderNumber },
+      relations: ['items'],
+    });
   }
 
   async create(data: Partial<Order>): Promise<Order> {
@@ -93,13 +98,9 @@ export class OrdersRepository {
     return this.repository.save(order);
   }
 
-  async update(id: ObjectId | string, data: Partial<Order>): Promise<Order | null> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      data as Record<string, unknown>,
-    );
-    return this.findById(objectId);
+  async update(id: string, data: Partial<Order>): Promise<Order | null> {
+    await this.repository.update(id, data as any);
+    return this.findById(id);
   }
 
   async count(): Promise<number> {
@@ -129,26 +130,29 @@ export class OrdersRepository {
   }
 
   async getRevenueStats(dateFrom?: Date, dateTo?: Date): Promise<{ totalRevenue: number; count: number }> {
-    const where: Record<string, unknown> = {
-      status: { $nin: [OrderStatus.CANCELLED, OrderStatus.REFUNDED] },
-    };
+    const qb = this.repository.createQueryBuilder('order')
+      .select('SUM(order.total)', 'totalRevenue')
+      .addSelect('COUNT(*)', 'count')
+      .where('order.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+      });
 
-    if (dateFrom || dateTo) {
-      const dateFilter: Record<string, Date> = {};
-      if (dateFrom) dateFilter.$gte = dateFrom;
-      if (dateTo) dateFilter.$lte = dateTo;
-      where.createdAt = dateFilter;
+    if (dateFrom) {
+      qb.andWhere('order.createdAt >= :dateFrom', { dateFrom });
+    }
+    if (dateTo) {
+      qb.andWhere('order.createdAt <= :dateTo', { dateTo });
     }
 
-    const orders = await this.repository.find({ where, select: ['total'] });
-
-    const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total), 0);
-    return { totalRevenue: Math.round(totalRevenue * 100) / 100, count: orders.length };
+    const result = await qb.getRawOne();
+    return {
+      totalRevenue: Math.round((Number(result.totalRevenue) || 0) * 100) / 100,
+      count: Number(result.count) || 0,
+    };
   }
 
   async getLastOrderNumber(): Promise<string | null> {
     const order = await this.repository.findOne({
-      where: {} as Record<string, unknown>,
       order: { orderNumber: 'DESC' },
       select: ['orderNumber'],
     });

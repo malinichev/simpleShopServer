@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { AnalyticsDaily } from './entities/analytics.entity';
 
 @Injectable()
@@ -15,18 +15,15 @@ export class AnalyticsRepository {
     startOfDay.setHours(0, 0, 0, 0);
 
     return this.repository.findOne({
-      where: { date: startOfDay } as Record<string, unknown>,
+      where: { date: startOfDay },
     });
   }
 
   async findByDateRange(dateFrom: Date, dateTo: Date): Promise<AnalyticsDaily[]> {
     return this.repository.find({
       where: {
-        date: {
-          $gte: dateFrom,
-          $lte: dateTo,
-        },
-      } as Record<string, unknown>,
+        date: Between(dateFrom, dateTo),
+      },
       order: { date: 'ASC' },
     });
   }
@@ -38,10 +35,7 @@ export class AnalyticsRepository {
     const existing = await this.findByDate(startOfDay);
 
     if (existing) {
-      await this.repository.update(
-        { _id: existing._id } as Record<string, unknown>,
-        data as Record<string, unknown>,
-      );
+      await this.repository.update(existing.id, data as any);
       return (await this.findByDate(startOfDay))!;
     }
 
@@ -57,10 +51,7 @@ export class AnalyticsRepository {
 
     if (existing) {
       const currentValue = Number((existing as unknown as Record<string, unknown>)[field]) || 0;
-      await this.repository.update(
-        { _id: existing._id } as Record<string, unknown>,
-        { [field]: currentValue + value },
-      );
+      await this.repository.update(existing.id, { [field]: currentValue + value });
     } else {
       const entity = this.repository.create({
         date: startOfDay,
@@ -72,7 +63,6 @@ export class AnalyticsRepository {
 
   async getLatest(): Promise<AnalyticsDaily | null> {
     return this.repository.findOne({
-      where: {} as Record<string, unknown>,
       order: { date: 'DESC' },
     });
   }

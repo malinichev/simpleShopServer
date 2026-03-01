@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { Review } from './entities/review.entity';
 import { ReviewQueryDto } from './dto';
 import {
@@ -23,14 +22,14 @@ export class ReviewsRepository {
     const limit = query.limit || DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    const where: FindOptionsWhere<Review> = {};
 
     if (query.productId) {
-      where.productId = new ObjectId(query.productId);
+      where.productId = query.productId;
     }
 
     if (query.userId) {
-      where.userId = new ObjectId(query.userId);
+      where.userId = query.userId;
     }
 
     if (query.isApproved !== undefined) {
@@ -55,14 +54,14 @@ export class ReviewsRepository {
   }
 
   async findByProduct(
-    productId: ObjectId,
+    productId: string,
     query: ReviewQueryDto,
   ): Promise<PaginatedResult<Review>> {
     const page = query.page || DEFAULT_PAGE;
     const limit = query.limit || DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {
+    const where: FindOptionsWhere<Review> = {
       productId,
       isApproved: true,
     };
@@ -84,18 +83,13 @@ export class ReviewsRepository {
     };
   }
 
-  async findById(id: ObjectId | string): Promise<Review | null> {
-    try {
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      return this.repository.findOne({ where: { _id: objectId } as Record<string, unknown> });
-    } catch {
-      return null;
-    }
+  async findById(id: string): Promise<Review | null> {
+    return this.repository.findOne({ where: { id } });
   }
 
-  async findByProductAndUser(productId: ObjectId, userId: ObjectId): Promise<Review | null> {
+  async findByProductAndUser(productId: string, userId: string): Promise<Review | null> {
     return this.repository.findOne({
-      where: { productId, userId } as Record<string, unknown>,
+      where: { productId, userId },
     });
   }
 
@@ -104,23 +98,18 @@ export class ReviewsRepository {
     return this.repository.save(review);
   }
 
-  async update(id: ObjectId | string, data: Partial<Review>): Promise<Review | null> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      data as Record<string, unknown>,
-    );
-    return this.findById(objectId);
+  async update(id: string, data: Partial<Review>): Promise<Review | null> {
+    await this.repository.update(id, data as any);
+    return this.findById(id);
   }
 
-  async delete(id: ObjectId | string): Promise<void> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.delete({ _id: objectId } as Record<string, unknown>);
+  async delete(id: string): Promise<void> {
+    await this.repository.delete(id);
   }
 
-  async calculateProductRating(productId: ObjectId): Promise<{ rating: number; count: number }> {
+  async calculateProductRating(productId: string): Promise<{ rating: number; count: number }> {
     const reviews = await this.repository.find({
-      where: { productId, isApproved: true } as Record<string, unknown>,
+      where: { productId, isApproved: true },
       select: ['rating'],
     });
 

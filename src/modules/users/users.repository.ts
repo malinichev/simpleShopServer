@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Repository, In, ILike, FindOptionsWhere } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { User, Address } from './entities/user.entity';
 import { CreateUserDto, UpdateUserDto, UserQueryDto } from './dto';
@@ -20,21 +19,13 @@ export class UsersRepository {
     private readonly repository: Repository<User>,
   ) {}
 
-  async findById(id: ObjectId | string): Promise<User | null> {
-    try {
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      return this.repository.findOne({ where: { _id: objectId } as any });
-    } catch {
-      return null;
-    }
+  async findById(id: string): Promise<User | null> {
+    return this.repository.findOne({ where: { id } });
   }
 
-  async findByIds(ids: (ObjectId | string)[]): Promise<User[]> {
-    const objectIds = ids.map((id) =>
-      typeof id === 'string' ? new ObjectId(id) : id,
-    );
+  async findByIds(ids: string[]): Promise<User[]> {
     return this.repository.find({
-      where: { _id: { $in: objectIds } } as any,
+      where: { id: In(ids) },
     });
   }
 
@@ -51,15 +42,13 @@ export class UsersRepository {
     return this.repository.save(user);
   }
 
-  async update(id: ObjectId | string, dto: UpdateUserDto): Promise<User | null> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update({ _id: objectId } as any, dto as any);
-    return this.findById(objectId);
+  async update(id: string, dto: UpdateUserDto): Promise<User | null> {
+    await this.repository.update(id, dto as any);
+    return this.findById(id);
   }
 
-  async delete(id: ObjectId | string): Promise<void> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.delete({ _id: objectId } as any);
+  async delete(id: string): Promise<void> {
+    await this.repository.delete(id);
   }
 
   async findAll(query: UserQueryDto): Promise<PaginatedResult<User>> {
@@ -67,17 +56,18 @@ export class UsersRepository {
     const limit = query.limit || DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    let where: FindOptionsWhere<User> | FindOptionsWhere<User>[] = {};
 
     if (query.role) {
-      where.role = query.role;
+      where = { role: query.role };
     }
 
     if (query.search) {
-      where.$or = [
-        { email: { $regex: query.search, $options: 'i' } },
-        { firstName: { $regex: query.search, $options: 'i' } },
-        { lastName: { $regex: query.search, $options: 'i' } },
+      const searchCondition = { ...(query.role ? { role: query.role } : {}) };
+      where = [
+        { ...searchCondition, email: ILike(`%${query.search}%`) },
+        { ...searchCondition, firstName: ILike(`%${query.search}%`) },
+        { ...searchCondition, lastName: ILike(`%${query.search}%`) },
       ];
     }
 
@@ -95,12 +85,11 @@ export class UsersRepository {
   }
 
   async updateRefreshToken(
-    id: ObjectId | string,
+    id: string,
     token: string | null,
     audience: TokenAudience,
   ): Promise<void> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    const user = await this.findById(objectId);
+    const user = await this.findById(id);
     const refreshTokens = user?.refreshTokens ? { ...user.refreshTokens } : {};
 
     if (token) {
@@ -110,13 +99,12 @@ export class UsersRepository {
     }
 
     const hasTokens = Object.keys(refreshTokens).length > 0;
-    await this.repository.update(
-      { _id: objectId } as any,
-      { refreshTokens: hasTokens ? refreshTokens : null } as any,
-    );
+    await this.repository.update(id, {
+      refreshTokens: hasTokens ? refreshTokens : null,
+    } as any);
   }
 
-  async addAddress(id: ObjectId | string, address: Omit<Address, 'id'>): Promise<User | null> {
+  async addAddress(id: string, address: Omit<Address, 'id'>): Promise<User | null> {
     const user = await this.findById(id);
     if (!user) return null;
 
@@ -133,17 +121,12 @@ export class UsersRepository {
 
     user.addresses.push(newAddress);
 
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as any,
-      { addresses: user.addresses },
-    );
-
+    await this.repository.update(id, { addresses: user.addresses } as any);
     return this.findById(id);
   }
 
   async updateAddress(
-    id: ObjectId | string,
+    id: string,
     addressId: string,
     addressData: Partial<Address>,
   ): Promise<User | null> {
@@ -163,16 +146,11 @@ export class UsersRepository {
       ...addressData,
     };
 
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as any,
-      { addresses: user.addresses },
-    );
-
+    await this.repository.update(id, { addresses: user.addresses } as any);
     return this.findById(id);
   }
 
-  async removeAddress(id: ObjectId | string, addressId: string): Promise<User | null> {
+  async removeAddress(id: string, addressId: string): Promise<User | null> {
     const user = await this.findById(id);
     if (!user) return null;
 
@@ -184,12 +162,7 @@ export class UsersRepository {
       user.addresses[0].isDefault = true;
     }
 
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as any,
-      { addresses: user.addresses },
-    );
-
+    await this.repository.update(id, { addresses: user.addresses } as any);
     return this.findById(id);
   }
 

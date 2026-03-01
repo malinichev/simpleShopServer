@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ObjectId } from 'mongodb';
 import { Page } from './entities/page.entity';
 
 @Injectable()
@@ -16,20 +15,11 @@ export class PagesRepository {
   }
 
   async findBySlug(slug: string): Promise<Page | null> {
-    return this.repository.findOne({
-      where: { slug } as Record<string, unknown>,
-    });
+    return this.repository.findOne({ where: { slug } });
   }
 
-  async findById(id: ObjectId | string): Promise<Page | null> {
-    try {
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      return this.repository.findOne({
-        where: { _id: objectId } as Record<string, unknown>,
-      });
-    } catch {
-      return null;
-    }
+  async findById(id: string): Promise<Page | null> {
+    return this.repository.findOne({ where: { id } });
   }
 
   async create(data: Partial<Page>): Promise<Page> {
@@ -38,14 +28,11 @@ export class PagesRepository {
   }
 
   async update(slug: string, data: Partial<Page>): Promise<Page | null> {
-    await this.repository.update(
-      { slug } as Record<string, unknown>,
-      data as Record<string, unknown>,
-    );
+    await this.repository.update({ slug }, data as any);
     return this.findBySlug(slug);
   }
 
   async delete(slug: string): Promise<void> {
-    await this.repository.delete({ slug } as Record<string, unknown>);
+    await this.repository.delete({ slug });
   }
 }

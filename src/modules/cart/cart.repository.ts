@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ObjectId } from 'mongodb';
+import { Repository, LessThanOrEqual, IsNull } from 'typeorm';
 import { Cart } from './entities/cart.entity';
 
 @Injectable()
@@ -11,22 +10,25 @@ export class CartRepository {
     private readonly repository: Repository<Cart>,
   ) {}
 
-  async findById(id: ObjectId | string): Promise<Cart | null> {
-    try {
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-      return this.repository.findOne({ where: { _id: objectId } as Record<string, unknown> });
-    } catch {
-      return null;
-    }
+  async findById(id: string): Promise<Cart | null> {
+    return this.repository.findOne({
+      where: { id },
+      relations: ['items'],
+    });
   }
 
-  async findByUserId(userId: ObjectId | string): Promise<Cart | null> {
-    const objectId = typeof userId === 'string' ? new ObjectId(userId) : userId;
-    return this.repository.findOne({ where: { userId: objectId } as Record<string, unknown> });
+  async findByUserId(userId: string): Promise<Cart | null> {
+    return this.repository.findOne({
+      where: { userId },
+      relations: ['items'],
+    });
   }
 
   async findBySessionId(sessionId: string): Promise<Cart | null> {
-    return this.repository.findOne({ where: { sessionId } as Record<string, unknown> });
+    return this.repository.findOne({
+      where: { sessionId },
+      relations: ['items'],
+    });
   }
 
   async create(data: Partial<Cart>): Promise<Cart> {
@@ -34,24 +36,23 @@ export class CartRepository {
     return this.repository.save(cart);
   }
 
-  async update(id: ObjectId | string, data: Partial<Cart>): Promise<Cart | null> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.update(
-      { _id: objectId } as Record<string, unknown>,
-      data as Record<string, unknown>,
-    );
-    return this.findById(objectId);
+  async update(id: string, data: Partial<Cart>): Promise<Cart | null> {
+    await this.repository.update(id, data as any);
+    return this.findById(id);
   }
 
-  async delete(id: ObjectId | string): Promise<void> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.repository.delete({ _id: objectId } as Record<string, unknown>);
+  async save(cart: Cart): Promise<Cart> {
+    return this.repository.save(cart);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.repository.delete(id);
   }
 
   async deleteExpired(): Promise<void> {
     await this.repository.delete({
-      expiresAt: { $lte: new Date() },
-      userId: null,
-    } as Record<string, unknown>);
+      expiresAt: LessThanOrEqual(new Date()),
+      userId: IsNull(),
+    });
   }
 }
