@@ -152,8 +152,8 @@ export class CartService {
     const cart = await this.findOrCreateCart(userId, sessionId);
     await this.cartRepository.deleteItemsByCartId(cart.id);
     await this.cartRepository.update(cart.id, {
-      promoCode: undefined,
-      promoDiscount: undefined,
+      promoCode: null as any,
+      promoDiscount: null as any,
     });
   }
 
@@ -226,8 +226,8 @@ export class CartService {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
     await this.cartRepository.update(cart.id, {
-      promoCode: undefined,
-      promoDiscount: undefined,
+      promoCode: null as any,
+      promoDiscount: null as any,
     });
 
     const updatedCart = await this.cartRepository.findById(cart.id);
@@ -252,11 +252,16 @@ export class CartService {
       // Преобразуем гостевую корзину в пользовательскую
       await this.cartRepository.update(guestCart.id, {
         userId,
-        sessionId: undefined,
+        sessionId: null as any,
         expiresAt: this.getExpiresAt(true),
       });
       const updatedCart = await this.cartRepository.findById(guestCart.id);
       return this.buildCartResponse(updatedCart!);
+    }
+
+    // Если гостевая и пользовательская корзины — один и тот же объект
+    if (guestCart.id === userCart.id) {
+      return this.buildCartResponse(userCart);
     }
 
     // Сливаем: элементы гостевой корзины добавляются, если их нет в пользовательской

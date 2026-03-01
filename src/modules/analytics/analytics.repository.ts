@@ -63,6 +63,7 @@ export class AnalyticsRepository {
 
   async getLatest(): Promise<AnalyticsDaily | null> {
     return this.repository.findOne({
+      where: {},
       order: { date: 'DESC' },
     });
   }

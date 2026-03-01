@@ -153,6 +153,7 @@ export class OrdersRepository {
 
   async getLastOrderNumber(): Promise<string | null> {
     const order = await this.repository.findOne({
+      where: {},
       order: { orderNumber: 'DESC' },
       select: ['orderNumber'],
     });

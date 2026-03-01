@@ -33,12 +33,12 @@ export class OrderItemEntity extends BaseEntity {
   @Column()
   color: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
   price: number;
 
   @Column()
   quantity: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
   total: number;
 }

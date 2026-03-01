@@ -21,13 +21,13 @@ export class Promotion extends BaseEntity {
   @Column({ type: 'enum', enum: PromotionType })
   type: PromotionType;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
   value: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true, transformer: { to: (v: number | null) => v, from: (v: string | null) => v === null ? null : parseFloat(v) || 0 } })
   minOrderAmount?: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true, transformer: { to: (v: number | null) => v, from: (v: string | null) => v === null ? null : parseFloat(v) || 0 } })
   maxDiscount?: number;
 
   @Column({ nullable: true })

@@ -27,6 +27,6 @@ export class ProductVariantEntity extends BaseEntity {
   @Column({ default: 0 })
   stock: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true, transformer: { to: (v: number | null) => v, from: (v: string | null) => v === null ? null : parseFloat(v) || 0 } })
   price?: number;
 }

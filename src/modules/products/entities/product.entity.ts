@@ -58,10 +58,10 @@ export class Product extends BaseEntity {
   sku: string;
 
   @Index()
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
   price: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true, transformer: { to: (v: number | null) => v, from: (v: string | null) => v === null ? null : parseFloat(v) || 0 } })
   compareAtPrice?: number;
 
   @Index()
@@ -84,7 +84,7 @@ export class Product extends BaseEntity {
   @Column('jsonb', { default: {} })
   attributes: ProductAttributes;
 
-  @Column('decimal', { precision: 3, scale: 2, default: 0 })
+  @Column('decimal', { precision: 3, scale: 2, default: 0, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
   rating: number;
 
   @Column({ default: 0 })

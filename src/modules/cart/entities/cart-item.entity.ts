@@ -21,7 +21,7 @@ export class CartItemEntity extends BaseEntity {
   @Column()
   quantity: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
   price: number;
 
   // addedAt = createdAt (inherited from BaseEntity)
