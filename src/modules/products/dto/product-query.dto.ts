@@ -9,7 +9,6 @@ import {
   IsArray,
   Min,
   Max,
-  Matches,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ProductStatus } from '../entities/product.entity';
@@ -43,10 +42,9 @@ export class ProductQueryDto {
   @IsEnum(SortOption)
   sort?: SortOption;
 
-  @ApiPropertyOptional({ description: 'Category ID (24-char hex ObjectId)' })
+  @ApiPropertyOptional({ description: 'Category ID (UUID)' })
   @IsOptional()
   @IsString()
-  @Matches(/^[a-fA-F0-9]{24}$/, { message: 'category must be a valid ObjectId' })
   category?: string;
 
   @ApiPropertyOptional({ description: 'Minimum price', minimum: 0 })

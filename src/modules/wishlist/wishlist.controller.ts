@@ -30,7 +30,7 @@ export class WishlistController {
   @ApiOperation({ summary: 'Получить список желаний' })
   @ApiResponse({ status: 200, type: WishlistResponseDto })
   async getWishlist(@CurrentUser() user: User): Promise<WishlistResponseDto> {
-    return this.wishlistService.getWishlist(user._id.toString());
+    return this.wishlistService.getWishlist(user.id);
   }
 
   @Post('move-to-cart')
@@ -43,7 +43,7 @@ export class WishlistController {
     @Body() dto: MoveToCartDto,
   ): Promise<void> {
     await this.wishlistService.moveToCart(
-      user._id.toString(),
+      user.id,
       dto.productId,
       dto.variantId,
     );
@@ -60,7 +60,7 @@ export class WishlistController {
     @CurrentUser() user: User,
     @Param('productId') productId: string,
   ): Promise<void> {
-    await this.wishlistService.addProduct(user._id.toString(), productId);
+    await this.wishlistService.addProduct(user.id, productId);
   }
 
   @Delete(':productId')
@@ -73,7 +73,7 @@ export class WishlistController {
     @CurrentUser() user: User,
     @Param('productId') productId: string,
   ): Promise<void> {
-    await this.wishlistService.removeProduct(user._id.toString(), productId);
+    await this.wishlistService.removeProduct(user.id, productId);
   }
 
   @Delete()
@@ -81,6 +81,6 @@ export class WishlistController {
   @ApiOperation({ summary: 'Очистить список желаний' })
   @ApiResponse({ status: 204, description: 'Список желаний очищен' })
   async clearWishlist(@CurrentUser() user: User): Promise<void> {
-    await this.wishlistService.clearWishlist(user._id.toString());
+    await this.wishlistService.clearWishlist(user.id);
   }
 }

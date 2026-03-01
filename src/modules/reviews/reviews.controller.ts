@@ -48,7 +48,7 @@ export class ReviewsController {
     @Param('productId') productId: string,
   ) {
     return this.reviewsService.checkReviewEligibility(
-      user._id.toString(),
+      user.id,
       productId,
     );
   }
@@ -81,7 +81,7 @@ export class ReviewsController {
     @Param('productId') productId: string,
     @Body() dto: CreateReviewDto,
   ) {
-    return this.reviewsService.create(user._id.toString(), productId, dto);
+    return this.reviewsService.create(user.id, productId, dto);
   }
 
   // === Admin: все отзывы ===
@@ -121,7 +121,7 @@ export class ReviewsController {
     @Param('id') id: string,
     @Body() dto: UpdateReviewDto,
   ) {
-    return this.reviewsService.update(id, user._id.toString(), dto);
+    return this.reviewsService.update(id, user.id, dto);
   }
 
   // === Admin/Owner: удаление ===
@@ -139,7 +139,7 @@ export class ReviewsController {
     @Param('id') id: string,
   ): Promise<void> {
     const isAdmin = user.role === UserRole.ADMIN;
-    await this.reviewsService.delete(id, user._id.toString(), isAdmin);
+    await this.reviewsService.delete(id, user.id, isAdmin);
   }
 
   // === Admin: одобрение ===
@@ -169,6 +169,6 @@ export class ReviewsController {
     @Param('id') id: string,
     @Body() dto: AdminReplyDto,
   ) {
-    return this.reviewsService.addReply(id, user._id.toString(), dto.text);
+    return this.reviewsService.addReply(id, user.id, dto.text);
   }
 }

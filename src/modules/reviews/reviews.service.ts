@@ -7,7 +7,6 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ObjectId } from 'mongodb';
 import Redis from 'ioredis';
 import { ReviewsRepository } from './reviews.repository';
 import { OrdersService } from '@/modules/orders/orders.service';
@@ -50,15 +49,12 @@ export class ReviewsService implements OnModuleDestroy {
   }
 
   async create(userId: string, productId: string, dto: CreateReviewDto): Promise<Review> {
-    const userObjectId = new ObjectId(userId);
-    const productObjectId = new ObjectId(productId);
-
     // Проверить что товар существует
     await this.productsService.findById(productId);
 
     // Проверить что пользователь купил товар (orderId валиден)
     const order = await this.ordersService.findById(dto.orderId);
-    if (order.userId.toString() !== userId) {
+    if (order.userId !== userId) {
       throw new ForbiddenException('Заказ не принадлежит текущему пользователю');
     }
 
@@ -67,7 +63,7 @@ export class ReviewsService implements OnModuleDestroy {
     }
 
     const hasProduct = order.items.some(
-      (item) => item.productId.toString() === productId,
+      (item) => item.productId === productId,
     );
     if (!hasProduct) {
       throw new BadRequestException('Товар не найден в указанном заказе');
@@ -75,17 +71,17 @@ export class ReviewsService implements OnModuleDestroy {
 
     // Один отзыв на товар от пользователя
     const existing = await this.reviewsRepository.findByProductAndUser(
-      productObjectId,
-      userObjectId,
+      productId,
+      userId,
     );
     if (existing) {
       throw new ConflictException('Вы уже оставили отзыв на этот товар');
     }
 
     const review = await this.reviewsRepository.create({
-      productId: productObjectId,
-      userId: userObjectId,
-      orderId: new ObjectId(dto.orderId),
+      productId,
+      userId,
+      orderId: dto.orderId,
       rating: dto.rating,
       title: dto.title,
       text: dto.text,
@@ -110,17 +106,17 @@ export class ReviewsService implements OnModuleDestroy {
     }
 
     const result = await this.reviewsRepository.findByProduct(
-      new ObjectId(productId),
+      productId,
       query,
     );
 
     // Populate user data
-    const userIds = [...new Set(result.data.map((r) => r.userId.toString()))];
+    const userIds = [...new Set(result.data.map((r) => r.userId))];
     const users = await this.usersService.findByIds(userIds);
-    const usersMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const usersMap = new Map(users.map((u) => [u.id, u]));
 
     const data = result.data.map((review) => {
-      const user = usersMap.get(review.userId.toString());
+      const user = usersMap.get(review.userId);
       return this.toResponseDto(review, user);
     });
 
@@ -144,7 +140,7 @@ export class ReviewsService implements OnModuleDestroy {
   async update(id: string, userId: string, dto: UpdateReviewDto): Promise<Review> {
     const review = await this.findById(id);
 
-    if (review.userId.toString() !== userId) {
+    if (review.userId !== userId) {
       throw new ForbiddenException('Нет прав для редактирования этого отзыва');
     }
 
@@ -163,7 +159,7 @@ export class ReviewsService implements OnModuleDestroy {
     }
 
     // Пересчитать рейтинг товара (отзыв стал неодобренным)
-    await this.recalculateProductRating(review.productId.toString());
+    await this.recalculateProductRating(review.productId);
     await this.invalidateCache();
 
     return updated;
@@ -172,14 +168,14 @@ export class ReviewsService implements OnModuleDestroy {
   async delete(id: string, userId?: string, isAdmin?: boolean): Promise<void> {
     const review = await this.findById(id);
 
-    if (!isAdmin && review.userId.toString() !== userId) {
+    if (!isAdmin && review.userId !== userId) {
       throw new ForbiddenException('Нет прав для удаления этого отзыва');
     }
 
     await this.reviewsRepository.delete(id);
 
     // Пересчитать рейтинг товара
-    await this.recalculateProductRating(review.productId.toString());
+    await this.recalculateProductRating(review.productId);
     await this.invalidateCache();
   }
 
@@ -192,7 +188,7 @@ export class ReviewsService implements OnModuleDestroy {
     }
 
     // Пересчитать рейтинг товара
-    await this.recalculateProductRating(review.productId.toString());
+    await this.recalculateProductRating(review.productId);
     await this.invalidateCache();
 
     return updated;
@@ -204,7 +200,7 @@ export class ReviewsService implements OnModuleDestroy {
     await this.reviewsRepository.update(id, { isApproved: false });
 
     // Пересчитать рейтинг товара
-    await this.recalculateProductRating(review.productId.toString());
+    await this.recalculateProductRating(review.productId);
     await this.invalidateCache();
   }
 
@@ -224,29 +220,29 @@ export class ReviewsService implements OnModuleDestroy {
   }
 
   async calculateProductRating(productId: string): Promise<{ rating: number; count: number }> {
-    return this.reviewsRepository.calculateProductRating(new ObjectId(productId));
+    return this.reviewsRepository.calculateProductRating(productId);
   }
 
   toResponseDto(
     review: Review,
-    user?: { _id: ObjectId; firstName: string; lastName: string },
+    user?: { id: string; firstName: string; lastName: string },
   ): ReviewResponseDto {
     const isAnonymous = review.isAnonymous ?? false;
 
     return {
-      _id: review._id.toString(),
-      productId: review.productId.toString(),
-      userId: review.userId.toString(),
+      _id: review.id,
+      productId: review.productId,
+      userId: review.userId,
       user: isAnonymous
         ? undefined
         : user
           ? {
-              _id: user._id.toString(),
+              _id: user.id,
               firstName: user.firstName,
               lastName: user.lastName,
             }
           : undefined,
-      orderId: review.orderId.toString(),
+      orderId: review.orderId,
       rating: review.rating,
       title: review.title,
       text: review.text,
@@ -264,13 +260,10 @@ export class ReviewsService implements OnModuleDestroy {
     userId: string,
     productId: string,
   ): Promise<ReviewEligibilityDto> {
-    const userObjectId = new ObjectId(userId);
-    const productObjectId = new ObjectId(productId);
-
     // Check if user already reviewed this product
     const existing = await this.reviewsRepository.findByProductAndUser(
-      productObjectId,
-      userObjectId,
+      productId,
+      userId,
     );
     if (existing) {
       return { canReview: false, eligibleOrders: [], hasReviewed: true };
@@ -286,15 +279,15 @@ export class ReviewsService implements OnModuleDestroy {
     const eligibleOrders = ordersResult.data
       .filter((order) =>
         order.items.some(
-          (item) => item.productId.toString() === productId,
+          (item) => item.productId === productId,
         ),
       )
       .map((order) => ({
-        _id: order._id.toString(),
+        _id: order.id,
         orderNumber: order.orderNumber,
         createdAt: order.createdAt,
         items: order.items
-          .filter((item) => item.productId.toString() === productId)
+          .filter((item) => item.productId === productId)
           .map((item) => ({
             name: item.name,
             image: item.image,

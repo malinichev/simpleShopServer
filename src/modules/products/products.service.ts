@@ -6,7 +6,6 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ObjectId } from 'mongodb';
 import slugify from 'slugify';
 import { v4 as uuidv4 } from 'uuid';
 import Redis from 'ioredis';
@@ -16,8 +15,8 @@ import {
   Product,
   ProductStatus,
   ProductImage,
-  ProductVariant,
 } from './entities/product.entity';
+import { ProductVariantEntity } from './entities/product-variant.entity';
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -130,10 +129,17 @@ export class ProductsService implements OnModuleDestroy {
       sku,
       price: dto.price,
       compareAtPrice: dto.compareAtPrice,
-      categoryId: new ObjectId(dto.categoryId),
+      categoryId: dto.categoryId,
       tags: dto.tags || [],
       images: (dto.images || []) as ProductImage[],
-      variants: (dto.variants || []) as ProductVariant[],
+      variants: (dto.variants || []).map((v) => ({
+        size: v.size,
+        color: v.color,
+        colorHex: v.colorHex,
+        sku: v.sku,
+        stock: v.stock ?? 0,
+        price: v.price,
+      })) as ProductVariantEntity[],
       attributes: dto.attributes,
       rating: 0,
       reviewsCount: 0,
@@ -152,14 +158,14 @@ export class ProductsService implements OnModuleDestroy {
     const product = await this.findById(id);
 
     // Validate category if changed
-    if (dto.categoryId && dto.categoryId !== product.categoryId.toString()) {
+    if (dto.categoryId && dto.categoryId !== product.categoryId) {
       await this.categoriesService.findById(dto.categoryId);
     }
 
     // Check slug uniqueness if changed
     if (dto.slug && dto.slug !== product.slug) {
       const existingBySlug = await this.productsRepository.findBySlug(dto.slug);
-      if (existingBySlug && existingBySlug._id.toString() !== id) {
+      if (existingBySlug && existingBySlug.id !== id) {
         throw new ConflictException(
           `Товар со slug "${dto.slug}" уже существует`,
         );
@@ -169,41 +175,57 @@ export class ProductsService implements OnModuleDestroy {
     // Check SKU uniqueness if changed
     if (dto.sku && dto.sku !== product.sku) {
       const existingBySku = await this.productsRepository.findBySku(dto.sku);
-      if (existingBySku && existingBySku._id.toString() !== id) {
+      if (existingBySku && existingBySku.id !== id) {
         throw new ConflictException(`Товар с SKU "${dto.sku}" уже существует`);
       }
     }
 
+    // Separate variants from other fields (variants are a relation, not a column)
+    const { variants: variantsDto, ...restDto } = dto;
+
     const updateData: Partial<Product> = {};
 
-    if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.slug !== undefined) updateData.slug = dto.slug;
-    if (dto.description !== undefined) updateData.description = dto.description;
-    if (dto.shortDescription !== undefined)
-      updateData.shortDescription = dto.shortDescription;
-    if (dto.sku !== undefined) updateData.sku = dto.sku;
-    if (dto.price !== undefined) updateData.price = dto.price;
-    if (dto.compareAtPrice !== undefined)
-      updateData.compareAtPrice = dto.compareAtPrice;
-    if (dto.categoryId !== undefined)
-      updateData.categoryId = new ObjectId(dto.categoryId);
-    if (dto.tags !== undefined) updateData.tags = dto.tags;
-    if (dto.images !== undefined)
-      updateData.images = dto.images as ProductImage[];
-    if (dto.variants !== undefined)
-      updateData.variants = dto.variants as ProductVariant[];
-    if (dto.attributes !== undefined) updateData.attributes = dto.attributes;
-    if (dto.status !== undefined) updateData.status = dto.status;
-    if (dto.seo !== undefined) updateData.seo = dto.seo;
-    if (dto.isVisible !== undefined) updateData.isVisible = dto.isVisible;
+    if (restDto.name !== undefined) updateData.name = restDto.name;
+    if (restDto.slug !== undefined) updateData.slug = restDto.slug;
+    if (restDto.description !== undefined) updateData.description = restDto.description;
+    if (restDto.shortDescription !== undefined)
+      updateData.shortDescription = restDto.shortDescription;
+    if (restDto.sku !== undefined) updateData.sku = restDto.sku;
+    if (restDto.price !== undefined) updateData.price = restDto.price;
+    if (restDto.compareAtPrice !== undefined)
+      updateData.compareAtPrice = restDto.compareAtPrice;
+    if (restDto.categoryId !== undefined)
+      updateData.categoryId = restDto.categoryId;
+    if (restDto.tags !== undefined) updateData.tags = restDto.tags;
+    if (restDto.images !== undefined)
+      updateData.images = restDto.images as ProductImage[];
+    if (restDto.attributes !== undefined) updateData.attributes = restDto.attributes;
+    if (restDto.status !== undefined) updateData.status = restDto.status;
+    if (restDto.seo !== undefined) updateData.seo = restDto.seo;
+    if (restDto.isVisible !== undefined) updateData.isVisible = restDto.isVisible;
 
     const updated = await this.productsRepository.update(id, updateData);
     if (!updated) {
       throw new NotFoundException('Товар не найден');
     }
 
+    // Handle variants separately (replace all)
+    if (variantsDto !== undefined) {
+      await this.productsRepository.replaceVariants(
+        id,
+        variantsDto.map((v) => ({
+          size: v.size,
+          color: v.color,
+          colorHex: v.colorHex,
+          sku: v.sku,
+          stock: v.stock ?? 0,
+          price: v.price,
+        })),
+      );
+    }
+
     await this.invalidateCache();
-    return updated;
+    return this.findById(id);
   }
 
   async delete(id: string): Promise<void> {
@@ -213,17 +235,12 @@ export class ProductsService implements OnModuleDestroy {
   }
 
   async bulkDelete(ids: string[]): Promise<void> {
-    const objectIds = ids.map((id) => new ObjectId(id));
-    await this.productsRepository.bulkDelete(objectIds);
+    await this.productsRepository.bulkDelete(ids);
     await this.invalidateCache();
   }
 
   async bulkUpdateStatus(ids: string[], status: ProductStatus): Promise<void> {
-    const objectIds = ids.map((id) => {
-      console.log({ id });
-      return new ObjectId(String(id));
-    });
-    await this.productsRepository.bulkUpdateStatus(objectIds, status);
+    await this.productsRepository.bulkUpdateStatus(ids, status);
     await this.invalidateCache();
   }
 
@@ -239,7 +256,7 @@ export class ProductsService implements OnModuleDestroy {
       throw new BadRequestException(`Вариант с id "${variantId}" не найден`);
     }
 
-    await this.productsRepository.updateStock(id, variantId, stock);
+    await this.productsRepository.updateVariantStock(variantId, stock);
     await this.invalidateCache();
     return this.findById(id);
   }
@@ -256,10 +273,10 @@ export class ProductsService implements OnModuleDestroy {
 
   toResponseDto(
     product: Product,
-    category?: { _id: ObjectId; name: string; slug: string },
+    category?: { id: string; name: string; slug: string },
   ): ProductResponseDto {
     return {
-      _id: product._id.toString(),
+      _id: product.id,
       name: product.name,
       slug: product.slug,
       description: product.description,
@@ -267,10 +284,10 @@ export class ProductsService implements OnModuleDestroy {
       sku: product.sku,
       price: product.price,
       compareAtPrice: product.compareAtPrice,
-      categoryId: product.categoryId.toString(),
+      categoryId: product.categoryId,
       category: category
         ? {
-            _id: category._id.toString(),
+            _id: category.id,
             name: category.name,
             slug: category.slug,
           }

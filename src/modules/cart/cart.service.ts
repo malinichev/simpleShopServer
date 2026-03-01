@@ -3,11 +3,11 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
 import { CartRepository } from './cart.repository';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { Cart } from './entities/cart.entity';
+import { CartItemEntity } from './entities/cart-item.entity';
 import {
   AddToCartDto,
   CartResponseDto,
@@ -54,14 +54,14 @@ export class CartService {
 
     const cart = await this.findOrCreateCart(userId, sessionId);
 
-    const existingIndex = cart.items.findIndex(
-      (item) =>
-        item.variantId === dto.variantId &&
-        item.productId.toString() === dto.productId,
+    const existingItem = await this.cartRepository.findItemByCartAndVariant(
+      cart.id,
+      dto.variantId,
+      dto.productId,
     );
 
-    if (existingIndex >= 0) {
-      const newQuantity = cart.items[existingIndex].quantity + dto.quantity;
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + dto.quantity;
       if (newQuantity > 10) {
         throw new BadRequestException(
           'Максимальное количество одного товара — 10',
@@ -72,22 +72,21 @@ export class CartService {
           `Недостаточно товара на складе. Доступно: ${variant.stock}`,
         );
       }
-      cart.items[existingIndex].quantity = newQuantity;
-      cart.items[existingIndex].price = variant.price ?? product.price;
+      existingItem.quantity = newQuantity;
+      existingItem.price = variant.price ?? product.price;
+      await this.cartRepository.saveItem(existingItem);
     } else {
-      cart.items.push({
-        productId: new ObjectId(dto.productId),
+      await this.cartRepository.createItem({
+        cartId: cart.id,
+        productId: dto.productId,
         variantId: dto.variantId,
         quantity: dto.quantity,
         price: variant.price ?? product.price,
-        addedAt: new Date(),
       });
     }
 
-    const updated = await this.cartRepository.update(cart._id, {
-      items: cart.items,
-    });
-    return this.buildCartResponse(updated!);
+    const updatedCart = await this.cartRepository.findById(cart.id);
+    return this.buildCartResponse(updatedCart!);
   }
 
   async updateItem(
@@ -102,17 +101,14 @@ export class CartService {
       return this.removeItem(userId, sessionId, variantId);
     }
 
-    const itemIndex = cart.items.findIndex(
+    const item = cart.items.find(
       (item) => item.variantId === variantId,
     );
-    if (itemIndex < 0) {
+    if (!item) {
       throw new NotFoundException('Товар не найден в корзине');
     }
 
-    const item = cart.items[itemIndex];
-    const product = await this.productsService.findById(
-      item.productId.toString(),
-    );
+    const product = await this.productsService.findById(item.productId);
     const variant = product.variants.find((v) => v.id === variantId);
 
     if (variant && quantity > variant.stock) {
@@ -121,13 +117,12 @@ export class CartService {
       );
     }
 
-    cart.items[itemIndex].quantity = quantity;
-    cart.items[itemIndex].price = variant?.price ?? product.price;
+    item.quantity = quantity;
+    item.price = variant?.price ?? product.price;
+    await this.cartRepository.saveItem(item);
 
-    const updated = await this.cartRepository.update(cart._id, {
-      items: cart.items,
-    });
-    return this.buildCartResponse(updated!);
+    const updatedCart = await this.cartRepository.findById(cart.id);
+    return this.buildCartResponse(updatedCart!);
   }
 
   async removeItem(
@@ -137,17 +132,17 @@ export class CartService {
   ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
-    const filteredItems = cart.items.filter(
-      (item) => item.variantId !== variantId,
+    const item = cart.items.find(
+      (item) => item.variantId === variantId,
     );
-    if (filteredItems.length === cart.items.length) {
+    if (!item) {
       throw new NotFoundException('Товар не найден в корзине');
     }
 
-    const updated = await this.cartRepository.update(cart._id, {
-      items: filteredItems,
-    });
-    return this.buildCartResponse(updated!);
+    await this.cartRepository.deleteItem(item.id);
+
+    const updatedCart = await this.cartRepository.findById(cart.id);
+    return this.buildCartResponse(updatedCart!);
   }
 
   async clearCart(
@@ -155,8 +150,8 @@ export class CartService {
     sessionId: string | undefined,
   ): Promise<void> {
     const cart = await this.findOrCreateCart(userId, sessionId);
-    await this.cartRepository.update(cart._id, {
-      items: [],
+    await this.cartRepository.deleteItemsByCartId(cart.id);
+    await this.cartRepository.update(cart.id, {
       promoCode: undefined,
       promoDiscount: undefined,
     });
@@ -183,19 +178,18 @@ export class CartService {
     }> = [];
 
     for (const item of cart.items) {
-      const productIdStr = item.productId.toString();
-      let product = productsCache.get(productIdStr);
+      let product = productsCache.get(item.productId);
       if (!product) {
         try {
-          product = await this.productsService.findById(productIdStr);
-          productsCache.set(productIdStr, product);
+          product = await this.productsService.findById(item.productId);
+          productsCache.set(item.productId, product);
         } catch {
           continue;
         }
       }
       cartItems.push({
-        productId: productIdStr,
-        categoryId: product.categoryId?.toString(),
+        productId: item.productId,
+        categoryId: product.categoryId,
         quantity: item.quantity,
         price: item.price,
       });
@@ -216,11 +210,13 @@ export class CartService {
       throw new BadRequestException(result.message ?? 'Недействительный промокод');
     }
 
-    const updated = await this.cartRepository.update(cart._id, {
+    await this.cartRepository.update(cart.id, {
       promoCode: code.toUpperCase(),
       promoDiscount: result.discount,
     });
-    return this.buildCartResponse(updated!);
+
+    const updatedCart = await this.cartRepository.findById(cart.id);
+    return this.buildCartResponse(updatedCart!);
   }
 
   async removePromo(
@@ -229,11 +225,13 @@ export class CartService {
   ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
-    const updated = await this.cartRepository.update(cart._id, {
+    await this.cartRepository.update(cart.id, {
       promoCode: undefined,
       promoDiscount: undefined,
     });
-    return this.buildCartResponse(updated!);
+
+    const updatedCart = await this.cartRepository.findById(cart.id);
+    return this.buildCartResponse(updatedCart!);
   }
 
   async mergeCarts(
@@ -252,41 +250,47 @@ export class CartService {
 
     if (!userCart) {
       // Преобразуем гостевую корзину в пользовательскую
-      const updated = await this.cartRepository.update(guestCart._id, {
-        userId: new ObjectId(userId),
+      await this.cartRepository.update(guestCart.id, {
+        userId,
         sessionId: undefined,
         expiresAt: this.getExpiresAt(true),
       });
-      return this.buildCartResponse(updated!);
+      const updatedCart = await this.cartRepository.findById(guestCart.id);
+      return this.buildCartResponse(updatedCart!);
     }
 
     // Сливаем: элементы гостевой корзины добавляются, если их нет в пользовательской
     for (const guestItem of guestCart.items) {
-      const existingIndex = userCart.items.findIndex(
+      const existingItem = userCart.items.find(
         (item) =>
-          item.productId.toString() === guestItem.productId.toString() &&
+          item.productId === guestItem.productId &&
           item.variantId === guestItem.variantId,
       );
 
-      if (existingIndex >= 0) {
+      if (existingItem) {
         // Берём большее количество
-        userCart.items[existingIndex].quantity = Math.min(
-          Math.max(userCart.items[existingIndex].quantity, guestItem.quantity),
+        existingItem.quantity = Math.min(
+          Math.max(existingItem.quantity, guestItem.quantity),
           10,
         );
+        await this.cartRepository.saveItem(existingItem);
       } else {
-        userCart.items.push(guestItem);
+        await this.cartRepository.createItem({
+          cartId: userCart.id,
+          productId: guestItem.productId,
+          variantId: guestItem.variantId,
+          quantity: guestItem.quantity,
+          price: guestItem.price,
+        });
       }
     }
 
-    const updated = await this.cartRepository.update(userCart._id, {
-      items: userCart.items,
-    });
-
     // Удаляем гостевую корзину
-    await this.cartRepository.delete(guestCart._id);
+    await this.cartRepository.deleteItemsByCartId(guestCart.id);
+    await this.cartRepository.delete(guestCart.id);
 
-    return this.buildCartResponse(updated!);
+    const updatedCart = await this.cartRepository.findById(userCart.id);
+    return this.buildCartResponse(updatedCart!);
   }
 
   private async findOrCreateCart(
@@ -311,7 +315,7 @@ export class CartService {
   private async createCart(userId?: string, sessionId?: string): Promise<Cart> {
     const isAuth = !!userId;
     return this.cartRepository.create({
-      userId: userId ? new ObjectId(userId) : undefined,
+      userId: userId || undefined,
       sessionId: isAuth ? undefined : sessionId,
       items: [],
       expiresAt: this.getExpiresAt(isAuth),
@@ -330,13 +334,11 @@ export class CartService {
     const productsCache = new Map<string, Product>();
 
     for (const item of cart.items) {
-      const productIdStr = item.productId.toString();
-
-      let product = productsCache.get(productIdStr);
+      let product = productsCache.get(item.productId);
       if (!product) {
         try {
-          product = await this.productsService.findById(productIdStr);
-          productsCache.set(productIdStr, product);
+          product = await this.productsService.findById(item.productId);
+          productsCache.set(item.productId, product);
         } catch {
           // Товар удалён — пропускаем
           continue;
@@ -350,7 +352,7 @@ export class CartService {
 
       items.push({
         product: {
-          _id: product._id.toString(),
+          _id: product.id,
           name: product.name,
           slug: product.slug,
           image: product.images?.[0]?.url,
@@ -367,14 +369,14 @@ export class CartService {
         total: currentPrice * item.quantity,
         inStock: variant.stock >= item.quantity,
         maxQuantity: Math.min(variant.stock, 10),
-        addedAt: item.addedAt,
+        addedAt: item.createdAt,
       });
     }
 
     const totals = this.calculateTotals(items, cart.promoDiscount);
 
     return {
-      _id: cart._id.toString(),
+      _id: cart.id,
       items,
       promoCode: cart.promoCode,
       promoDiscount: cart.promoDiscount,
@@ -396,5 +398,4 @@ export class CartService {
       itemsCount: items.reduce((sum, item) => sum + item.quantity, 0),
     };
   }
-
 }

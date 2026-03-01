@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ObjectId } from 'mongodb';
 import { Settings, NotificationSettings } from './entities/settings.entity';
 import { ShippingMethod } from './entities/shipping-method.entity';
 import { PaymentMethod } from './entities/payment-method.entity';
@@ -66,10 +65,7 @@ export class SettingsService {
       dto.notifications = { ...settings.notifications, ...dto.notifications };
     }
 
-    await this.settingsRepository.update(
-      { _id: settings._id } as Record<string, unknown>,
-      dto,
-    );
+    await this.settingsRepository.update(settings.id, dto);
 
     return this.getSettings();
   }
@@ -91,40 +87,33 @@ export class SettingsService {
     id: string,
     dto: UpdateShippingMethodDto,
   ): Promise<ShippingMethod> {
-    const objectId = new ObjectId(id);
     const method = await this.shippingRepository.findOne({
-      where: { _id: objectId } as Record<string, unknown>,
+      where: { id },
     });
 
     if (!method) {
       throw new NotFoundException('Способ доставки не найден');
     }
 
-    await this.shippingRepository.update(
-      { _id: objectId } as Record<string, unknown>,
-      dto,
-    );
+    await this.shippingRepository.update(id, dto);
 
     const updated = await this.shippingRepository.findOne({
-      where: { _id: objectId } as Record<string, unknown>,
+      where: { id },
     });
 
     return updated!;
   }
 
   async deleteShippingMethod(id: string): Promise<void> {
-    const objectId = new ObjectId(id);
     const method = await this.shippingRepository.findOne({
-      where: { _id: objectId } as Record<string, unknown>,
+      where: { id },
     });
 
     if (!method) {
       throw new NotFoundException('Способ доставки не найден');
     }
 
-    await this.shippingRepository.delete({
-      _id: objectId,
-    } as Record<string, unknown>);
+    await this.shippingRepository.delete(id);
   }
 
   // ======================== Payment Methods ========================
@@ -144,39 +133,32 @@ export class SettingsService {
     id: string,
     dto: UpdatePaymentMethodDto,
   ): Promise<PaymentMethod> {
-    const objectId = new ObjectId(id);
     const method = await this.paymentRepository.findOne({
-      where: { _id: objectId } as Record<string, unknown>,
+      where: { id },
     });
 
     if (!method) {
       throw new NotFoundException('Способ оплаты не найден');
     }
 
-    await this.paymentRepository.update(
-      { _id: objectId } as Record<string, unknown>,
-      dto,
-    );
+    await this.paymentRepository.update(id, dto);
 
     const updated = await this.paymentRepository.findOne({
-      where: { _id: objectId } as Record<string, unknown>,
+      where: { id },
     });
 
     return updated!;
   }
 
   async deletePaymentMethod(id: string): Promise<void> {
-    const objectId = new ObjectId(id);
     const method = await this.paymentRepository.findOne({
-      where: { _id: objectId } as Record<string, unknown>,
+      where: { id },
     });
 
     if (!method) {
       throw new NotFoundException('Способ оплаты не найден');
     }
 
-    await this.paymentRepository.delete({
-      _id: objectId,
-    } as Record<string, unknown>);
+    await this.paymentRepository.delete(id);
   }
 }

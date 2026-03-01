@@ -5,7 +5,6 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { UsersRepository } from './users.repository';
@@ -170,13 +169,13 @@ export class UsersService {
       throw new BadRequestException('Invalid or expired verification token');
     }
 
-    await this.usersRepository.update(user._id.toString(), {
+    await this.usersRepository.update(user.id, {
       isEmailVerified: true,
       emailVerificationToken: undefined,
       emailVerificationExpires: undefined,
     } as any);
 
-    return this.findByIdOrFail(user._id.toString());
+    return this.findByIdOrFail(user.id);
   }
 
   async generatePasswordResetToken(userId: string): Promise<string> {
@@ -212,14 +211,14 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    await this.usersRepository.update(user._id.toString(), {
+    await this.usersRepository.update(user.id, {
       password: hashedPassword,
       passwordResetToken: undefined,
       passwordResetExpires: undefined,
       refreshTokens: null,
     } as any);
 
-    return this.findByIdOrFail(user._id.toString());
+    return this.findByIdOrFail(user.id);
   }
 
   async changePassword(
@@ -304,7 +303,7 @@ export class UsersService {
 
   sanitizeUser(user: User): UserResponseDto {
     return {
-      _id: user._id.toString(),
+      _id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,

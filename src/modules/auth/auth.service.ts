@@ -54,7 +54,7 @@ export class AuthService {
     // Генерируем токен для подтверждения email
     const verificationToken =
       await this.usersService.generateEmailVerificationToken(
-        user._id.toString(),
+        user.id,
       );
 
     const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [
@@ -68,7 +68,7 @@ export class AuthService {
     const audience = TokenAudience.WEB;
     const tokens = await this.generateTokens(user, audience);
     await this.usersService.updateRefreshToken(
-      user._id.toString(),
+      user.id,
       tokens.refreshToken,
       audience,
     );
@@ -91,7 +91,7 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user, audience);
     await this.usersService.updateRefreshToken(
-      user._id.toString(),
+      user.id,
       tokens.refreshToken,
       audience,
     );
@@ -134,7 +134,7 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user, audience);
     await this.usersService.updateRefreshToken(
-      user._id.toString(),
+      user.id,
       tokens.refreshToken,
       audience,
     );
@@ -151,7 +151,7 @@ export class AuthService {
     }
 
     const resetToken = await this.usersService.generatePasswordResetToken(
-      user._id.toString(),
+      user.id,
     );
 
     const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [
@@ -213,7 +213,7 @@ export class AuthService {
     audience: TokenAudience,
   ): Promise<TokensDto> {
     const payload = {
-      sub: user._id.toString(),
+      sub: user.id,
       email: user.email,
       role: user.role,
       aud: audience,

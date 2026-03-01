@@ -6,7 +6,6 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
 import { OrdersRepository } from './orders.repository';
 import { CartService } from '@/modules/cart/cart.service';
 import { ProductsService } from '@/modules/products/products.service';
@@ -15,9 +14,9 @@ import { UsersService } from '@/modules/users/users.service';
 import {
   Order,
   OrderStatus,
-  OrderItem,
   OrderHistory,
 } from './entities/order.entity';
+import { OrderItemEntity } from './entities/order-item.entity';
 import {
   CreateOrderDto,
   OrderQueryDto,
@@ -55,7 +54,7 @@ export class OrdersService {
     const shippingAddress = await this.resolveShippingAddress(userId, dto);
 
     // 3. Проверить наличие товаров и собрать items
-    const orderItems: OrderItem[] = [];
+    const orderItems: Partial<OrderItemEntity>[] = [];
     for (const cartItem of cart.items) {
       const product = await this.productsService.findById(cartItem.product._id);
       const variant = product.variants.find((v) => v.id === cartItem.variantId);
@@ -73,7 +72,7 @@ export class OrdersService {
       }
 
       orderItems.push({
-        productId: new ObjectId(cartItem.product._id),
+        productId: cartItem.product._id,
         variantId: cartItem.variantId,
         name: product.name,
         sku: variant.sku,
@@ -87,7 +86,7 @@ export class OrdersService {
     }
 
     // 4. Рассчитать итоги
-    const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+    const subtotal = orderItems.reduce((sum, item) => sum + (item.total ?? 0), 0);
     const shipping = SHIPPING_COSTS[dto.shippingMethod] ?? 0;
     let discount = 0;
     let promoCode: string | undefined;
@@ -101,9 +100,9 @@ export class OrdersService {
         {
           cartTotal: subtotal,
           items: orderItems.map((item) => ({
-            productId: item.productId.toString(),
-            quantity: item.quantity,
-            price: item.price,
+            productId: item.productId!,
+            quantity: item.quantity!,
+            price: item.price!,
           })),
         },
       );
@@ -129,8 +128,8 @@ export class OrdersService {
 
     const order = await this.ordersRepository.create({
       orderNumber,
-      userId: new ObjectId(userId),
-      items: orderItems,
+      userId,
+      items: orderItems as OrderItemEntity[],
       subtotal,
       discount,
       shipping,
@@ -150,15 +149,13 @@ export class OrdersService {
 
     // 9. Обновить stock товаров
     for (const item of orderItems) {
-      const product = await this.productsService.findById(
-        item.productId.toString(),
-      );
+      const product = await this.productsService.findById(item.productId!);
       const variant = product.variants.find((v) => v.id === item.variantId);
       if (variant) {
-        const newStock = Math.max(variant.stock - item.quantity, 0);
+        const newStock = Math.max(variant.stock - (item.quantity ?? 0), 0);
         await this.productsService.updateStock(
-          item.productId.toString(),
-          item.variantId,
+          item.productId!,
+          item.variantId!,
           newStock,
         );
       }
@@ -224,7 +221,7 @@ export class OrdersService {
       status,
       comment,
       createdAt: new Date(),
-      createdBy: adminId ? new ObjectId(adminId) : undefined,
+      createdBy: adminId,
     };
 
     const updatedHistory = [...order.history, historyEntry];
@@ -244,7 +241,7 @@ export class OrdersService {
   async cancel(id: string, userId: string, isAdmin: boolean): Promise<Order> {
     const order = await this.findById(id);
 
-    if (!isAdmin && order.userId.toString() !== userId) {
+    if (!isAdmin && order.userId !== userId) {
       throw new ForbiddenException('Нет прав для отмены этого заказа');
     }
 
@@ -263,13 +260,11 @@ export class OrdersService {
 
     // Вернуть stock товаров
     for (const item of order.items) {
-      const product = await this.productsService.findById(
-        item.productId.toString(),
-      );
+      const product = await this.productsService.findById(item.productId);
       const variant = product.variants.find((v) => v.id === item.variantId);
       if (variant) {
         await this.productsService.updateStock(
-          item.productId.toString(),
+          item.productId,
           item.variantId,
           variant.stock + item.quantity,
         );
@@ -280,7 +275,7 @@ export class OrdersService {
       status: OrderStatus.CANCELLED,
       comment: isAdmin ? 'Отменён администратором' : 'Отменён покупателем',
       createdAt: new Date(),
-      createdBy: new ObjectId(userId),
+      createdBy: userId,
     };
 
     const updatedHistory = [...order.history, historyEntry];
@@ -339,7 +334,7 @@ export class OrdersService {
   toResponseDto(
     order: Order,
     user?: {
-      _id: ObjectId;
+      id: string;
       email: string;
       firstName: string;
       lastName: string;
@@ -347,12 +342,12 @@ export class OrdersService {
     },
   ): OrderResponseDto {
     return {
-      _id: order._id.toString(),
+      _id: order.id,
       orderNumber: order.orderNumber,
-      userId: order.userId.toString(),
+      userId: order.userId,
       user: user
         ? {
-            _id: user._id.toString(),
+            _id: user.id,
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,

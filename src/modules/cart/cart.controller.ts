@@ -31,7 +31,7 @@ import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 
 interface RequestWithCart extends Request {
   cartSessionId: string;
-  user?: { _id: string };
+  user?: { id: string };
 }
 
 @ApiTags('cart')
@@ -46,7 +46,7 @@ export class CartController {
   @ApiOperation({ summary: 'Получить корзину' })
   @ApiResponse({ status: 200, type: CartResponseDto })
   async getCart(@Req() req: RequestWithCart) {
-    const userId = req.user?._id?.toString();
+    const userId = req.user?.id;
     const sessionId = req.cartSessionId;
     return this.cartService.getCart(userId, sessionId);
   }
@@ -59,7 +59,7 @@ export class CartController {
   @ApiResponse({ status: 201, type: CartResponseDto })
   @ApiResponse({ status: 400, description: 'Недостаточно товара на складе' })
   async addItem(@Req() req: RequestWithCart, @Body() dto: AddToCartDto) {
-    const userId = req.user?._id?.toString();
+    const userId = req.user?.id;
     const sessionId = req.cartSessionId;
     return this.cartService.addItem(userId, sessionId, dto);
   }
@@ -77,7 +77,7 @@ export class CartController {
     @Param('variantId') variantId: string,
     @Body() dto: UpdateCartItemDto,
   ) {
-    const userId = req.user?._id?.toString();
+    const userId = req.user?.id;
     const sessionId = req.cartSessionId;
     return this.cartService.updateItem(userId, sessionId, variantId, dto.quantity);
   }
@@ -94,7 +94,7 @@ export class CartController {
     @Req() req: RequestWithCart,
     @Param('variantId') variantId: string,
   ) {
-    const userId = req.user?._id?.toString();
+    const userId = req.user?.id;
     const sessionId = req.cartSessionId;
     return this.cartService.removeItem(userId, sessionId, variantId);
   }
@@ -107,7 +107,7 @@ export class CartController {
   @ApiOperation({ summary: 'Очистить корзину' })
   @ApiResponse({ status: 204, description: 'Корзина очищена' })
   async clearCart(@Req() req: RequestWithCart): Promise<void> {
-    const userId = req.user?._id?.toString();
+    const userId = req.user?.id;
     const sessionId = req.cartSessionId;
     await this.cartService.clearCart(userId, sessionId);
   }
@@ -120,7 +120,7 @@ export class CartController {
   @ApiResponse({ status: 201, type: CartResponseDto })
   @ApiResponse({ status: 400, description: 'Недействительный промокод' })
   async applyPromo(@Req() req: RequestWithCart, @Body() dto: ApplyPromoDto) {
-    const userId = req.user?._id?.toString();
+    const userId = req.user?.id;
     const sessionId = req.cartSessionId;
     return this.cartService.applyPromo(userId, sessionId, dto.code);
   }
@@ -132,7 +132,7 @@ export class CartController {
   @ApiOperation({ summary: 'Удалить промокод' })
   @ApiResponse({ status: 200, type: CartResponseDto })
   async removePromo(@Req() req: RequestWithCart) {
-    const userId = req.user?._id?.toString();
+    const userId = req.user?.id;
     const sessionId = req.cartSessionId;
     return this.cartService.removePromo(userId, sessionId);
   }
@@ -142,7 +142,7 @@ export class CartController {
   @ApiOperation({ summary: 'Слить гостевую корзину с пользовательской (после авторизации)' })
   @ApiResponse({ status: 201, type: CartResponseDto })
   async mergeCarts(@Req() req: RequestWithCart) {
-    const userId = req.user!._id.toString();
+    const userId = req.user!.id;
     const sessionId = req.cartSessionId;
     return this.cartService.mergeCarts(userId, sessionId);
   }

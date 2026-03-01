@@ -3,13 +3,11 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  Inject,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { ObjectId } from 'mongodb';
 import slugify from 'slugify';
 import Redis from 'ioredis';
 import { Category } from './entities/category.entity';
@@ -72,17 +70,16 @@ export class CategoriesService implements OnModuleDestroy {
   }
 
   async findBySlug(slug: string): Promise<Category> {
-    const category = await this.repository.findOne({ where: { slug } as any });
+    const category = await this.repository.findOne({ where: { slug } });
     if (!category) {
       throw new NotFoundException(`Категория со slug "${slug}" не найдена`);
     }
     return category;
   }
 
-  async findById(id: ObjectId | string): Promise<Category> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+  async findById(id: string): Promise<Category> {
     const category = await this.repository.findOne({
-      where: { _id: objectId } as any,
+      where: { id },
     });
     if (!category) {
       throw new NotFoundException('Категория не найдена');
@@ -92,7 +89,7 @@ export class CategoriesService implements OnModuleDestroy {
 
   async create(dto: CreateCategoryDto): Promise<Category> {
     const slug = dto.slug || this.generateSlug(dto.name);
-    const existing = await this.repository.findOne({ where: { slug } as any });
+    const existing = await this.repository.findOne({ where: { slug } });
     if (existing) {
       throw new ConflictException(`Категория со slug "${slug}" уже существует`);
     }
@@ -104,7 +101,7 @@ export class CategoriesService implements OnModuleDestroy {
     const category = this.repository.create({
       ...dto,
       slug,
-      parentId: dto.parentId ? new ObjectId(dto.parentId) : undefined,
+      parentId: dto.parentId || undefined,
     });
 
     const saved = await this.repository.save(category);
@@ -112,45 +109,43 @@ export class CategoriesService implements OnModuleDestroy {
     return saved;
   }
 
-  async update(id: ObjectId | string, dto: UpdateCategoryDto): Promise<Category> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    const category = await this.findById(objectId);
+  async update(id: string, dto: UpdateCategoryDto): Promise<Category> {
+    const category = await this.findById(id);
 
     if (dto.slug && dto.slug !== category.slug) {
       const existing = await this.repository.findOne({
-        where: { slug: dto.slug } as any,
+        where: { slug: dto.slug },
       });
-      if (existing && existing._id.toString() !== objectId.toString()) {
+      if (existing && existing.id !== id) {
         throw new ConflictException(`Категория со slug "${dto.slug}" уже существует`);
       }
     }
 
     if (dto.parentId !== undefined) {
       if (dto.parentId) {
-        if (dto.parentId === objectId.toString()) {
+        if (dto.parentId === id) {
           throw new BadRequestException('Категория не может быть родителем самой себя');
         }
         await this.findById(dto.parentId);
-        await this.checkCircularDependency(objectId, new ObjectId(dto.parentId));
+        await this.checkCircularDependency(id, dto.parentId);
       }
     }
 
     const updateData: any = { ...dto };
     if (dto.parentId !== undefined) {
-      updateData.parentId = dto.parentId ? new ObjectId(dto.parentId) : null;
+      updateData.parentId = dto.parentId || null;
     }
 
-    await this.repository.update({ _id: objectId } as any, updateData);
+    await this.repository.update(id, updateData);
     await this.invalidateCache();
-    return this.findById(objectId);
+    return this.findById(id);
   }
 
-  async delete(id: ObjectId | string): Promise<void> {
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    await this.findById(objectId);
+  async delete(id: string): Promise<void> {
+    await this.findById(id);
 
     const children = await this.repository.find({
-      where: { parentId: objectId } as any,
+      where: { parentId: id },
     });
     if (children.length > 0) {
       throw new BadRequestException(
@@ -158,16 +153,13 @@ export class CategoriesService implements OnModuleDestroy {
       );
     }
 
-    await this.repository.delete({ _id: objectId } as any);
+    await this.repository.delete(id);
     await this.invalidateCache();
   }
 
   async reorder(dto: ReorderCategoriesDto): Promise<void> {
     const updates = dto.items.map((item) =>
-      this.repository.update(
-        { _id: new ObjectId(item.id) } as any,
-        { order: item.order },
-      ),
+      this.repository.update(item.id, { order: item.order }),
     );
 
     await Promise.all(updates);
@@ -179,13 +171,13 @@ export class CategoriesService implements OnModuleDestroy {
     const roots: Category[] = [];
 
     for (const cat of categories) {
-      map.set(cat._id.toString(), { ...cat, children: [] });
+      map.set(cat.id, { ...cat, children: [] });
     }
 
     for (const cat of categories) {
-      const node = map.get(cat._id.toString())!;
+      const node = map.get(cat.id)!;
       if (cat.parentId) {
-        const parent = map.get(cat.parentId.toString());
+        const parent = map.get(cat.parentId);
         if (parent) {
           parent.children!.push(node);
         } else {
@@ -200,24 +192,23 @@ export class CategoriesService implements OnModuleDestroy {
   }
 
   private async checkCircularDependency(
-    categoryId: ObjectId,
-    newParentId: ObjectId,
+    categoryId: string,
+    newParentId: string,
   ): Promise<void> {
-    let currentId: ObjectId | undefined = newParentId;
+    let currentId: string | undefined = newParentId;
     const visited = new Set<string>();
 
     while (currentId) {
-      const key = currentId.toString();
-      if (key === categoryId.toString()) {
+      if (currentId === categoryId) {
         throw new BadRequestException('Обнаружена циклическая зависимость категорий');
       }
-      if (visited.has(key)) {
+      if (visited.has(currentId)) {
         break;
       }
-      visited.add(key);
+      visited.add(currentId);
 
       const parent = await this.repository.findOne({
-        where: { _id: currentId } as any,
+        where: { id: currentId },
       });
       currentId = parent?.parentId;
     }

@@ -29,7 +29,7 @@ export class WishlistService {
         const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
 
         items.push({
-          _id: product._id.toString(),
+          _id: product.id,
           name: product.name,
           slug: product.slug,
           price: product.price,

@@ -140,6 +140,18 @@ export class ProductsRepository {
     await this.variantRepository.update(variantId, { stock });
   }
 
+  async replaceVariants(productId: string, variants: Partial<ProductVariantEntity>[]): Promise<void> {
+    await this.variantRepository.delete({ productId });
+    if (variants.length > 0) {
+      const entities = variants.map((v) => this.variantRepository.create({ ...v, productId }));
+      await this.variantRepository.save(entities);
+    }
+  }
+
+  async findVariantById(variantId: string): Promise<ProductVariantEntity | null> {
+    return this.variantRepository.findOne({ where: { id: variantId } });
+  }
+
   async findRelated(productId: string, limit: number): Promise<Product[]> {
     const product = await this.findById(productId);
     if (!product) return [];

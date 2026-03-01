@@ -107,7 +107,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
     const audience = ((user as any).__tokenAudience as TokenAudience) || TokenAudience.WEB;
-    await this.authService.logout(user._id.toString(), audience);
+    await this.authService.logout(user.id, audience);
 
     this.clearRefreshTokenCookie(response, audience);
 
@@ -134,7 +134,7 @@ export class AuthController {
     const audience = (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
 
     const tokens = await this.authService.refreshTokens(
-      user._id.toString(),
+      user.id,
       refreshToken,
       audience,
     );
@@ -193,7 +193,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Профиль пользователя' })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   async getProfile(@CurrentUser() user: User) {
-    return this.authService.getProfile(user._id.toString());
+    return this.authService.getProfile(user.id);
   }
 
   @Patch('me')
@@ -206,7 +206,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Body() updateData: UpdateUserDto,
   ) {
-    return this.authService.updateProfile(user._id.toString(), updateData);
+    return this.authService.updateProfile(user.id, updateData);
   }
 
   @Post('change-password')
@@ -221,7 +221,7 @@ export class AuthController {
     @Body() changePasswordDto: ChangePasswordDto,
   ): Promise<{ message: string }> {
     await this.authService.changePassword(
-      user._id.toString(),
+      user.id,
       changePasswordDto,
     );
     return { message: 'Пароль успешно изменён' };
@@ -236,7 +236,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Body() dto: CreateAddressDto,
   ) {
-    const updated = await this.usersService.addAddress(user._id.toString(), dto);
+    const updated = await this.usersService.addAddress(user.id, dto);
     return this.usersService.sanitizeUser(updated);
   }
 
@@ -250,7 +250,7 @@ export class AuthController {
     @Param('addressId') addressId: string,
     @Body() dto: UpdateAddressDto,
   ) {
-    const updated = await this.usersService.updateAddress(user._id.toString(), addressId, dto);
+    const updated = await this.usersService.updateAddress(user.id, addressId, dto);
     return this.usersService.sanitizeUser(updated);
   }
 
@@ -263,7 +263,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Param('addressId') addressId: string,
   ) {
-    const updated = await this.usersService.removeAddress(user._id.toString(), addressId);
+    const updated = await this.usersService.removeAddress(user.id, addressId);
     return this.usersService.sanitizeUser(updated);
   }
 

@@ -49,16 +49,16 @@ export class OrdersController {
   ) {
     const result = user.role === UserRole.ADMIN || user.role === UserRole.MANAGER
       ? await this.ordersService.findAll(query)
-      : await this.ordersService.findByUser(user._id.toString(), query);
+      : await this.ordersService.findByUser(user.id, query);
 
     const userIds = [...new Set(result.data.map((o) => o.userId.toString()))];
     const users = await this.usersService.findByIds(userIds);
-    const usersMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const usersMap = new Map(users.map((u) => [u.id, u]));
 
     return {
       ...result,
       data: result.data.map((order) =>
-        this.ordersService.toResponseDto(order, usersMap.get(order.userId.toString())),
+        this.ordersService.toResponseDto(order, usersMap.get(order.userId)),
       ),
     };
   }
@@ -93,12 +93,12 @@ export class OrdersController {
     if (
       user.role !== UserRole.ADMIN &&
       user.role !== UserRole.MANAGER &&
-      order.userId.toString() !== user._id.toString()
+      order.userId !== user.id
     ) {
       throw new ForbiddenException('Нет доступа к этому заказу');
     }
 
-    const orderUser = await this.usersService.findById(order.userId.toString());
+    const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 
@@ -111,7 +111,7 @@ export class OrdersController {
     @CurrentUser() user: User,
     @Body() dto: CreateOrderDto,
   ) {
-    const order = await this.ordersService.create(user._id.toString(), dto);
+    const order = await this.ordersService.create(user.id, dto);
     return this.ordersService.toResponseDto(order, user);
   }
 
@@ -128,8 +128,8 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
   ) {
-    const order = await this.ordersService.updateStatus(id, dto.status, user._id.toString(), dto.comment);
-    const orderUser = await this.usersService.findById(order.userId.toString());
+    const order = await this.ordersService.updateStatus(id, dto.status, user.id, dto.comment);
+    const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 
@@ -145,7 +145,7 @@ export class OrdersController {
     @Body() dto: UpdateOrderDto,
   ) {
     const order = await this.ordersService.updateAdminNote(id, dto.adminNote ?? '');
-    const orderUser = await this.usersService.findById(order.userId.toString());
+    const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 
@@ -162,8 +162,8 @@ export class OrdersController {
     @Param('id') id: string,
   ) {
     const isAdmin = user.role === UserRole.ADMIN;
-    const order = await this.ordersService.cancel(id, user._id.toString(), isAdmin);
-    const orderUser = await this.usersService.findById(order.userId.toString());
+    const order = await this.ordersService.cancel(id, user.id, isAdmin);
+    const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
 }

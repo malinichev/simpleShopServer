@@ -2,12 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, IsNull } from 'typeorm';
 import { Cart } from './entities/cart.entity';
+import { CartItemEntity } from './entities/cart-item.entity';
 
 @Injectable()
 export class CartRepository {
   constructor(
     @InjectRepository(Cart)
     private readonly repository: Repository<Cart>,
+    @InjectRepository(CartItemEntity)
+    private readonly itemRepository: Repository<CartItemEntity>,
   ) {}
 
   async findById(id: string): Promise<Cart | null> {
@@ -54,5 +57,29 @@ export class CartRepository {
       expiresAt: LessThanOrEqual(new Date()),
       userId: IsNull(),
     });
+  }
+
+  // Cart item operations
+  async findItemByCartAndVariant(cartId: string, variantId: string, productId: string): Promise<CartItemEntity | null> {
+    return this.itemRepository.findOne({
+      where: { cartId, variantId, productId },
+    });
+  }
+
+  async saveItem(item: CartItemEntity): Promise<CartItemEntity> {
+    return this.itemRepository.save(item);
+  }
+
+  async createItem(data: Partial<CartItemEntity>): Promise<CartItemEntity> {
+    const item = this.itemRepository.create(data);
+    return this.itemRepository.save(item);
+  }
+
+  async deleteItem(itemId: string): Promise<void> {
+    await this.itemRepository.delete(itemId);
+  }
+
+  async deleteItemsByCartId(cartId: string): Promise<void> {
+    await this.itemRepository.delete({ cartId });
   }
 }

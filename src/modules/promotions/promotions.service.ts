@@ -4,7 +4,6 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
 import { PromotionsRepository } from './promotions.repository';
 import { Promotion, PromotionType } from './entities/promotion.entity';
 import {
@@ -60,9 +59,9 @@ export class PromotionsService {
       usageLimit: dto.usageLimit,
       usageLimitPerUser: dto.usageLimitPerUser,
       usedCount: 0,
-      categoryIds: (dto.categoryIds || []).map((id) => new ObjectId(id)),
-      productIds: (dto.productIds || []).map((id) => new ObjectId(id)),
-      excludeProductIds: (dto.excludeProductIds || []).map((id) => new ObjectId(id)),
+      categoryIds: dto.categoryIds || [],
+      productIds: dto.productIds || [],
+      excludeProductIds: dto.excludeProductIds || [],
       startDate: new Date(dto.startDate),
       endDate: new Date(dto.endDate),
       isActive: dto.isActive ?? true,
@@ -78,7 +77,7 @@ export class PromotionsService {
     if (dto.code) {
       const code = dto.code.toUpperCase();
       const existing = await this.promotionsRepository.findByCode(code);
-      if (existing && existing._id.toString() !== id) {
+      if (existing && existing.id !== id) {
         throw new ConflictException(`Промокод "${code}" уже существует`);
       }
     }
@@ -102,13 +101,13 @@ export class PromotionsService {
     if (dto.usageLimit !== undefined) updateData.usageLimit = dto.usageLimit;
     if (dto.usageLimitPerUser !== undefined) updateData.usageLimitPerUser = dto.usageLimitPerUser;
     if (dto.categoryIds !== undefined) {
-      updateData.categoryIds = dto.categoryIds.map((cid) => new ObjectId(cid));
+      updateData.categoryIds = dto.categoryIds;
     }
     if (dto.productIds !== undefined) {
-      updateData.productIds = dto.productIds.map((pid) => new ObjectId(pid));
+      updateData.productIds = dto.productIds;
     }
     if (dto.excludeProductIds !== undefined) {
-      updateData.excludeProductIds = dto.excludeProductIds.map((pid) => new ObjectId(pid));
+      updateData.excludeProductIds = dto.excludeProductIds;
     }
     if (dto.startDate !== undefined) updateData.startDate = new Date(dto.startDate);
     if (dto.endDate !== undefined) updateData.endDate = new Date(dto.endDate);
@@ -203,7 +202,7 @@ export class PromotionsService {
     }
 
     await this.promotionsRepository.incrementUsage(
-      promotion._id,
+      promotion.id,
       newUsedCount,
       newUserUsage,
     );
@@ -240,21 +239,18 @@ export class PromotionsService {
     let applicable = [...items];
 
     if (promotion.excludeProductIds.length > 0) {
-      const excludeIds = promotion.excludeProductIds.map((id) => id.toString());
       applicable = applicable.filter(
-        (item) => !excludeIds.includes(item.productId),
+        (item) => !promotion.excludeProductIds.includes(item.productId),
       );
     }
 
     if (promotion.productIds.length > 0) {
-      const productIds = promotion.productIds.map((id) => id.toString());
       applicable = applicable.filter((item) =>
-        productIds.includes(item.productId),
+        promotion.productIds.includes(item.productId),
       );
     } else if (promotion.categoryIds.length > 0) {
-      const categoryIds = promotion.categoryIds.map((id) => id.toString());
       applicable = applicable.filter(
-        (item) => item.categoryId && categoryIds.includes(item.categoryId),
+        (item) => item.categoryId && promotion.categoryIds.includes(item.categoryId),
       );
     }
 

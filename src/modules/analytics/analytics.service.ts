@@ -222,7 +222,7 @@ export class AnalyticsService implements OnModuleDestroy {
         const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
         const firstImage = product.images?.[0]?.url;
         return {
-          _id: product._id.toString(),
+          _id: product.id,
           name: product.name,
           sku: product.sku,
           stock: totalStock,
