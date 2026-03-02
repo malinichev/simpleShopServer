@@ -41,11 +41,8 @@ export class ImageProcessor extends WorkerHost {
       const buffer = await this.uploadService.getFileBuffer(sourceKey);
 
       // Process image (resize, convert to WebP, generate thumbnail)
-      const { original, thumbnail } = await this.uploadService.processImage(buffer);
-
-      // Upload processed images
-      const key = `${targetFolder}/${fileName}.webp`;
-      const thumbnailKey = `${targetFolder}/${fileName}_thumb.webp`;
+      const { original, thumbnail } =
+        await this.uploadService.processImage(buffer);
 
       // Use the upload service's internal S3 upload via re-upload as a full image
       const result = await this.uploadService.uploadImage(

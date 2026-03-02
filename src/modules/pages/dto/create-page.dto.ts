@@ -17,7 +17,9 @@ export class CreatePageDto {
   @IsString()
   @MinLength(1)
   @MaxLength(100)
-  @Matches(/^[a-z0-9-]+$/, { message: 'slug must contain only lowercase letters, digits and hyphens' })
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'slug must contain only lowercase letters, digits and hyphens',
+  })
   slug: string;
 
   @ApiProperty({ description: 'Display name in admin', example: 'О нас' })
@@ -38,12 +40,18 @@ export class CreatePageDto {
   @MaxLength(500)
   metaDescription?: string;
 
-  @ApiPropertyOptional({ description: 'Arbitrary JSON content', additionalProperties: true })
+  @ApiPropertyOptional({
+    description: 'Arbitrary JSON content',
+    additionalProperties: true,
+  })
   @IsOptional()
   @IsObject()
   content?: object;
 
-  @ApiPropertyOptional({ description: 'Whether the page is publicly visible', default: false })
+  @ApiPropertyOptional({
+    description: 'Whether the page is publicly visible',
+    default: false,
+  })
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;

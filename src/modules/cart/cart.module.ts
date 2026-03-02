@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Cart } from './entities/cart.entity';
 import { CartItemEntity } from './entities/cart-item.entity';
@@ -21,8 +21,6 @@ import { PromotionsModule } from '@/modules/promotions/promotions.module';
 })
 export class CartModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(SessionIdMiddleware)
-      .forRoutes(CartController);
+    consumer.apply(SessionIdMiddleware).forRoutes(CartController);
   }
 }

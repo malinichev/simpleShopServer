@@ -52,7 +52,8 @@ export class ShippingAddressDto {
 export class CreateOrderDto {
   @ApiPropertyOptional({
     example: 'addr-1',
-    description: 'ID сохранённого адреса пользователя. Если указан, shippingAddress игнорируется',
+    description:
+      'ID сохранённого адреса пользователя. Если указан, shippingAddress игнорируется',
   })
   @IsOptional()
   @IsString()
@@ -60,7 +61,8 @@ export class CreateOrderDto {
 
   @ApiPropertyOptional({
     type: ShippingAddressDto,
-    description: 'Новый адрес доставки. Используется, если shippingAddressId не указан',
+    description:
+      'Новый адрес доставки. Используется, если shippingAddressId не указан',
   })
   @IsOptional()
   @ValidateNested()

@@ -95,10 +95,9 @@ export class PromotionsController {
     @Body() dto: ValidatePromoDto,
     @CurrentUser('id') userId?: string,
   ) {
-    return this.promotionsService.validate(
-      dto.code,
-      userId || null,
-      { cartTotal: dto.cartTotal, items: dto.items },
-    );
+    return this.promotionsService.validate(dto.code, userId || null, {
+      cartTotal: dto.cartTotal,
+      items: dto.items,
+    });
   }
 }

@@ -43,7 +43,9 @@ export class PagesService {
   async create(dto: CreatePageDto): Promise<Page> {
     const existing = await this.pagesRepository.findBySlug(dto.slug);
     if (existing) {
-      throw new ConflictException(`Страница со slug "${dto.slug}" уже существует`);
+      throw new ConflictException(
+        `Страница со slug "${dto.slug}" уже существует`,
+      );
     }
 
     return this.pagesRepository.create({
@@ -62,7 +64,9 @@ export class PagesService {
     if (dto.slug && dto.slug !== slug) {
       const conflicting = await this.pagesRepository.findBySlug(dto.slug);
       if (conflicting) {
-        throw new ConflictException(`Страница со slug "${dto.slug}" уже существует`);
+        throw new ConflictException(
+          `Страница со slug "${dto.slug}" уже существует`,
+        );
       }
     }
 
@@ -70,7 +74,8 @@ export class PagesService {
     if (dto.slug !== undefined) updateData.slug = dto.slug;
     if (dto.title !== undefined) updateData.title = dto.title;
     if (dto.metaTitle !== undefined) updateData.metaTitle = dto.metaTitle;
-    if (dto.metaDescription !== undefined) updateData.metaDescription = dto.metaDescription;
+    if (dto.metaDescription !== undefined)
+      updateData.metaDescription = dto.metaDescription;
     if (dto.content !== undefined) updateData.content = dto.content;
     if (dto.isPublished !== undefined) updateData.isPublished = dto.isPublished;
 

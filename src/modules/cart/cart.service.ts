@@ -7,7 +7,6 @@ import { CartRepository } from './cart.repository';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { Cart } from './entities/cart.entity';
-import { CartItemEntity } from './entities/cart-item.entity';
 import {
   AddToCartDto,
   CartResponseDto,
@@ -101,9 +100,7 @@ export class CartService {
       return this.removeItem(userId, sessionId, variantId);
     }
 
-    const item = cart.items.find(
-      (item) => item.variantId === variantId,
-    );
+    const item = cart.items.find((item) => item.variantId === variantId);
     if (!item) {
       throw new NotFoundException('Товар не найден в корзине');
     }
@@ -132,9 +129,7 @@ export class CartService {
   ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
-    const item = cart.items.find(
-      (item) => item.variantId === variantId,
-    );
+    const item = cart.items.find((item) => item.variantId === variantId);
     if (!item) {
       throw new NotFoundException('Товар не найден в корзине');
     }
@@ -152,8 +147,8 @@ export class CartService {
     const cart = await this.findOrCreateCart(userId, sessionId);
     await this.cartRepository.deleteItemsByCartId(cart.id);
     await this.cartRepository.update(cart.id, {
-      promoCode: null as any,
-      promoDiscount: null as any,
+      promoCode: undefined,
+      promoDiscount: undefined,
     });
   }
 
@@ -200,14 +195,15 @@ export class CartService {
       0,
     );
 
-    const result = await this.promotionsService.validate(
-      code,
-      userId ?? null,
-      { cartTotal, items: cartItems },
-    );
+    const result = await this.promotionsService.validate(code, userId ?? null, {
+      cartTotal,
+      items: cartItems,
+    });
 
     if (!result.valid) {
-      throw new BadRequestException(result.message ?? 'Недействительный промокод');
+      throw new BadRequestException(
+        result.message ?? 'Недействительный промокод',
+      );
     }
 
     await this.cartRepository.update(cart.id, {
@@ -226,8 +222,8 @@ export class CartService {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
     await this.cartRepository.update(cart.id, {
-      promoCode: null as any,
-      promoDiscount: null as any,
+      promoCode: undefined,
+      promoDiscount: undefined,
     });
 
     const updatedCart = await this.cartRepository.findById(cart.id);
@@ -252,7 +248,7 @@ export class CartService {
       // Преобразуем гостевую корзину в пользовательскую
       await this.cartRepository.update(guestCart.id, {
         userId,
-        sessionId: null as any,
+        sessionId: undefined,
         expiresAt: this.getExpiresAt(true),
       });
       const updatedCart = await this.cartRepository.findById(guestCart.id);

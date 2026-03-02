@@ -16,9 +16,7 @@ import {
 
 @Injectable()
 export class PromotionsService {
-  constructor(
-    private readonly promotionsRepository: PromotionsRepository,
-  ) {}
+  constructor(private readonly promotionsRepository: PromotionsRepository) {}
 
   async findAll(): Promise<Promotion[]> {
     return this.promotionsRepository.findAll();
@@ -96,10 +94,12 @@ export class PromotionsService {
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.type !== undefined) updateData.type = dto.type;
     if (dto.value !== undefined) updateData.value = dto.value;
-    if (dto.minOrderAmount !== undefined) updateData.minOrderAmount = dto.minOrderAmount;
+    if (dto.minOrderAmount !== undefined)
+      updateData.minOrderAmount = dto.minOrderAmount;
     if (dto.maxDiscount !== undefined) updateData.maxDiscount = dto.maxDiscount;
     if (dto.usageLimit !== undefined) updateData.usageLimit = dto.usageLimit;
-    if (dto.usageLimitPerUser !== undefined) updateData.usageLimitPerUser = dto.usageLimitPerUser;
+    if (dto.usageLimitPerUser !== undefined)
+      updateData.usageLimitPerUser = dto.usageLimitPerUser;
     if (dto.categoryIds !== undefined) {
       updateData.categoryIds = dto.categoryIds;
     }
@@ -109,7 +109,8 @@ export class PromotionsService {
     if (dto.excludeProductIds !== undefined) {
       updateData.excludeProductIds = dto.excludeProductIds;
     }
-    if (dto.startDate !== undefined) updateData.startDate = new Date(dto.startDate);
+    if (dto.startDate !== undefined)
+      updateData.startDate = new Date(dto.startDate);
     if (dto.endDate !== undefined) updateData.endDate = new Date(dto.endDate);
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
@@ -144,11 +145,19 @@ export class PromotionsService {
       return { valid: false, discount: 0, message: 'Промокод ещё не активен' };
     }
     if (now > promotion.endDate) {
-      return { valid: false, discount: 0, message: 'Срок действия промокода истёк' };
+      return {
+        valid: false,
+        discount: 0,
+        message: 'Срок действия промокода истёк',
+      };
     }
 
     if (promotion.usageLimit && promotion.usedCount >= promotion.usageLimit) {
-      return { valid: false, discount: 0, message: 'Лимит использований промокода исчерпан' };
+      return {
+        valid: false,
+        discount: 0,
+        message: 'Лимит использований промокода исчерпан',
+      };
     }
 
     if (userId && promotion.usageLimitPerUser) {
@@ -157,7 +166,8 @@ export class PromotionsService {
         return {
           valid: false,
           discount: 0,
-          message: 'Вы уже использовали этот промокод максимальное количество раз',
+          message:
+            'Вы уже использовали этот промокод максимальное количество раз',
         };
       }
     }
@@ -171,7 +181,10 @@ export class PromotionsService {
     }
 
     const applicableItems = this.getApplicableItems(promotion, cart.items);
-    if (applicableItems.length === 0 && (promotion.categoryIds.length > 0 || promotion.productIds.length > 0)) {
+    if (
+      applicableItems.length === 0 &&
+      (promotion.categoryIds.length > 0 || promotion.productIds.length > 0)
+    ) {
       return {
         valid: false,
         discount: 0,
@@ -250,7 +263,8 @@ export class PromotionsService {
       );
     } else if (promotion.categoryIds.length > 0) {
       applicable = applicable.filter(
-        (item) => item.categoryId && promotion.categoryIds.includes(item.categoryId),
+        (item) =>
+          item.categoryId && promotion.categoryIds.includes(item.categoryId),
       );
     }
 

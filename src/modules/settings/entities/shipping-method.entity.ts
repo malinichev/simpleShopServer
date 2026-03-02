@@ -6,7 +6,13 @@ export class ShippingMethod extends BaseEntity {
   @Column()
   name: string;
 
-  @Column('decimal', { default: 0, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    default: 0,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   price: number;
 
   @Column({ default: '' })

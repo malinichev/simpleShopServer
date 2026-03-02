@@ -1,8 +1,15 @@
 import { DataSource } from 'typeorm';
-import { Promotion, PromotionType } from '@/modules/promotions/entities/promotion.entity';
+import {
+  Promotion,
+  PromotionType,
+} from '@/modules/promotions/entities/promotion.entity';
 
 const now = new Date();
-const oneYearLater = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+const oneYearLater = new Date(
+  now.getFullYear() + 1,
+  now.getMonth(),
+  now.getDate(),
+);
 
 const promotionsData = [
   {

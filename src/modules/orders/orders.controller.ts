@@ -43,13 +43,11 @@ export class OrdersController {
   @ApiOperation({ summary: 'Список заказов (user: свои, admin: все)' })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Paginated list of orders' })
-  async findAll(
-    @CurrentUser() user: User,
-    @Query() query: OrderQueryDto,
-  ) {
-    const result = user.role === UserRole.ADMIN || user.role === UserRole.MANAGER
-      ? await this.ordersService.findAll(query)
-      : await this.ordersService.findByUser(user.id, query);
+  async findAll(@CurrentUser() user: User, @Query() query: OrderQueryDto) {
+    const result =
+      user.role === UserRole.ADMIN || user.role === UserRole.MANAGER
+        ? await this.ordersService.findAll(query)
+        : await this.ordersService.findByUser(user.id, query);
 
     const userIds = [...new Set(result.data.map((o) => o.userId.toString()))];
     const users = await this.usersService.findByIds(userIds);
@@ -84,10 +82,7 @@ export class OrdersController {
   @ApiResponse({ status: 200, type: OrderResponseDto })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async findById(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
+  async findById(@CurrentUser() user: User, @Param('id') id: string) {
     const order = await this.ordersService.findById(id);
 
     if (
@@ -106,11 +101,11 @@ export class OrdersController {
   @ApiOperation({ summary: 'Создать заказ из корзины' })
   @ApiResponse({ status: 201, type: OrderResponseDto })
   @ApiBearerAuth('JWT-auth')
-  @ApiResponse({ status: 400, description: 'Cart is empty or validation error' })
-  async create(
-    @CurrentUser() user: User,
-    @Body() dto: CreateOrderDto,
-  ) {
+  @ApiResponse({
+    status: 400,
+    description: 'Cart is empty or validation error',
+  })
+  async create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
     const order = await this.ordersService.create(user.id, dto);
     return this.ordersService.toResponseDto(order, user);
   }
@@ -128,7 +123,12 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
   ) {
-    const order = await this.ordersService.updateStatus(id, dto.status, user.id, dto.comment);
+    const order = await this.ordersService.updateStatus(
+      id,
+      dto.status,
+      user.id,
+      dto.comment,
+    );
     const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
@@ -140,11 +140,11 @@ export class OrdersController {
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateOrderDto,
-  ) {
-    const order = await this.ordersService.updateAdminNote(id, dto.adminNote ?? '');
+  async update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
+    const order = await this.ordersService.updateAdminNote(
+      id,
+      dto.adminNote ?? '',
+    );
     const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }
@@ -154,13 +154,13 @@ export class OrdersController {
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, type: OrderResponseDto })
-  @ApiResponse({ status: 400, description: 'Cannot cancel order in current status' })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot cancel order in current status',
+  })
   @ApiResponse({ status: 403, description: 'Not allowed to cancel this order' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async cancel(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
+  async cancel(@CurrentUser() user: User, @Param('id') id: string) {
     const isAdmin = user.role === UserRole.ADMIN;
     const order = await this.ordersService.cancel(id, user.id, isAdmin);
     const orderUser = await this.usersService.findById(order.userId);

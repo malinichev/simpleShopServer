@@ -118,7 +118,9 @@ export class PagesController {
   @ApiParam({ name: 'slug', description: 'Page slug' })
   @ApiResponse({ status: 200, type: PagePublicResponseDto })
   @ApiResponse({ status: 404, description: 'Not found or not published' })
-  async findPublic(@Param('slug') slug: string): Promise<PagePublicResponseDto> {
+  async findPublic(
+    @Param('slug') slug: string,
+  ): Promise<PagePublicResponseDto> {
     const page = await this.pagesService.findPublishedBySlug(slug);
     return {
       slug: page.slug,

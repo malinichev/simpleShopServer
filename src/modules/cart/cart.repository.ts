@@ -40,7 +40,7 @@ export class CartRepository {
   }
 
   async update(id: string, data: Partial<Cart>): Promise<Cart | null> {
-    await this.repository.update(id, data as any);
+    await this.repository.update(id, data);
     return this.findById(id);
   }
 
@@ -60,7 +60,11 @@ export class CartRepository {
   }
 
   // Cart item operations
-  async findItemByCartAndVariant(cartId: string, variantId: string, productId: string): Promise<CartItemEntity | null> {
+  async findItemByCartAndVariant(
+    cartId: string,
+    variantId: string,
+    productId: string,
+  ): Promise<CartItemEntity | null> {
     return this.itemRepository.findOne({
       where: { cartId, variantId, productId },
     });

@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -54,7 +48,9 @@ export class AnalyticsController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Статистика посещений' })
   @ApiResponse({ status: 200, type: [VisitorsDataDto] })
-  async getVisitors(@Query() query: AnalyticsQueryDto): Promise<VisitorsDataDto[]> {
+  async getVisitors(
+    @Query() query: AnalyticsQueryDto,
+  ): Promise<VisitorsDataDto[]> {
     return this.analyticsService.getVisitors(query);
   }
 
@@ -62,8 +58,16 @@ export class AnalyticsController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Топ товаров' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Количество (default 10)' })
-  @ApiQuery({ name: 'dateFrom', required: false, description: 'Начало периода' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Количество (default 10)',
+  })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    description: 'Начало периода',
+  })
   @ApiQuery({ name: 'dateTo', required: false, description: 'Конец периода' })
   @ApiResponse({ status: 200 })
   async getTopProducts(
@@ -81,8 +85,16 @@ export class AnalyticsController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Топ категорий' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Количество (default 10)' })
-  @ApiQuery({ name: 'dateFrom', required: false, description: 'Начало периода' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Количество (default 10)',
+  })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    description: 'Начало периода',
+  })
   @ApiQuery({ name: 'dateTo', required: false, description: 'Конец периода' })
   @ApiResponse({ status: 200 })
   async getTopCategories(
@@ -100,16 +112,36 @@ export class AnalyticsController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Товары с низким остатком' })
-  @ApiQuery({ name: 'threshold', required: false, description: 'Максимальный остаток (default 5)' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Количество (default 10)' })
+  @ApiQuery({
+    name: 'threshold',
+    required: false,
+    description: 'Максимальный остаток (default 5)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Количество (default 10)',
+  })
   @ApiResponse({ status: 200 })
   async getLowStock(
     @Query('threshold') threshold?: string,
     @Query('limit') limit?: string,
-  ): Promise<Array<{ id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      sku: string;
+      stock: number;
+      price: number;
+      image?: string;
+    }>
+  > {
     const parsedThreshold = threshold ? parseInt(threshold, 10) : 5;
     const parsedLimit = limit ? parseInt(limit, 10) : 10;
-    return this.analyticsService.getLowStockProducts(parsedThreshold, parsedLimit);
+    return this.analyticsService.getLowStockProducts(
+      parsedThreshold,
+      parsedLimit,
+    );
   }
 
   @Get('customers')

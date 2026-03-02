@@ -4,6 +4,8 @@ export class TokensDto {
   @ApiProperty()
   accessToken: string;
 
-  @ApiProperty({ description: 'Refresh token (также устанавливается в HTTP-only cookie)' })
+  @ApiProperty({
+    description: 'Refresh token (также устанавливается в HTTP-only cookie)',
+  })
   refreshToken: string;
 }

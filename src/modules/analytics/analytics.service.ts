@@ -7,7 +7,11 @@ import { AnalyticsRepository } from './analytics.repository';
 import { OrdersService } from '@/modules/orders/orders.service';
 import { ProductsService } from '@/modules/products/products.service';
 import { UsersService } from '@/modules/users/users.service';
-import { AnalyticsDaily, TopProductStat, TopCategoryStat } from './entities/analytics.entity';
+import {
+  AnalyticsDaily,
+  TopProductStat,
+  TopCategoryStat,
+} from './entities/analytics.entity';
 import {
   AnalyticsQueryDto,
   Granularity,
@@ -50,7 +54,7 @@ export class AnalyticsService implements OnModuleDestroy {
     const cacheKey = `${CACHE_PREFIX}:dashboard`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as DashboardResponseDto;
     }
 
     const now = new Date();
@@ -65,7 +69,13 @@ export class AnalyticsService implements OnModuleDestroy {
     const previousPeriodStart = new Date(currentPeriodStart);
     previousPeriodStart.setDate(previousPeriodStart.getDate() - 30);
 
-    const [currentStats, previousStats, todayAnalytics, userStats, productsCount] = await Promise.all([
+    const [
+      currentStats,
+      previousStats,
+      todayAnalytics,
+      userStats,
+      productsCount,
+    ] = await Promise.all([
       this.ordersService.getStats(currentPeriodStart, now),
       this.ordersService.getStats(previousPeriodStart, currentPeriodStart),
       this.analyticsRepository.findByDate(todayStart),
@@ -77,17 +87,26 @@ export class AnalyticsService implements OnModuleDestroy {
       totalRevenue: {
         current: currentStats.totalRevenue,
         previous: previousStats.totalRevenue,
-        changePercent: this.calcChangePercent(currentStats.totalRevenue, previousStats.totalRevenue),
+        changePercent: this.calcChangePercent(
+          currentStats.totalRevenue,
+          previousStats.totalRevenue,
+        ),
       },
       ordersCount: {
         current: currentStats.totalOrders,
         previous: previousStats.totalOrders,
-        changePercent: this.calcChangePercent(currentStats.totalOrders, previousStats.totalOrders),
+        changePercent: this.calcChangePercent(
+          currentStats.totalOrders,
+          previousStats.totalOrders,
+        ),
       },
       averageOrderValue: {
         current: currentStats.averageOrderValue,
         previous: previousStats.averageOrderValue,
-        changePercent: this.calcChangePercent(currentStats.averageOrderValue, previousStats.averageOrderValue),
+        changePercent: this.calcChangePercent(
+          currentStats.averageOrderValue,
+          previousStats.averageOrderValue,
+        ),
       },
       totalCustomers: userStats.byRole.customer,
       newCustomersToday: 0,
@@ -103,9 +122,15 @@ export class AnalyticsService implements OnModuleDestroy {
 
   async getSales(query: AnalyticsQueryDto): Promise<SalesDataDto[]> {
     const { dateFrom, dateTo } = this.resolveDateRange(query);
-    const records = await this.analyticsRepository.findByDateRange(dateFrom, dateTo);
+    const records = await this.analyticsRepository.findByDateRange(
+      dateFrom,
+      dateTo,
+    );
 
-    const grouped = this.groupByGranularity(records, query.granularity || Granularity.DAY);
+    const grouped = this.groupByGranularity(
+      records,
+      query.granularity || Granularity.DAY,
+    );
 
     return grouped.map((group) => ({
       date: group.date,
@@ -117,19 +142,32 @@ export class AnalyticsService implements OnModuleDestroy {
 
   async getVisitors(query: AnalyticsQueryDto): Promise<VisitorsDataDto[]> {
     const { dateFrom, dateTo } = this.resolveDateRange(query);
-    const records = await this.analyticsRepository.findByDateRange(dateFrom, dateTo);
+    const records = await this.analyticsRepository.findByDateRange(
+      dateFrom,
+      dateTo,
+    );
 
-    const grouped = this.groupByGranularity(records, query.granularity || Granularity.DAY);
+    const grouped = this.groupByGranularity(
+      records,
+      query.granularity || Granularity.DAY,
+    );
 
     return grouped.map((group) => ({
       date: group.date,
       visitors: group.records.reduce((sum, r) => sum + r.visitors, 0),
-      uniqueVisitors: group.records.reduce((sum, r) => sum + r.uniqueVisitors, 0),
+      uniqueVisitors: group.records.reduce(
+        (sum, r) => sum + r.uniqueVisitors,
+        0,
+      ),
       pageViews: group.records.reduce((sum, r) => sum + r.pageViews, 0),
     }));
   }
 
-  async getTopProducts(limit: number = 10, dateFrom?: Date, dateTo?: Date): Promise<TopProductStat[]> {
+  async getTopProducts(
+    limit: number = 10,
+    dateFrom?: Date,
+    dateTo?: Date,
+  ): Promise<TopProductStat[]> {
     const from = dateFrom || this.daysAgo(30);
     const to = dateTo || new Date();
 
@@ -155,7 +193,11 @@ export class AnalyticsService implements OnModuleDestroy {
       .slice(0, limit);
   }
 
-  async getTopCategories(limit: number = 10, dateFrom?: Date, dateTo?: Date): Promise<TopCategoryStat[]> {
+  async getTopCategories(
+    limit: number = 10,
+    dateFrom?: Date,
+    dateTo?: Date,
+  ): Promise<TopCategoryStat[]> {
     const from = dateFrom || this.daysAgo(30);
     const to = dateTo || new Date();
 
@@ -185,15 +227,18 @@ export class AnalyticsService implements OnModuleDestroy {
     const cacheKey = `${CACHE_PREFIX}:customer-stats`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as CustomerStatsDto;
     }
 
     const userStats = await this.usersService.getStats();
     const orderStats = await this.ordersService.getStats();
 
-    const averageOrdersPerCustomer = userStats.byRole.customer > 0
-      ? Math.round((orderStats.totalOrders / userStats.byRole.customer) * 100) / 100
-      : 0;
+    const averageOrdersPerCustomer =
+      userStats.byRole.customer > 0
+        ? Math.round(
+            (orderStats.totalOrders / userStats.byRole.customer) * 100,
+          ) / 100
+        : 0;
 
     const stats: CustomerStatsDto = {
       totalCustomers: userStats.byRole.customer,
@@ -209,17 +254,36 @@ export class AnalyticsService implements OnModuleDestroy {
   async getLowStockProducts(
     threshold: number = 5,
     limit: number = 10,
-  ): Promise<Array<{ id: string; name: string; sku: string; stock: number; price: number; image?: string }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      sku: string;
+      stock: number;
+      price: number;
+      image?: string;
+    }>
+  > {
     const cacheKey = `${CACHE_PREFIX}:low-stock:${threshold}:${limit}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as Array<{
+        id: string;
+        name: string;
+        sku: string;
+        stock: number;
+        price: number;
+        image?: string;
+      }>;
     }
 
     const allProducts = await this.productsService.findAll({ limit: 1000 });
     const lowStockProducts = allProducts.data
       .map((product) => {
-        const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+        const totalStock = product.variants.reduce(
+          (sum, v) => sum + v.stock,
+          0,
+        );
         const firstImage = product.images?.[0]?.url;
         return {
           id: product.id,
@@ -234,32 +298,43 @@ export class AnalyticsService implements OnModuleDestroy {
       .sort((a, b) => a.stock - b.stock)
       .slice(0, limit);
 
-    await this.redis.set(cacheKey, JSON.stringify(lowStockProducts), 'EX', CACHE_TTL);
+    await this.redis.set(
+      cacheKey,
+      JSON.stringify(lowStockProducts),
+      'EX',
+      CACHE_TTL,
+    );
     return lowStockProducts;
   }
 
   async trackEvent(dto: TrackEventDto): Promise<void> {
-    await this.analyticsQueue.add('track-event', {
-      type: 'track-event',
-      payload: {
-        eventType: dto.type,
-        sessionId: dto.sessionId,
-        source: dto.source,
-        device: dto.device,
-        url: dto.url,
-        metadata: dto.metadata,
-        timestamp: new Date().toISOString(),
+    await this.analyticsQueue.add(
+      'track-event',
+      {
+        type: 'track-event',
+        payload: {
+          eventType: dto.type,
+          sessionId: dto.sessionId,
+          source: dto.source,
+          device: dto.device,
+          url: dto.url,
+          metadata: dto.metadata,
+          timestamp: new Date().toISOString(),
+        },
       },
-    }, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 2000 },
-      removeOnComplete: 100,
-      removeOnFail: 200,
-    });
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: 200,
+      },
+    );
   }
 
   async calculateDaily(date: Date): Promise<void> {
-    this.logger.log(`Calculating daily analytics for ${date.toISOString().split('T')[0]}`);
+    this.logger.log(
+      `Calculating daily analytics for ${date.toISOString().split('T')[0]}`,
+    );
 
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
@@ -277,9 +352,10 @@ export class AnalyticsService implements OnModuleDestroy {
     const trafficSources = existingRecord?.trafficSources ?? {};
     const deviceStats = existingRecord?.deviceStats ?? {};
 
-    const conversionRate = uniqueVisitors > 0
-      ? Math.round((orderStats.totalOrders / uniqueVisitors) * 10000) / 100
-      : 0;
+    const conversionRate =
+      uniqueVisitors > 0
+        ? Math.round((orderStats.totalOrders / uniqueVisitors) * 10000) / 100
+        : 0;
 
     await this.analyticsRepository.upsertDaily(dayStart, {
       visitors,
@@ -317,45 +393,71 @@ export class AnalyticsService implements OnModuleDestroy {
             payload.sessionId as string,
           );
           if (isNew) {
-            await this.analyticsRepository.incrementField(now, 'uniqueVisitors');
+            await this.analyticsRepository.incrementField(
+              now,
+              'uniqueVisitors',
+            );
           }
           await this.redis.expire(`${CACHE_PREFIX}:unique:${dateKey}`, 172800);
         }
         if (payload.source) {
-          await this.incrementJsonField(now, 'trafficSources', payload.source as string);
+          await this.incrementJsonField(
+            now,
+            'trafficSources',
+            payload.source as string,
+          );
         }
         if (payload.device) {
-          await this.incrementJsonField(now, 'deviceStats', payload.device as string);
+          await this.incrementJsonField(
+            now,
+            'deviceStats',
+            payload.device as string,
+          );
         }
         break;
 
       case TrackEventType.ADD_TO_CART:
-        this.logger.debug(`Add to cart event: ${JSON.stringify(payload.metadata)}`);
+        this.logger.debug(
+          `Add to cart event: ${JSON.stringify(payload.metadata)}`,
+        );
         break;
 
       case TrackEventType.PURCHASE:
-        this.logger.debug(`Purchase event: ${JSON.stringify(payload.metadata)}`);
+        this.logger.debug(
+          `Purchase event: ${JSON.stringify(payload.metadata)}`,
+        );
         break;
     }
   }
 
-  private async incrementJsonField(date: Date, field: 'trafficSources' | 'deviceStats', key: string): Promise<void> {
+  private async incrementJsonField(
+    date: Date,
+    field: 'trafficSources' | 'deviceStats',
+    key: string,
+  ): Promise<void> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
     const existing = await this.analyticsRepository.findByDate(startOfDay);
     if (existing) {
-      const data = (existing[field] as Record<string, number>) || {};
+      const data = existing[field] || {};
       data[key] = (data[key] || 0) + 1;
       await this.analyticsRepository.upsertDaily(startOfDay, { [field]: data });
     } else {
-      await this.analyticsRepository.upsertDaily(startOfDay, { [field]: { [key]: 1 } });
+      await this.analyticsRepository.upsertDaily(startOfDay, {
+        [field]: { [key]: 1 },
+      });
     }
   }
 
-  private resolveDateRange(query: AnalyticsQueryDto): { dateFrom: Date; dateTo: Date } {
+  private resolveDateRange(query: AnalyticsQueryDto): {
+    dateFrom: Date;
+    dateTo: Date;
+  } {
     const dateTo = query.dateTo ? new Date(query.dateTo) : new Date();
-    const dateFrom = query.dateFrom ? new Date(query.dateFrom) : this.daysAgo(30);
+    const dateFrom = query.dateFrom
+      ? new Date(query.dateFrom)
+      : this.daysAgo(30);
     return { dateFrom, dateTo };
   }
 
@@ -397,7 +499,9 @@ export class AnalyticsService implements OnModuleDestroy {
   private calcAvgOrderValue(records: AnalyticsDaily[]): number {
     const totalRevenue = records.reduce((sum, r) => sum + Number(r.revenue), 0);
     const totalOrders = records.reduce((sum, r) => sum + r.ordersCount, 0);
-    return totalOrders > 0 ? Math.round((totalRevenue / totalOrders) * 100) / 100 : 0;
+    return totalOrders > 0
+      ? Math.round((totalRevenue / totalOrders) * 100) / 100
+      : 0;
   }
 
   private calcChangePercent(current: number, previous: number): number {

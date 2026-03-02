@@ -48,23 +48,29 @@ export class ReviewsService implements OnModuleDestroy {
     this.redis.disconnect();
   }
 
-  async create(userId: string, productId: string, dto: CreateReviewDto): Promise<Review> {
+  async create(
+    userId: string,
+    productId: string,
+    dto: CreateReviewDto,
+  ): Promise<Review> {
     // Проверить что товар существует
     await this.productsService.findById(productId);
 
     // Проверить что пользователь купил товар (orderId валиден)
     const order = await this.ordersService.findById(dto.orderId);
     if (order.userId !== userId) {
-      throw new ForbiddenException('Заказ не принадлежит текущему пользователю');
+      throw new ForbiddenException(
+        'Заказ не принадлежит текущему пользователю',
+      );
     }
 
     if (order.status !== OrderStatus.DELIVERED) {
-      throw new BadRequestException('Отзыв можно оставить только на доставленный заказ');
+      throw new BadRequestException(
+        'Отзыв можно оставить только на доставленный заказ',
+      );
     }
 
-    const hasProduct = order.items.some(
-      (item) => item.productId === productId,
-    );
+    const hasProduct = order.items.some((item) => item.productId === productId);
     if (!hasProduct) {
       throw new BadRequestException('Товар не найден в указанном заказе');
     }
@@ -102,13 +108,10 @@ export class ReviewsService implements OnModuleDestroy {
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as PaginatedResult<ReviewResponseDto>;
     }
 
-    const result = await this.reviewsRepository.findByProduct(
-      productId,
-      query,
-    );
+    const result = await this.reviewsRepository.findByProduct(productId, query);
 
     // Populate user data
     const userIds = [...new Set(result.data.map((r) => r.userId))];
@@ -137,7 +140,11 @@ export class ReviewsService implements OnModuleDestroy {
     return review;
   }
 
-  async update(id: string, userId: string, dto: UpdateReviewDto): Promise<Review> {
+  async update(
+    id: string,
+    userId: string,
+    dto: UpdateReviewDto,
+  ): Promise<Review> {
     const review = await this.findById(id);
 
     if (review.userId !== userId) {
@@ -182,7 +189,9 @@ export class ReviewsService implements OnModuleDestroy {
   async approve(id: string): Promise<Review> {
     const review = await this.findById(id);
 
-    const updated = await this.reviewsRepository.update(id, { isApproved: true });
+    const updated = await this.reviewsRepository.update(id, {
+      isApproved: true,
+    });
     if (!updated) {
       throw new NotFoundException('Отзыв не найден');
     }
@@ -219,7 +228,9 @@ export class ReviewsService implements OnModuleDestroy {
     return updated;
   }
 
-  async calculateProductRating(productId: string): Promise<{ rating: number; count: number }> {
+  async calculateProductRating(
+    productId: string,
+  ): Promise<{ rating: number; count: number }> {
     return this.reviewsRepository.calculateProductRating(productId);
   }
 
@@ -278,9 +289,7 @@ export class ReviewsService implements OnModuleDestroy {
     // Filter orders that contain this product
     const eligibleOrders = ordersResult.data
       .filter((order) =>
-        order.items.some(
-          (item) => item.productId === productId,
-        ),
+        order.items.some((item) => item.productId === productId),
       )
       .map((order) => ({
         id: order.id,

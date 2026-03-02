@@ -39,8 +39,10 @@ export class SettingsService {
     const existing = await this.settingsRepository.find();
     if (existing.length > 0) {
       const settings = existing[0];
-      settings.notifications = settings.notifications ?? this.defaultNotifications;
-      settings.notificationEmail = settings.notificationEmail ?? 'admin@sportshop.ru';
+      settings.notifications =
+        settings.notifications ?? this.defaultNotifications;
+      settings.notificationEmail =
+        settings.notificationEmail ?? 'admin@sportshop.ru';
       return settings;
     }
 
@@ -78,7 +80,9 @@ export class SettingsService {
     });
   }
 
-  async createShippingMethod(dto: CreateShippingMethodDto): Promise<ShippingMethod> {
+  async createShippingMethod(
+    dto: CreateShippingMethodDto,
+  ): Promise<ShippingMethod> {
     const method = this.shippingRepository.create(dto);
     return this.shippingRepository.save(method);
   }
@@ -124,7 +128,9 @@ export class SettingsService {
     });
   }
 
-  async createPaymentMethod(dto: CreatePaymentMethodDto): Promise<PaymentMethod> {
+  async createPaymentMethod(
+    dto: CreatePaymentMethodDto,
+  ): Promise<PaymentMethod> {
     const method = this.paymentRepository.create(dto);
     return this.paymentRepository.save(method);
   }

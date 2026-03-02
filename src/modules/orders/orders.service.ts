@@ -11,11 +11,7 @@ import { CartService } from '@/modules/cart/cart.service';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
-import {
-  Order,
-  OrderStatus,
-  OrderHistory,
-} from './entities/order.entity';
+import { Order, OrderStatus, OrderHistory } from './entities/order.entity';
 import { OrderItemEntity } from './entities/order-item.entity';
 import {
   CreateOrderDto,
@@ -86,7 +82,10 @@ export class OrdersService {
     }
 
     // 4. Рассчитать итоги
-    const subtotal = orderItems.reduce((sum, item) => sum + (item.total ?? 0), 0);
+    const subtotal = orderItems.reduce(
+      (sum, item) => sum + (item.total ?? 0),
+      0,
+    );
     const shipping = SHIPPING_COSTS[dto.shippingMethod] ?? 0;
     let discount = 0;
     let promoCode: string | undefined;

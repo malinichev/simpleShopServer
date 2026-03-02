@@ -2,7 +2,10 @@ import { registerAs } from '@nestjs/config';
 
 export default registerAs('s3', () => ({
   endpoint: process.env.S3_ENDPOINT || 'http://localhost:9000',
-  publicUrl: process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT || 'http://localhost:9000',
+  publicUrl:
+    process.env.S3_PUBLIC_URL ||
+    process.env.S3_ENDPOINT ||
+    'http://localhost:9000',
   cdnUrl: process.env.S3_CDN_URL || '',
   accessKey: process.env.S3_ACCESS_KEY || 'minioadmin',
   secretKey: process.env.S3_SECRET_KEY || 'minioadmin',

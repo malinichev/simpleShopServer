@@ -33,13 +33,37 @@ export class AnalyticsDaily extends BaseEntity {
   @Column({ default: 0 })
   ordersCount: number;
 
-  @Column('decimal', { precision: 10, scale: 2, default: 0, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   revenue: number;
 
-  @Column('decimal', { precision: 10, scale: 2, default: 0, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   averageOrderValue: number;
 
-  @Column('decimal', { precision: 5, scale: 2, default: 0, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 5,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   conversionRate: number;
 
   @Column('jsonb', { default: [] })

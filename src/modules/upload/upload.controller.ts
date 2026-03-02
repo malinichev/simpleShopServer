@@ -47,7 +47,12 @@ export class UploadController {
       required: ['file'],
     },
   })
-  @ApiQuery({ name: 'folder', description: 'Папка в S3', example: 'products/123', required: false })
+  @ApiQuery({
+    name: 'folder',
+    description: 'Папка в S3',
+    example: 'products/123',
+    required: false,
+  })
   @ApiResponse({ status: 201, type: UploadResponseDto })
   @ApiResponse({ status: 400, description: 'Некорректный файл' })
   async uploadImage(
@@ -66,7 +71,9 @@ export class UploadController {
   @ApiBearerAuth('JWT-auth')
   @UseInterceptors(FilesInterceptor('files', 10))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Загрузить несколько изображений, макс. 10 (admin)' })
+  @ApiOperation({
+    summary: 'Загрузить несколько изображений, макс. 10 (admin)',
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -79,7 +86,12 @@ export class UploadController {
       required: ['files'],
     },
   })
-  @ApiQuery({ name: 'folder', description: 'Папка в S3', example: 'products/123', required: false })
+  @ApiQuery({
+    name: 'folder',
+    description: 'Папка в S3',
+    example: 'products/123',
+    required: false,
+  })
   @ApiResponse({ status: 201, type: [UploadResponseDto] })
   @ApiResponse({ status: 400, description: 'Некорректные файлы' })
   async uploadImages(
@@ -108,7 +120,12 @@ export class UploadController {
       required: ['file'],
     },
   })
-  @ApiQuery({ name: 'folder', description: 'Папка в S3', example: 'pages/about', required: false })
+  @ApiQuery({
+    name: 'folder',
+    description: 'Папка в S3',
+    example: 'pages/about',
+    required: false,
+  })
   @ApiResponse({ status: 201, type: UploadResponseDto })
   @ApiResponse({ status: 400, description: 'Некорректный файл' })
   async uploadFile(

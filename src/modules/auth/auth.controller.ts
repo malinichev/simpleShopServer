@@ -37,9 +37,13 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@/modules/users/entities/user.entity';
-import { UpdateUserDto, CreateAddressDto, UpdateAddressDto } from '@/modules/users/dto';
+import {
+  UpdateUserDto,
+  CreateAddressDto,
+  UpdateAddressDto,
+} from '@/modules/users/dto';
 import { UsersService } from '@/modules/users/users.service';
-import { TokenAudience } from '@/common/types';
+import { TokenAudience, UserWithTokenAudience } from '@/common/types';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -88,7 +92,8 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
-    const audience = (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
+    const audience =
+      (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
     const result = await this.authService.login(req.user as User, audience);
 
     this.setRefreshTokenCookie(response, result.refreshToken, audience);
@@ -106,7 +111,9 @@ export class AuthController {
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
-    const audience = ((user as any).__tokenAudience as TokenAudience) || TokenAudience.WEB;
+    const audience =
+      (user as User & UserWithTokenAudience).__tokenAudience ||
+      TokenAudience.WEB;
     await this.authService.logout(user.id, audience);
 
     this.clearRefreshTokenCookie(response, audience);
@@ -131,7 +138,8 @@ export class AuthController {
   ): Promise<TokensDto> {
     const user = req.user as User;
     const refreshToken = req['refreshTokenValue'] as string;
-    const audience = (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
+    const audience =
+      (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
 
     const tokens = await this.authService.refreshTokens(
       user.id,
@@ -149,13 +157,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Запрос на сброс пароля' })
-  @ApiResponse({ status: 200, description: 'Письмо отправлено (если email существует)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Письмо отправлено (если email существует)',
+  })
   async forgotPassword(
     @Body() forgotPasswordDto: ForgotPasswordDto,
   ): Promise<{ message: string }> {
     await this.authService.forgotPassword(forgotPasswordDto.email);
     return {
-      message: 'Если пользователь с таким email существует, на него будет отправлено письмо с инструкциями',
+      message:
+        'Если пользователь с таким email существует, на него будет отправлено письмо с инструкциями',
     };
   }
 
@@ -164,7 +176,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Сброс пароля по токену' })
   @ApiResponse({ status: 200, description: 'Пароль успешно изменён' })
-  @ApiResponse({ status: 400, description: 'Недействительный или истёкший токен' })
+  @ApiResponse({
+    status: 400,
+    description: 'Недействительный или истёкший токен',
+  })
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
   ): Promise<{ message: string }> {
@@ -180,8 +195,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Подтверждение email' })
   @ApiResponse({ status: 200, description: 'Email успешно подтверждён' })
-  @ApiResponse({ status: 400, description: 'Недействительный или истёкший токен' })
-  async verifyEmail(@Body('token') token: string): Promise<{ message: string }> {
+  @ApiResponse({
+    status: 400,
+    description: 'Недействительный или истёкший токен',
+  })
+  async verifyEmail(
+    @Body('token') token: string,
+  ): Promise<{ message: string }> {
     await this.authService.verifyEmail(token);
     return { message: 'Email успешно подтверждён' };
   }
@@ -220,10 +240,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Body() changePasswordDto: ChangePasswordDto,
   ): Promise<{ message: string }> {
-    await this.authService.changePassword(
-      user.id,
-      changePasswordDto,
-    );
+    await this.authService.changePassword(user.id, changePasswordDto);
     return { message: 'Пароль успешно изменён' };
   }
 
@@ -232,10 +249,7 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Добавить адрес доставки' })
   @ApiResponse({ status: 201, description: 'Адрес добавлен' })
-  async addAddress(
-    @CurrentUser() user: User,
-    @Body() dto: CreateAddressDto,
-  ) {
+  async addAddress(@CurrentUser() user: User, @Body() dto: CreateAddressDto) {
     const updated = await this.usersService.addAddress(user.id, dto);
     return this.usersService.sanitizeUser(updated);
   }
@@ -250,7 +264,11 @@ export class AuthController {
     @Param('addressId') addressId: string,
     @Body() dto: UpdateAddressDto,
   ) {
-    const updated = await this.usersService.updateAddress(user.id, addressId, dto);
+    const updated = await this.usersService.updateAddress(
+      user.id,
+      addressId,
+      dto,
+    );
     return this.usersService.sanitizeUser(updated);
   }
 
@@ -268,7 +286,9 @@ export class AuthController {
   }
 
   private getCookieName(audience: TokenAudience): string {
-    return audience === TokenAudience.ADMIN_PANEL ? 'refreshToken_admin' : 'refreshToken';
+    return audience === TokenAudience.ADMIN_PANEL
+      ? 'refreshToken_admin'
+      : 'refreshToken';
   }
 
   private getCookieOptions(): {
@@ -297,7 +317,10 @@ export class AuthController {
     });
   }
 
-  private clearRefreshTokenCookie(response: Response, audience: TokenAudience): void {
+  private clearRefreshTokenCookie(
+    response: Response,
+    audience: TokenAudience,
+  ): void {
     response.clearCookie(this.getCookieName(audience), {
       httpOnly: true,
       ...this.getCookieOptions(),

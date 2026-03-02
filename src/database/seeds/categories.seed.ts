@@ -60,7 +60,9 @@ const categoriesData = [
   },
 ];
 
-export async function seedCategories(dataSource: DataSource): Promise<Map<string, Category>> {
+export async function seedCategories(
+  dataSource: DataSource,
+): Promise<Map<string, Category>> {
   const repository = dataSource.getRepository(Category);
 
   const categories = categoriesData.map((cat) => repository.create(cat));

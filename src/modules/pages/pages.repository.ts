@@ -28,7 +28,7 @@ export class PagesRepository {
   }
 
   async update(slug: string, data: Partial<Page>): Promise<Page | null> {
-    await this.repository.update({ slug }, data as any);
+    await this.repository.update({ slug }, data);
     return this.findBySlug(slug);
   }
 

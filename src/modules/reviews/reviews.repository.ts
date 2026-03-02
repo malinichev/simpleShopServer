@@ -87,7 +87,10 @@ export class ReviewsRepository {
     return this.repository.findOne({ where: { id } });
   }
 
-  async findByProductAndUser(productId: string, userId: string): Promise<Review | null> {
+  async findByProductAndUser(
+    productId: string,
+    userId: string,
+  ): Promise<Review | null> {
     return this.repository.findOne({
       where: { productId, userId },
     });
@@ -99,7 +102,7 @@ export class ReviewsRepository {
   }
 
   async update(id: string, data: Partial<Review>): Promise<Review | null> {
-    await this.repository.update(id, data as any);
+    await this.repository.update(id, data);
     return this.findById(id);
   }
 
@@ -107,7 +110,9 @@ export class ReviewsRepository {
     await this.repository.delete(id);
   }
 
-  async calculateProductRating(productId: string): Promise<{ rating: number; count: number }> {
+  async calculateProductRating(
+    productId: string,
+  ): Promise<{ rating: number; count: number }> {
     const reviews = await this.repository.find({
       where: { productId, isApproved: true },
       select: ['rating'],

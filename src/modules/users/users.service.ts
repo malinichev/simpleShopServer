@@ -26,7 +26,9 @@ export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.usersRepository.findByEmail(createUserDto.email);
+    const existingUser = await this.usersRepository.findByEmail(
+      createUserDto.email,
+    );
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
@@ -59,7 +61,9 @@ export class UsersService {
     return this.usersRepository.findByEmail(email);
   }
 
-  async findAll(query: UserQueryDto): Promise<PaginatedResult<UserResponseDto>> {
+  async findAll(
+    query: UserQueryDto,
+  ): Promise<PaginatedResult<UserResponseDto>> {
     const result = await this.usersRepository.findAll(query);
     return {
       data: result.data.map((user) => this.sanitizeUser(user)),
@@ -90,7 +94,8 @@ export class UsersService {
     }
 
     // Remove password from update - use changePassword method instead
-    const { password, ...safeData } = updateData;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _password, ...safeData } = updateData;
 
     const updatedUser = await this.usersRepository.update(userId, safeData);
     if (!updatedUser) {
@@ -108,7 +113,10 @@ export class UsersService {
     await this.usersRepository.delete(userId);
   }
 
-  async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+  async validatePassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 
@@ -117,8 +125,14 @@ export class UsersService {
     refreshToken: string | null,
     audience: TokenAudience,
   ): Promise<void> {
-    const hashedToken = refreshToken ? await bcrypt.hash(refreshToken, 12) : null;
-    await this.usersRepository.updateRefreshToken(userId, hashedToken, audience);
+    const hashedToken = refreshToken
+      ? await bcrypt.hash(refreshToken, 12)
+      : null;
+    await this.usersRepository.updateRefreshToken(
+      userId,
+      hashedToken,
+      audience,
+    );
   }
 
   async validateRefreshToken(
@@ -138,7 +152,7 @@ export class UsersService {
   }
 
   async generateEmailVerificationToken(userId: string): Promise<string> {
-    const user = await this.findByIdOrFail(userId);
+    await this.findByIdOrFail(userId);
 
     const token = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -148,7 +162,7 @@ export class UsersService {
     await this.usersRepository.update(userId, {
       emailVerificationToken: hashedToken,
       emailVerificationExpires: expires,
-    } as any);
+    } as UpdateUserDto);
 
     return token;
   }
@@ -159,7 +173,7 @@ export class UsersService {
     // This needs direct repository access for complex query
     const users = await this.usersRepository.findAll({ limit: 1000 });
     const user = users.data.find(
-      (u: any) =>
+      (u) =>
         u.emailVerificationToken === hashedToken &&
         u.emailVerificationExpires &&
         new Date(u.emailVerificationExpires) > new Date(),
@@ -173,7 +187,7 @@ export class UsersService {
       isEmailVerified: true,
       emailVerificationToken: undefined,
       emailVerificationExpires: undefined,
-    } as any);
+    } as UpdateUserDto);
 
     return this.findByIdOrFail(user.id);
   }
@@ -189,7 +203,7 @@ export class UsersService {
     await this.usersRepository.update(userId, {
       passwordResetToken: hashedToken,
       passwordResetExpires: expires,
-    } as any);
+    } as UpdateUserDto);
 
     return token;
   }
@@ -199,7 +213,7 @@ export class UsersService {
 
     const users = await this.usersRepository.findAll({ limit: 1000 });
     const user = users.data.find(
-      (u: any) =>
+      (u) =>
         u.passwordResetToken === hashedToken &&
         u.passwordResetExpires &&
         new Date(u.passwordResetExpires) > new Date(),
@@ -216,7 +230,7 @@ export class UsersService {
       passwordResetToken: undefined,
       passwordResetExpires: undefined,
       refreshTokens: null,
-    } as any);
+    } as UpdateUserDto);
 
     return this.findByIdOrFail(user.id);
   }
@@ -228,7 +242,10 @@ export class UsersService {
   ): Promise<void> {
     const user = await this.findByIdOrFail(userId);
 
-    const isPasswordValid = await this.validatePassword(currentPassword, user.password);
+    const isPasswordValid = await this.validatePassword(
+      currentPassword,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new BadRequestException('Current password is incorrect');
     }
@@ -238,11 +255,14 @@ export class UsersService {
     await this.usersRepository.update(userId, {
       password: hashedPassword,
       refreshTokens: null,
-    } as any);
+    } as UpdateUserDto);
   }
 
   // Address methods
-  async addAddress(userId: string, addressDto: CreateAddressDto): Promise<User> {
+  async addAddress(
+    userId: string,
+    addressDto: CreateAddressDto,
+  ): Promise<User> {
     await this.findByIdOrFail(userId);
 
     const address: Omit<Address, 'id'> = {
@@ -269,7 +289,11 @@ export class UsersService {
       throw new NotFoundException('Address not found');
     }
 
-    const updatedUser = await this.usersRepository.updateAddress(userId, addressId, addressDto);
+    const updatedUser = await this.usersRepository.updateAddress(
+      userId,
+      addressId,
+      addressDto,
+    );
     if (!updatedUser) {
       throw new NotFoundException('User not found');
     }
@@ -284,7 +308,10 @@ export class UsersService {
       throw new NotFoundException('Address not found');
     }
 
-    const updatedUser = await this.usersRepository.removeAddress(userId, addressId);
+    const updatedUser = await this.usersRepository.removeAddress(
+      userId,
+      addressId,
+    );
     if (!updatedUser) {
       throw new NotFoundException('User not found');
     }

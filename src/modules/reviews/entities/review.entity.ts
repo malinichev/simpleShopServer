@@ -40,7 +40,7 @@ export class Review extends BaseEntity {
   @Column('text')
   text: string;
 
-  @Column('text', { array: true, default: () => "ARRAY[]::text[]" })
+  @Column('text', { array: true, default: () => 'ARRAY[]::text[]' })
   images: string[];
 
   @Column({ default: false })

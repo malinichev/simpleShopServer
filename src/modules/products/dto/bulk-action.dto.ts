@@ -1,9 +1,18 @@
-import { IsArray, IsEnum, IsString, IsNumber, ArrayMinSize, Min } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsString,
+  IsNumber,
+  ArrayMinSize,
+  Min,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductStatus } from '../entities/product.entity';
 
 export class BulkDeleteDto {
-  @ApiProperty({ example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'] })
+  @ApiProperty({
+    example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+  })
   @IsArray()
   @ArrayMinSize(1)
   @IsString({ each: true })
@@ -11,7 +20,9 @@ export class BulkDeleteDto {
 }
 
 export class BulkUpdateStatusDto {
-  @ApiProperty({ example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'] })
+  @ApiProperty({
+    example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+  })
   @IsArray()
   @ArrayMinSize(1)
   @IsString({ each: true })

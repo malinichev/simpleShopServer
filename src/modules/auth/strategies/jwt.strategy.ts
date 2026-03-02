@@ -4,7 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '@/modules/users/users.service';
 import { UserRole } from '@/modules/users/entities/user.entity';
-import { TokenAudience } from '@/common/types';
+import { TokenAudience, UserWithTokenAudience } from '@/common/types';
 
 export interface JwtPayload {
   sub: string;
@@ -34,7 +34,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     // Attach token audience to user object for downstream use
-    (user as any).__tokenAudience = payload.aud || TokenAudience.WEB;
+    (user as UserWithTokenAudience).__tokenAudience =
+      payload.aud || TokenAudience.WEB;
 
     return user;
   }

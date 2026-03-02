@@ -54,7 +54,7 @@ export class ProductsService implements OnModuleDestroy {
     const cached = await this.redis.get(cacheKey);
 
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as PaginatedResult<Product>;
     }
 
     const result = await this.productsRepository.findAll(query);
@@ -75,7 +75,7 @@ export class ProductsService implements OnModuleDestroy {
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as Product;
     }
 
     const product = await this.productsRepository.findBySlug(slug);
@@ -187,7 +187,8 @@ export class ProductsService implements OnModuleDestroy {
 
     if (restDto.name !== undefined) updateData.name = restDto.name;
     if (restDto.slug !== undefined) updateData.slug = restDto.slug;
-    if (restDto.description !== undefined) updateData.description = restDto.description;
+    if (restDto.description !== undefined)
+      updateData.description = restDto.description;
     if (restDto.shortDescription !== undefined)
       updateData.shortDescription = restDto.shortDescription;
     if (restDto.sku !== undefined) updateData.sku = restDto.sku;
@@ -199,10 +200,12 @@ export class ProductsService implements OnModuleDestroy {
     if (restDto.tags !== undefined) updateData.tags = restDto.tags;
     if (restDto.images !== undefined)
       updateData.images = restDto.images as ProductImage[];
-    if (restDto.attributes !== undefined) updateData.attributes = restDto.attributes;
+    if (restDto.attributes !== undefined)
+      updateData.attributes = restDto.attributes;
     if (restDto.status !== undefined) updateData.status = restDto.status;
     if (restDto.seo !== undefined) updateData.seo = restDto.seo;
-    if (restDto.isVisible !== undefined) updateData.isVisible = restDto.isVisible;
+    if (restDto.isVisible !== undefined)
+      updateData.isVisible = restDto.isVisible;
 
     const updated = await this.productsRepository.update(id, updateData);
     if (!updated) {

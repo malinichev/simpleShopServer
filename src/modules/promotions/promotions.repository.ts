@@ -31,8 +31,11 @@ export class PromotionsRepository {
     return this.repository.save(promotion);
   }
 
-  async update(id: string, data: Partial<Promotion>): Promise<Promotion | null> {
-    await this.repository.update(id, data as any);
+  async update(
+    id: string,
+    data: Partial<Promotion>,
+  ): Promise<Promotion | null> {
+    await this.repository.update(id, data);
     return this.findById(id);
   }
 
@@ -45,6 +48,9 @@ export class PromotionsRepository {
     usedCount: number,
     userUsage: Record<string, number>,
   ): Promise<void> {
-    await this.repository.update(id, { usedCount, userUsage } as any);
+    await this.repository.update(id, {
+      usedCount,
+      userUsage,
+    } as Partial<Promotion>);
   }
 }

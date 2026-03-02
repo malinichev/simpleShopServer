@@ -7,9 +7,8 @@ import { seedCategories } from './categories.seed';
 import { seedProducts } from './products.seed';
 import { seedPromotions } from './promotions.seed';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 dotenv.config({ path: '.env.development' });
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
 dotenv.config({ path: '.env' });
 
 const dataSource = new DataSource({

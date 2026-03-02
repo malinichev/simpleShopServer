@@ -62,21 +62,30 @@ export class ProductQueryDto {
 
   @ApiPropertyOptional({ description: 'Filter by sizes', type: [String] })
   @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.split(',') : value))
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsArray()
   @IsString({ each: true })
   sizes?: string[];
 
   @ApiPropertyOptional({ description: 'Filter by colors', type: [String] })
   @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.split(',') : value))
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsArray()
   @IsString({ each: true })
   colors?: string[];
 
-  @ApiPropertyOptional({ description: 'Filter by activity type', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Filter by activity type',
+    type: [String],
+  })
   @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.split(',') : value))
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsArray()
   @IsString({ each: true })
   activity?: string[];

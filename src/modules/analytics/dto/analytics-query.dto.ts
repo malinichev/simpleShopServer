@@ -8,17 +8,27 @@ export enum Granularity {
 }
 
 export class AnalyticsQueryDto {
-  @ApiPropertyOptional({ description: 'Начало периода (ISO date)', example: '2025-01-01' })
+  @ApiPropertyOptional({
+    description: 'Начало периода (ISO date)',
+    example: '2025-01-01',
+  })
   @IsOptional()
   @IsDateString()
   dateFrom?: string;
 
-  @ApiPropertyOptional({ description: 'Конец периода (ISO date)', example: '2025-01-31' })
+  @ApiPropertyOptional({
+    description: 'Конец периода (ISO date)',
+    example: '2025-01-31',
+  })
   @IsOptional()
   @IsDateString()
   dateTo?: string;
 
-  @ApiPropertyOptional({ enum: Granularity, default: Granularity.DAY, description: 'Гранулярность данных' })
+  @ApiPropertyOptional({
+    enum: Granularity,
+    default: Granularity.DAY,
+    description: 'Гранулярность данных',
+  })
   @IsOptional()
   @IsEnum(Granularity)
   granularity?: Granularity = Granularity.DAY;

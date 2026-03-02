@@ -42,21 +42,26 @@ export class CategoriesService implements OnModuleDestroy {
   async findAll(): Promise<Category[]> {
     const cached = await this.redis.get(CACHE_KEY_LIST);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as Category[];
     }
 
     const categories = await this.repository.find({
       order: { order: 'ASC', createdAt: 'DESC' },
     });
 
-    await this.redis.set(CACHE_KEY_LIST, JSON.stringify(categories), 'EX', CACHE_TTL);
+    await this.redis.set(
+      CACHE_KEY_LIST,
+      JSON.stringify(categories),
+      'EX',
+      CACHE_TTL,
+    );
     return categories;
   }
 
   async findTree(): Promise<Category[]> {
     const cached = await this.redis.get(CACHE_KEY_TREE);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as Category[];
     }
 
     const categories = await this.repository.find({
@@ -117,23 +122,27 @@ export class CategoriesService implements OnModuleDestroy {
         where: { slug: dto.slug },
       });
       if (existing && existing.id !== id) {
-        throw new ConflictException(`Категория со slug "${dto.slug}" уже существует`);
+        throw new ConflictException(
+          `Категория со slug "${dto.slug}" уже существует`,
+        );
       }
     }
 
     if (dto.parentId !== undefined) {
       if (dto.parentId) {
         if (dto.parentId === id) {
-          throw new BadRequestException('Категория не может быть родителем самой себя');
+          throw new BadRequestException(
+            'Категория не может быть родителем самой себя',
+          );
         }
         await this.findById(dto.parentId);
         await this.checkCircularDependency(id, dto.parentId);
       }
     }
 
-    const updateData: any = { ...dto };
+    const updateData: Partial<Category> = { ...dto };
     if (dto.parentId !== undefined) {
-      updateData.parentId = dto.parentId || null;
+      updateData.parentId = dto.parentId || undefined;
     }
 
     await this.repository.update(id, updateData);
@@ -200,7 +209,9 @@ export class CategoriesService implements OnModuleDestroy {
 
     while (currentId) {
       if (currentId === categoryId) {
-        throw new BadRequestException('Обнаружена циклическая зависимость категорий');
+        throw new BadRequestException(
+          'Обнаружена циклическая зависимость категорий',
+        );
       }
       if (visited.has(currentId)) {
         break;

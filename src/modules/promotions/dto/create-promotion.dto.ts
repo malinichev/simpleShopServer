@@ -8,7 +8,6 @@ import {
   IsArray,
   IsDateString,
   Min,
-  Max,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PromotionType } from '../entities/promotion.entity';
@@ -33,30 +32,45 @@ export class CreatePromotionDto {
   @IsEnum(PromotionType)
   type: PromotionType;
 
-  @ApiProperty({ example: 15, description: 'Процент скидки или фиксированная сумма' })
+  @ApiProperty({
+    example: 15,
+    description: 'Процент скидки или фиксированная сумма',
+  })
   @IsNumber()
   @Min(0)
   value: number;
 
-  @ApiPropertyOptional({ example: 3000, description: 'Минимальная сумма заказа' })
+  @ApiPropertyOptional({
+    example: 3000,
+    description: 'Минимальная сумма заказа',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
   minOrderAmount?: number;
 
-  @ApiPropertyOptional({ example: 5000, description: 'Максимальная сумма скидки (для процентных)' })
+  @ApiPropertyOptional({
+    example: 5000,
+    description: 'Максимальная сумма скидки (для процентных)',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
   maxDiscount?: number;
 
-  @ApiPropertyOptional({ example: 100, description: 'Общий лимит использований' })
+  @ApiPropertyOptional({
+    example: 100,
+    description: 'Общий лимит использований',
+  })
   @IsOptional()
   @IsNumber()
   @Min(1)
   usageLimit?: number;
 
-  @ApiPropertyOptional({ example: 1, description: 'Лимит использований на пользователя' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Лимит использований на пользователя',
+  })
   @IsOptional()
   @IsNumber()
   @Min(1)

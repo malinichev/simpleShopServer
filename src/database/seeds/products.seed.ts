@@ -1,5 +1,8 @@
 import { DataSource } from 'typeorm';
-import { Product, ProductStatus } from '@/modules/products/entities/product.entity';
+import {
+  Product,
+  ProductStatus,
+} from '@/modules/products/entities/product.entity';
 import { ProductVariantEntity } from '@/modules/products/entities/product-variant.entity';
 import { Category } from '@/modules/categories/entities/category.entity';
 
@@ -23,7 +26,11 @@ function pickColors(count: number) {
   return shuffled.slice(0, count);
 }
 
-function generateVariants(colorCount: number, baseSku: string, basePrice: number): Partial<ProductVariantEntity>[] {
+function generateVariants(
+  colorCount: number,
+  baseSku: string,
+  basePrice: number,
+): Partial<ProductVariantEntity>[] {
   const selectedColors = pickColors(colorCount);
   const variants: Partial<ProductVariantEntity>[] = [];
 
@@ -65,7 +72,8 @@ const productsData: ProductData[] = [
     categorySlug: 'leggings',
     name: 'Леггинсы высокой посадки Flex',
     slug: 'leggings-flex-high-waist',
-    description: 'Леггинсы с высокой посадкой из компрессионной ткани. Идеально облегают фигуру, обеспечивая поддержку во время интенсивных тренировок. Плоские швы не натирают кожу.',
+    description:
+      'Леггинсы с высокой посадкой из компрессионной ткани. Идеально облегают фигуру, обеспечивая поддержку во время интенсивных тренировок. Плоские швы не натирают кожу.',
     shortDescription: 'Компрессионные леггинсы с высокой посадкой',
     sku: 'LG-FLEX-01',
     price: 4500,
@@ -73,14 +81,20 @@ const productsData: ProductData[] = [
     tags: ['бестселлер', 'новинка'],
     activity: ['gym', 'yoga'],
     material: '78% нейлон, 22% спандекс',
-    features: ['Высокая посадка', 'Компрессия', 'Влагоотведение', 'Плоские швы'],
+    features: [
+      'Высокая посадка',
+      'Компрессия',
+      'Влагоотведение',
+      'Плоские швы',
+    ],
     colorCount: 4,
   },
   {
     categorySlug: 'leggings',
     name: 'Леггинсы для бега AeroRun',
     slug: 'leggings-aerorun',
-    description: 'Лёгкие леггинсы для бега с боковым карманом для телефона. Светоотражающие элементы для безопасного бега в тёмное время суток.',
+    description:
+      'Лёгкие леггинсы для бега с боковым карманом для телефона. Светоотражающие элементы для безопасного бега в тёмное время суток.',
     shortDescription: 'Беговые леггинсы с карманом для телефона',
     sku: 'LG-AERO-01',
     price: 5200,
@@ -94,7 +108,8 @@ const productsData: ProductData[] = [
     categorySlug: 'leggings',
     name: 'Леггинсы бесшовные Comfort',
     slug: 'leggings-comfort-seamless',
-    description: 'Бесшовные леггинсы с эффектом второй кожи. Мягкая ткань обеспечивает максимальный комфорт при любых тренировках.',
+    description:
+      'Бесшовные леггинсы с эффектом второй кожи. Мягкая ткань обеспечивает максимальный комфорт при любых тренировках.',
     shortDescription: 'Бесшовные леггинсы для комфортных тренировок',
     sku: 'LG-CMFT-01',
     price: 3800,
@@ -109,7 +124,8 @@ const productsData: ProductData[] = [
     categorySlug: 'tops',
     name: 'Топ для йоги Zen',
     slug: 'top-yoga-zen',
-    description: 'Свободный топ для йоги из дышащей ткани. Удлинённая спинка для комфорта при наклонах. Мягкий материал не сковывает движения.',
+    description:
+      'Свободный топ для йоги из дышащей ткани. Удлинённая спинка для комфорта при наклонах. Мягкий материал не сковывает движения.',
     shortDescription: 'Свободный топ из дышащей ткани для йоги',
     sku: 'TP-ZEN-01',
     price: 2800,
@@ -123,7 +139,8 @@ const productsData: ProductData[] = [
     categorySlug: 'tops',
     name: 'Майка для тренировок Power',
     slug: 'tank-top-power',
-    description: 'Облегающая майка с технологией влагоотведения. Racerback-крой обеспечивает свободу движений. Быстро сохнет после интенсивных тренировок.',
+    description:
+      'Облегающая майка с технологией влагоотведения. Racerback-крой обеспечивает свободу движений. Быстро сохнет после интенсивных тренировок.',
     shortDescription: 'Облегающая майка с влагоотведением',
     sku: 'TP-PWR-01',
     price: 2200,
@@ -138,7 +155,8 @@ const productsData: ProductData[] = [
     categorySlug: 'tops',
     name: 'Кроп-топ Active',
     slug: 'crop-top-active',
-    description: 'Укороченный топ для активных тренировок. Плотная эластичная ткань обеспечивает поддержку. Идеально сочетается с леггинсами высокой посадки.',
+    description:
+      'Укороченный топ для активных тренировок. Плотная эластичная ткань обеспечивает поддержку. Идеально сочетается с леггинсами высокой посадки.',
     shortDescription: 'Укороченный топ для активных тренировок',
     sku: 'TP-ACT-01',
     price: 1900,
@@ -153,7 +171,8 @@ const productsData: ProductData[] = [
     categorySlug: 'sports-bras',
     name: 'Спортивный бра Impact',
     slug: 'sports-bra-impact',
-    description: 'Спортивный бра высокой поддержки для интенсивных тренировок. Широкие регулируемые бретели и усиленная нижняя полоса.',
+    description:
+      'Спортивный бра высокой поддержки для интенсивных тренировок. Широкие регулируемые бретели и усиленная нижняя полоса.',
     shortDescription: 'Бра высокой поддержки для интенсивных тренировок',
     sku: 'SB-IMP-01',
     price: 3200,
@@ -167,7 +186,8 @@ const productsData: ProductData[] = [
     categorySlug: 'sports-bras',
     name: 'Спортивный бра Soft Touch',
     slug: 'sports-bra-soft-touch',
-    description: 'Мягкий бра средней поддержки для йоги и пилатеса. Бесшовная конструкция и мягкие чашки для максимального комфорта.',
+    description:
+      'Мягкий бра средней поддержки для йоги и пилатеса. Бесшовная конструкция и мягкие чашки для максимального комфорта.',
     shortDescription: 'Мягкий бра средней поддержки для йоги',
     sku: 'SB-SFT-01',
     price: 2500,
@@ -181,7 +201,8 @@ const productsData: ProductData[] = [
     categorySlug: 'sports-bras',
     name: 'Спортивный бра Minimal',
     slug: 'sports-bra-minimal',
-    description: 'Лёгкий бра для низкоинтенсивных тренировок. Тонкие бретели и минималистичный дизайн. Можно носить как самостоятельный топ.',
+    description:
+      'Лёгкий бра для низкоинтенсивных тренировок. Тонкие бретели и минималистичный дизайн. Можно носить как самостоятельный топ.',
     shortDescription: 'Лёгкий бра для повседневности и лёгких тренировок',
     sku: 'SB-MIN-01',
     price: 1800,
@@ -196,21 +217,27 @@ const productsData: ProductData[] = [
     categorySlug: 'shorts',
     name: 'Шорты для бега SpeedRun',
     slug: 'shorts-speedrun',
-    description: 'Ультралёгкие шорты для бега с внутренними подтрусниками. Боковые разрезы обеспечивают свободу движений при спринтах.',
+    description:
+      'Ультралёгкие шорты для бега с внутренними подтрусниками. Боковые разрезы обеспечивают свободу движений при спринтах.',
     shortDescription: 'Ультралёгкие беговые шорты с подтрусниками',
     sku: 'SH-SPD-01',
     price: 2800,
     tags: ['бег', 'ультралёгкие'],
     activity: ['running'],
     material: '100% полиэстер',
-    features: ['Внутренние подтрусники', 'Боковые разрезы', 'Ультралёгкая ткань'],
+    features: [
+      'Внутренние подтрусники',
+      'Боковые разрезы',
+      'Ультралёгкая ткань',
+    ],
     colorCount: 3,
   },
   {
     categorySlug: 'shorts',
     name: 'Шорты велосипедки Fit',
     slug: 'shorts-biker-fit',
-    description: 'Облегающие шорты-велосипедки длиной до колена. Компрессионная ткань поддерживает мышцы. Широкий пояс не скручивается.',
+    description:
+      'Облегающие шорты-велосипедки длиной до колена. Компрессионная ткань поддерживает мышцы. Широкий пояс не скручивается.',
     shortDescription: 'Облегающие шорты-велосипедки с компрессией',
     sku: 'SH-FIT-01',
     price: 2400,
@@ -225,7 +252,8 @@ const productsData: ProductData[] = [
     categorySlug: 'shorts',
     name: 'Шорты свободные Breeze',
     slug: 'shorts-breeze',
-    description: 'Свободные шорты для тренировок с эластичным поясом и шнурком. Лёгкая дышащая ткань и боковые карманы.',
+    description:
+      'Свободные шорты для тренировок с эластичным поясом и шнурком. Лёгкая дышащая ткань и боковые карманы.',
     shortDescription: 'Свободные шорты из дышащей ткани',
     sku: 'SH-BRZ-01',
     price: 2100,
@@ -240,7 +268,8 @@ const productsData: ProductData[] = [
     categorySlug: 'sets',
     name: 'Комплект для йоги Harmony',
     slug: 'set-yoga-harmony',
-    description: 'Комплект из бра и леггинсов для йоги. Мягкая бесшовная ткань с нежным рисунком. Идеальное сочетание стиля и комфорта.',
+    description:
+      'Комплект из бра и леггинсов для йоги. Мягкая бесшовная ткань с нежным рисунком. Идеальное сочетание стиля и комфорта.',
     shortDescription: 'Комплект бра + леггинсы для йоги',
     sku: 'ST-HRM-01',
     price: 6500,
@@ -248,14 +277,19 @@ const productsData: ProductData[] = [
     tags: ['комплект', 'йога'],
     activity: ['yoga'],
     material: '88% нейлон, 12% спандекс',
-    features: ['Бесшовная ткань', 'Координированные цвета', 'Средняя поддержка'],
+    features: [
+      'Бесшовная ткань',
+      'Координированные цвета',
+      'Средняя поддержка',
+    ],
     colorCount: 3,
   },
   {
     categorySlug: 'sets',
     name: 'Комплект для зала GymSet Pro',
     slug: 'set-gym-pro',
-    description: 'Спортивный комплект из топа и леггинсов для тренажёрного зала. Компрессионная ткань и стильный дизайн для уверенных тренировок.',
+    description:
+      'Спортивный комплект из топа и леггинсов для тренажёрного зала. Компрессионная ткань и стильный дизайн для уверенных тренировок.',
     shortDescription: 'Комплект топ + леггинсы для тренажёрного зала',
     sku: 'ST-GYM-01',
     price: 7200,
@@ -270,7 +304,8 @@ const productsData: ProductData[] = [
     categorySlug: 'hoodies',
     name: 'Худи оверсайз Cozy',
     slug: 'hoodie-cozy-oversize',
-    description: 'Оверсайз худи из мягкого хлопкового трикотажа. Объёмный капюшон и карман-кенгуру. Идеально для разминки и прогулок.',
+    description:
+      'Оверсайз худи из мягкого хлопкового трикотажа. Объёмный капюшон и карман-кенгуру. Идеально для разминки и прогулок.',
     shortDescription: 'Оверсайз худи из мягкого трикотажа',
     sku: 'HD-CZY-01',
     price: 4800,
@@ -284,7 +319,8 @@ const productsData: ProductData[] = [
     categorySlug: 'hoodies',
     name: 'Свитшот спортивный Motion',
     slug: 'sweatshirt-motion',
-    description: 'Спортивный свитшот с круглым вырезом и рукавами-реглан. Начёс внутри для тепла. Рифлёные манжеты и подол.',
+    description:
+      'Спортивный свитшот с круглым вырезом и рукавами-реглан. Начёс внутри для тепла. Рифлёные манжеты и подол.',
     shortDescription: 'Свитшот с начёсом и рукавами-реглан',
     sku: 'HD-MTN-01',
     price: 3900,
@@ -299,21 +335,28 @@ const productsData: ProductData[] = [
     categorySlug: 'jackets',
     name: 'Ветровка для бега WindShield',
     slug: 'jacket-windshield',
-    description: 'Лёгкая ветровка с защитой от ветра и дождя. Упаковывается в собственный карман. Светоотражающие элементы для вечернего бега.',
+    description:
+      'Лёгкая ветровка с защитой от ветра и дождя. Упаковывается в собственный карман. Светоотражающие элементы для вечернего бега.',
     shortDescription: 'Лёгкая ветровка с защитой от непогоды',
     sku: 'JK-WND-01',
     price: 5800,
     tags: ['ветровка', 'бег', 'светоотражение'],
     activity: ['running'],
     material: '100% нейлон с покрытием DWR',
-    features: ['Ветрозащита', 'Водоотталкивающая пропитка', 'Светоотражатели', 'Складывается в карман'],
+    features: [
+      'Ветрозащита',
+      'Водоотталкивающая пропитка',
+      'Светоотражатели',
+      'Складывается в карман',
+    ],
     colorCount: 2,
   },
   {
     categorySlug: 'jackets',
     name: 'Куртка утеплённая WarmUp',
     slug: 'jacket-warmup',
-    description: 'Утеплённая куртка на молнии для тренировок в прохладную погоду. Флисовая подкладка и воротник-стойка для дополнительного тепла.',
+    description:
+      'Утеплённая куртка на молнии для тренировок в прохладную погоду. Флисовая подкладка и воротник-стойка для дополнительного тепла.',
     shortDescription: 'Утеплённая куртка на молнии для прохладной погоды',
     sku: 'JK-WRM-01',
     price: 7500,
@@ -321,7 +364,12 @@ const productsData: ProductData[] = [
     tags: ['утеплённая', 'флис'],
     activity: ['running', 'casual'],
     material: '90% полиэстер, 10% эластан, подкладка — флис',
-    features: ['Флисовая подкладка', 'Молния', 'Воротник-стойка', 'Боковые карманы'],
+    features: [
+      'Флисовая подкладка',
+      'Молния',
+      'Воротник-стойка',
+      'Боковые карманы',
+    ],
     colorCount: 2,
   },
   // Аксессуары (3)
@@ -329,7 +377,8 @@ const productsData: ProductData[] = [
     categorySlug: 'accessories',
     name: 'Спортивная повязка на голову FlexBand',
     slug: 'headband-flexband',
-    description: 'Эластичная повязка на голову с силиконовым покрытием на внутренней стороне. Не скользит во время тренировок и впитывает влагу.',
+    description:
+      'Эластичная повязка на голову с силиконовым покрытием на внутренней стороне. Не скользит во время тренировок и впитывает влагу.',
     shortDescription: 'Эластичная повязка на голову с антискользящим покрытием',
     sku: 'AC-HBD-01',
     price: 800,
@@ -343,21 +392,27 @@ const productsData: ProductData[] = [
     categorySlug: 'accessories',
     name: 'Спортивная сумка GymBag',
     slug: 'gym-bag',
-    description: 'Вместительная спортивная сумка с отделением для обуви и влажных вещей. Регулируемый ремень и ручки.',
+    description:
+      'Вместительная спортивная сумка с отделением для обуви и влажных вещей. Регулируемый ремень и ручки.',
     shortDescription: 'Спортивная сумка с отделением для обуви',
     sku: 'AC-BAG-01',
     price: 3500,
     tags: ['сумка', 'аксессуар'],
     activity: ['gym'],
     material: '100% полиэстер 600D',
-    features: ['Отделение для обуви', 'Водонепроницаемый карман', 'Регулируемый ремень'],
+    features: [
+      'Отделение для обуви',
+      'Водонепроницаемый карман',
+      'Регулируемый ремень',
+    ],
     colorCount: 2,
   },
   {
     categorySlug: 'accessories',
     name: 'Перчатки для фитнеса GripPro',
     slug: 'gloves-grippro',
-    description: 'Перчатки для фитнеса с усиленным хватом и вентиляцией. Защищают ладони при работе с тяжёлыми весами.',
+    description:
+      'Перчатки для фитнеса с усиленным хватом и вентиляцией. Защищают ладони при работе с тяжёлыми весами.',
     shortDescription: 'Перчатки с усиленным хватом для фитнеса',
     sku: 'AC-GLV-01',
     price: 1500,

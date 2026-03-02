@@ -26,7 +26,11 @@ export class ReviewQueryDto {
   @IsBoolean()
   isApproved?: boolean;
 
-  @ApiPropertyOptional({ description: 'Filter by rating (1-5)', minimum: 1, maximum: 5 })
+  @ApiPropertyOptional({
+    description: 'Filter by rating (1-5)',
+    minimum: 1,
+    maximum: 5,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

@@ -31,11 +31,6 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
     RolesGuard,
     RefreshTokenGuard,
   ],
-  exports: [
-    AuthService,
-    JwtAuthGuard,
-    RolesGuard,
-    RefreshTokenGuard,
-  ],
+  exports: [AuthService, JwtAuthGuard, RolesGuard, RefreshTokenGuard],
 })
 export class AuthModule {}

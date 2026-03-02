@@ -22,8 +22,10 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
       throw new UnauthorizedException('Неверный email или пароль');
     }
 
-    const client = req.body?.client as TokenAudience | undefined;
-    req['tokenAudience'] = client || TokenAudience.WEB;
+    const body = req.body as Record<string, unknown> | undefined;
+    const client = body?.client as TokenAudience | undefined;
+    (req as unknown as Record<string, unknown>)['tokenAudience'] =
+      client || TokenAudience.WEB;
 
     return user;
   }

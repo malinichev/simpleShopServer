@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In, ILike, MoreThanOrEqual, LessThanOrEqual, FindOptionsWhere, Between } from 'typeorm';
-import { Order, OrderStatus, PaymentStatus } from './entities/order.entity';
+import { Repository, FindOptionsWhere } from 'typeorm';
+import { Order, OrderStatus } from './entities/order.entity';
 import { OrderQueryDto } from './dto';
 import {
   PaginatedResult,
@@ -37,23 +37,35 @@ export class OrdersRepository {
     }
 
     // Build date/total range conditions via QueryBuilder for complex filters
-    const qb = this.repository.createQueryBuilder('order')
+    const qb = this.repository
+      .createQueryBuilder('order')
       .leftJoinAndSelect('order.items', 'item');
 
     // Apply simple where conditions
-    if (where.status) qb.andWhere('order.status = :status', { status: where.status });
-    if (where.paymentStatus) qb.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus: where.paymentStatus });
-    if (where.userId) qb.andWhere('order.userId = :userId', { userId: where.userId });
+    if (where.status)
+      qb.andWhere('order.status = :status', { status: where.status });
+    if (where.paymentStatus)
+      qb.andWhere('order.paymentStatus = :paymentStatus', {
+        paymentStatus: where.paymentStatus,
+      });
+    if (where.userId)
+      qb.andWhere('order.userId = :userId', { userId: where.userId });
 
     if (query.search) {
-      qb.andWhere('order.orderNumber ILIKE :search', { search: `%${query.search}%` });
+      qb.andWhere('order.orderNumber ILIKE :search', {
+        search: `%${query.search}%`,
+      });
     }
 
     if (query.dateFrom) {
-      qb.andWhere('order.createdAt >= :dateFrom', { dateFrom: new Date(query.dateFrom) });
+      qb.andWhere('order.createdAt >= :dateFrom', {
+        dateFrom: new Date(query.dateFrom),
+      });
     }
     if (query.dateTo) {
-      qb.andWhere('order.createdAt <= :dateTo', { dateTo: new Date(query.dateTo) });
+      qb.andWhere('order.createdAt <= :dateTo', {
+        dateTo: new Date(query.dateTo),
+      });
     }
 
     if (query.minTotal !== undefined) {
@@ -63,9 +75,7 @@ export class OrdersRepository {
       qb.andWhere('order.total <= :maxTotal', { maxTotal: query.maxTotal });
     }
 
-    qb.orderBy('order.createdAt', 'DESC')
-      .skip(skip)
-      .take(limit);
+    qb.orderBy('order.createdAt', 'DESC').skip(skip).take(limit);
 
     const [data, total] = await qb.getManyAndCount();
 
@@ -75,7 +85,10 @@ export class OrdersRepository {
     };
   }
 
-  async findByUser(userId: string, query: OrderQueryDto): Promise<PaginatedResult<Order>> {
+  async findByUser(
+    userId: string,
+    query: OrderQueryDto,
+  ): Promise<PaginatedResult<Order>> {
     return this.findAll({ ...query, userId });
   }
 
@@ -99,7 +112,7 @@ export class OrdersRepository {
   }
 
   async update(id: string, data: Partial<Order>): Promise<Order | null> {
-    await this.repository.update(id, data as any);
+    await this.repository.update(id, data);
     return this.findById(id);
   }
 
@@ -129,8 +142,12 @@ export class OrdersRepository {
     );
   }
 
-  async getRevenueStats(dateFrom?: Date, dateTo?: Date): Promise<{ totalRevenue: number; count: number }> {
-    const qb = this.repository.createQueryBuilder('order')
+  async getRevenueStats(
+    dateFrom?: Date,
+    dateTo?: Date,
+  ): Promise<{ totalRevenue: number; count: number }> {
+    const qb = this.repository
+      .createQueryBuilder('order')
       .select('SUM(order.total)', 'totalRevenue')
       .addSelect('COUNT(*)', 'count')
       .where('order.status NOT IN (:...excludedStatuses)', {
@@ -144,10 +161,12 @@ export class OrdersRepository {
       qb.andWhere('order.createdAt <= :dateTo', { dateTo });
     }
 
-    const result = await qb.getRawOne();
+    const result:
+      | { totalRevenue: string | null; count: string | null }
+      | undefined = await qb.getRawOne();
     return {
-      totalRevenue: Math.round((Number(result.totalRevenue) || 0) * 100) / 100,
-      count: Number(result.count) || 0,
+      totalRevenue: Math.round((Number(result?.totalRevenue) || 0) * 100) / 100,
+      count: Number(result?.count) || 0,
     };
   }
 

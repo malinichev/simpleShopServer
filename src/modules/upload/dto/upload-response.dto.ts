@@ -1,7 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UploadResponseDto {
-  @ApiProperty({ description: 'Путь к файлу в S3', example: 'products/123/abc.webp' })
+  @ApiProperty({
+    description: 'Путь к файлу в S3',
+    example: 'products/123/abc.webp',
+  })
   key: string;
 
   @ApiProperty({ description: 'Полный URL файла' })

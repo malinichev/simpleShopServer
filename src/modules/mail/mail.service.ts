@@ -61,28 +61,54 @@ export class MailService {
   private readonly templates = new Map<string, Handlebars.TemplateDelegate>();
   private readonly templatesDir = join(__dirname, 'templates');
 
-  constructor(
-    @InjectQueue('email') private readonly emailQueue: Queue,
-  ) {}
+  constructor(@InjectQueue('email') private readonly emailQueue: Queue) {}
 
   async sendWelcome(to: string, data: WelcomeEmailData): Promise<void> {
-    await this.addEmailJob(to, 'Добро пожаловать в SportShop!', 'welcome', { ...data });
+    await this.addEmailJob(to, 'Добро пожаловать в SportShop!', 'welcome', {
+      ...data,
+    });
   }
 
-  async sendOrderConfirmation(to: string, data: OrderConfirmationData): Promise<void> {
-    await this.addEmailJob(to, `Заказ ${data.orderNumber} подтверждён`, 'order-confirmation', { ...data });
+  async sendOrderConfirmation(
+    to: string,
+    data: OrderConfirmationData,
+  ): Promise<void> {
+    await this.addEmailJob(
+      to,
+      `Заказ ${data.orderNumber} подтверждён`,
+      'order-confirmation',
+      { ...data },
+    );
   }
 
-  async sendOrderStatusUpdate(to: string, data: OrderStatusData): Promise<void> {
-    await this.addEmailJob(to, `Статус заказа ${data.orderNumber} обновлён`, 'order-status-update', { ...data });
+  async sendOrderStatusUpdate(
+    to: string,
+    data: OrderStatusData,
+  ): Promise<void> {
+    await this.addEmailJob(
+      to,
+      `Статус заказа ${data.orderNumber} обновлён`,
+      'order-status-update',
+      { ...data },
+    );
   }
 
   async sendPasswordReset(to: string, data: PasswordResetData): Promise<void> {
-    await this.addEmailJob(to, 'Сброс пароля — SportShop', 'password-reset', { ...data });
+    await this.addEmailJob(to, 'Сброс пароля — SportShop', 'password-reset', {
+      ...data,
+    });
   }
 
-  async sendEmailVerification(to: string, data: EmailVerificationData): Promise<void> {
-    await this.addEmailJob(to, 'Подтвердите ваш email — SportShop', 'email-verification', { ...data });
+  async sendEmailVerification(
+    to: string,
+    data: EmailVerificationData,
+  ): Promise<void> {
+    await this.addEmailJob(
+      to,
+      'Подтвердите ваш email — SportShop',
+      'email-verification',
+      { ...data },
+    );
   }
 
   compileTemplate(templateName: string, data: Record<string, unknown>): string {

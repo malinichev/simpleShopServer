@@ -79,7 +79,12 @@ export class CartController {
   ) {
     const userId = req.user?.id;
     const sessionId = req.cartSessionId;
-    return this.cartService.updateItem(userId, sessionId, variantId, dto.quantity);
+    return this.cartService.updateItem(
+      userId,
+      sessionId,
+      variantId,
+      dto.quantity,
+    );
   }
 
   @Public()
@@ -139,7 +144,9 @@ export class CartController {
 
   @Post('merge')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Слить гостевую корзину с пользовательской (после авторизации)' })
+  @ApiOperation({
+    summary: 'Слить гостевую корзину с пользовательской (после авторизации)',
+  })
   @ApiResponse({ status: 201, type: CartResponseDto })
   async mergeCarts(@Req() req: RequestWithCart) {
     const userId = req.user!.id;

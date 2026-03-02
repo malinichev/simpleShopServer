@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import * as yaml from 'js-yaml'; // или 'yamljs'
 
@@ -102,9 +103,9 @@ async function bootstrap() {
     });
 
     // Эндпоинт для YAML
-    app.use(`/${apiPrefix}/openapi.yaml`, (_, res) => {
+    app.use(`/${apiPrefix}/openapi.yaml`, (_: Request, res: Response) => {
       res.setHeader('Content-Type', 'application/yaml');
-      res.send(yaml.dump(document));
+      res.send((yaml as { dump: (obj: unknown) => string }).dump(document));
     });
   }
 
@@ -125,4 +126,4 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+void bootstrap();

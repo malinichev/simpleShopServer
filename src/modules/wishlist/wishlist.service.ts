@@ -2,9 +2,9 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  BadRequestException,
 } from '@nestjs/common';
 import { UsersService } from '@/modules/users/users.service';
+import { UpdateUserDto } from '@/modules/users/dto';
 import { ProductsService } from '@/modules/products/products.service';
 import { CartService } from '@/modules/cart/cart.service';
 import { WishlistResponseDto, WishlistItemDto } from './dto';
@@ -26,7 +26,10 @@ export class WishlistService {
     for (const productId of wishlistIds) {
       try {
         const product = await this.productsService.findById(productId);
-        const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+        const totalStock = product.variants.reduce(
+          (sum, v) => sum + v.stock,
+          0,
+        );
 
         items.push({
           id: product.id,
@@ -57,7 +60,9 @@ export class WishlistService {
     }
 
     wishlist.push(productId);
-    await this.usersService.update(userId, { wishlist } as any);
+    await this.usersService.update(userId, {
+      wishlist,
+    } as unknown as UpdateUserDto);
   }
 
   async removeProduct(userId: string, productId: string): Promise<void> {
@@ -70,7 +75,9 @@ export class WishlistService {
     }
 
     wishlist.splice(index, 1);
-    await this.usersService.update(userId, { wishlist } as any);
+    await this.usersService.update(userId, {
+      wishlist,
+    } as unknown as UpdateUserDto);
   }
 
   async isInWishlist(userId: string, productId: string): Promise<boolean> {
@@ -101,11 +108,15 @@ export class WishlistService {
     // Удаляем из wishlist
     const index = wishlist.indexOf(productId);
     wishlist.splice(index, 1);
-    await this.usersService.update(userId, { wishlist } as any);
+    await this.usersService.update(userId, {
+      wishlist,
+    } as unknown as UpdateUserDto);
   }
 
   async clearWishlist(userId: string): Promise<void> {
     await this.usersService.findByIdOrFail(userId);
-    await this.usersService.update(userId, { wishlist: [] } as any);
+    await this.usersService.update(userId, {
+      wishlist: [],
+    } as unknown as UpdateUserDto);
   }
 }

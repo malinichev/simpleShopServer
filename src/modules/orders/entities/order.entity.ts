@@ -1,4 +1,11 @@
-import { Entity, Column, Index, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  Index,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { BaseEntity } from '@/common/entities/base.entity';
 import { User, Address } from '@/modules/users/entities/user.entity';
 import { OrderItemEntity } from './order-item.entity';
@@ -57,16 +64,45 @@ export class Order extends BaseEntity {
   @OneToMany(() => OrderItemEntity, (item) => item.order, { cascade: true })
   items: OrderItemEntity[];
 
-  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   subtotal: number;
 
-  @Column('decimal', { precision: 10, scale: 2, default: 0, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   discount: number;
 
-  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   shipping: number;
 
-  @Column('decimal', { precision: 10, scale: 2, transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (v: number) => v,
+      from: (v: string) => parseFloat(v) || 0,
+    },
+  })
   total: number;
 
   @Index()
@@ -88,7 +124,15 @@ export class Order extends BaseEntity {
   @Column({ nullable: true })
   promoCode?: string;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true, transformer: { to: (v: number | null) => v, from: (v: string | null) => v === null ? null : parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (v: number | null) => v,
+      from: (v: string | null) => (v === null ? null : parseFloat(v) || 0),
+    },
+  })
   promoDiscount?: number;
 
   @Column({ nullable: true })

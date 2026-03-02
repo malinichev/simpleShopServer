@@ -65,6 +65,6 @@ export class User extends BaseEntity {
   @Column('jsonb', { nullable: true, default: null })
   refreshTokens?: Record<string, string>;
 
-  @Column('uuid', { array: true, default: () => "ARRAY[]::uuid[]" })
+  @Column('uuid', { array: true, default: () => 'ARRAY[]::uuid[]' })
   wishlist: string[]; // product IDs
 }

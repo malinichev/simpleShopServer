@@ -8,7 +8,9 @@ export class ProductVariantEntity extends BaseEntity {
   @Column('uuid')
   productId: string;
 
-  @ManyToOne(() => Product, (product) => product.variants, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Product, (product) => product.variants, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'productId' })
   product?: Product;
 
@@ -27,6 +29,14 @@ export class ProductVariantEntity extends BaseEntity {
   @Column({ default: 0 })
   stock: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true, transformer: { to: (v: number | null) => v, from: (v: string | null) => v === null ? null : parseFloat(v) || 0 } })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (v: number | null) => v,
+      from: (v: string | null) => (v === null ? null : parseFloat(v) || 0),
+    },
+  })
   price?: number;
 }

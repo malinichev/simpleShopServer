@@ -20,7 +20,12 @@ import { UploadResponseDto } from './dto';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_RAW_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const ALLOWED_RAW_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+];
 const MAX_RAW_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_WIDTH = 1920;
 const WEBP_QUALITY = 85;
@@ -63,7 +68,7 @@ export class UploadService implements OnModuleInit {
         await this.s3.send(new CreateBucketCommand({ Bucket: this.bucket }));
         this.logger.log(`Bucket "${this.bucket}" created`);
       } else {
-        this.logger.error(`Failed to check bucket: ${error}`);
+        this.logger.error(`Failed to check bucket: ${String(error)}`);
       }
     }
   }

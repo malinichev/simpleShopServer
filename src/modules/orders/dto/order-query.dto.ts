@@ -28,22 +28,34 @@ export class OrderQueryDto {
   @Max(100)
   limit?: number = 20;
 
-  @ApiPropertyOptional({ enum: OrderStatus, description: 'Фильтр по статусу заказа' })
+  @ApiPropertyOptional({
+    enum: OrderStatus,
+    description: 'Фильтр по статусу заказа',
+  })
   @IsOptional()
   @IsEnum(OrderStatus)
   status?: OrderStatus;
 
-  @ApiPropertyOptional({ enum: PaymentStatus, description: 'Фильтр по статусу оплаты' })
+  @ApiPropertyOptional({
+    enum: PaymentStatus,
+    description: 'Фильтр по статусу оплаты',
+  })
   @IsOptional()
   @IsEnum(PaymentStatus)
   paymentStatus?: PaymentStatus;
 
-  @ApiPropertyOptional({ description: 'Дата от (ISO 8601)', example: '2024-01-01' })
+  @ApiPropertyOptional({
+    description: 'Дата от (ISO 8601)',
+    example: '2024-01-01',
+  })
   @IsOptional()
   @IsDateString()
   dateFrom?: string;
 
-  @ApiPropertyOptional({ description: 'Дата до (ISO 8601)', example: '2028-12-31' })
+  @ApiPropertyOptional({
+    description: 'Дата до (ISO 8601)',
+    example: '2028-12-31',
+  })
   @IsOptional()
   @IsDateString()
   dateTo?: string;

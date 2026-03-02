@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Not, ILike, FindOptionsWhere, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Not, ILike } from 'typeorm';
 import { Product, ProductStatus } from './entities/product.entity';
 import { ProductVariantEntity } from './entities/product-variant.entity';
 import { ProductQueryDto, SortOption } from './dto';
@@ -25,7 +25,8 @@ export class ProductsRepository {
     const limit = query.limit || DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
 
-    const qb = this.repository.createQueryBuilder('product')
+    const qb = this.repository
+      .createQueryBuilder('product')
       .leftJoinAndSelect('product.variants', 'variant');
 
     if (query.status) {
@@ -33,7 +34,9 @@ export class ProductsRepository {
     }
 
     if (query.category) {
-      qb.andWhere('product.categoryId = :categoryId', { categoryId: query.category });
+      qb.andWhere('product.categoryId = :categoryId', {
+        categoryId: query.category,
+      });
     }
 
     if (query.search) {
@@ -60,7 +63,9 @@ export class ProductsRepository {
     }
 
     if (query.activity?.length) {
-      qb.andWhere("product.attributes->'activity' ?| ARRAY[:...activity]", { activity: query.activity });
+      qb.andWhere("product.attributes->'activity' ?| ARRAY[:...activity]", {
+        activity: query.activity,
+      });
     }
 
     if (query.inStock === true) {
@@ -84,8 +89,16 @@ export class ProductsRepository {
   async search(term: string, limit: number): Promise<Product[]> {
     return this.repository.find({
       where: [
-        { name: ILike(`%${term}%`), status: ProductStatus.ACTIVE, isVisible: true },
-        { description: ILike(`%${term}%`), status: ProductStatus.ACTIVE, isVisible: true },
+        {
+          name: ILike(`%${term}%`),
+          status: ProductStatus.ACTIVE,
+          isVisible: true,
+        },
+        {
+          description: ILike(`%${term}%`),
+          status: ProductStatus.ACTIVE,
+          isVisible: true,
+        },
       ],
       relations: ['variants'],
       take: limit,
@@ -120,7 +133,7 @@ export class ProductsRepository {
   }
 
   async update(id: string, data: Partial<Product>): Promise<Product | null> {
-    await this.repository.update(id, data as any);
+    await this.repository.update(id, data);
     return this.findById(id);
   }
 
@@ -140,15 +153,22 @@ export class ProductsRepository {
     await this.variantRepository.update(variantId, { stock });
   }
 
-  async replaceVariants(productId: string, variants: Partial<ProductVariantEntity>[]): Promise<void> {
+  async replaceVariants(
+    productId: string,
+    variants: Partial<ProductVariantEntity>[],
+  ): Promise<void> {
     await this.variantRepository.delete({ productId });
     if (variants.length > 0) {
-      const entities = variants.map((v) => this.variantRepository.create({ ...v, productId }));
+      const entities = variants.map((v) =>
+        this.variantRepository.create({ ...v, productId }),
+      );
       await this.variantRepository.save(entities);
     }
   }
 
-  async findVariantById(variantId: string): Promise<ProductVariantEntity | null> {
+  async findVariantById(
+    variantId: string,
+  ): Promise<ProductVariantEntity | null> {
     return this.variantRepository.findOne({ where: { id: variantId } });
   }
 

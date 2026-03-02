@@ -47,10 +47,7 @@ export class ReviewsController {
     @CurrentUser() user: User,
     @Param('productId') productId: string,
   ) {
-    return this.reviewsService.checkReviewEligibility(
-      user.id,
-      productId,
-    );
+    return this.reviewsService.checkReviewEligibility(user.id, productId);
   }
 
   // === Public: отзывы товара ===
@@ -59,7 +56,10 @@ export class ReviewsController {
   @Get('products/:productId/reviews')
   @ApiOperation({ summary: 'Получить отзывы товара (только одобренные)' })
   @ApiParam({ name: 'productId', description: 'Product ID' })
-  @ApiResponse({ status: 200, description: 'Paginated list of approved reviews' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of approved reviews',
+  })
   async findByProduct(
     @Param('productId') productId: string,
     @Query() query: ReviewQueryDto,
@@ -74,7 +74,10 @@ export class ReviewsController {
   @ApiOperation({ summary: 'Создать отзыв на товар (customer)' })
   @ApiParam({ name: 'productId', description: 'Product ID' })
   @ApiResponse({ status: 201, type: ReviewResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error or product not in order' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or product not in order',
+  })
   @ApiResponse({ status: 409, description: 'Review already exists' })
   async create(
     @CurrentUser() user: User,

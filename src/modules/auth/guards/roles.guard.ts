@@ -1,23 +1,30 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {UserRole} from "@/common/decorators/roles.decorator";
-import { TokenAudience } from '@/common/types';
+import { UserRole } from '@/common/decorators/roles.decorator';
+import { TokenAudience, UserWithTokenAudience } from '@/common/types';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>('roles', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
+      'roles',
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<{
+      user?: { role: UserRole } & UserWithTokenAudience;
+    }>();
     const user = request.user;
 
     if (!user) {
@@ -27,7 +34,9 @@ export class RolesGuard implements CanActivate {
     const hasRole = requiredRoles.includes(user.role);
 
     if (!hasRole) {
-      throw new ForbiddenException('Недостаточно прав для выполнения этого действия');
+      throw new ForbiddenException(
+        'Недостаточно прав для выполнения этого действия',
+      );
     }
 
     // If endpoint requires ADMIN or MANAGER role, token must have admin-panel audience
@@ -35,9 +44,11 @@ export class RolesGuard implements CanActivate {
       (r) => r === UserRole.ADMIN || r === UserRole.MANAGER,
     );
     if (isAdminEndpoint) {
-      const tokenAudience = (user as any).__tokenAudience;
+      const tokenAudience = user.__tokenAudience;
       if (tokenAudience !== TokenAudience.ADMIN_PANEL) {
-        throw new ForbiddenException('Доступ разрешён только из панели администратора');
+        throw new ForbiddenException(
+          'Доступ разрешён только из панели администратора',
+        );
       }
     }
 

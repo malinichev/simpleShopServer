@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { AnalyticsDaily } from './entities/analytics.entity';
 
 @Injectable()
@@ -19,7 +19,10 @@ export class AnalyticsRepository {
     });
   }
 
-  async findByDateRange(dateFrom: Date, dateTo: Date): Promise<AnalyticsDaily[]> {
+  async findByDateRange(
+    dateFrom: Date,
+    dateTo: Date,
+  ): Promise<AnalyticsDaily[]> {
     return this.repository.find({
       where: {
         date: Between(dateFrom, dateTo),
@@ -28,14 +31,17 @@ export class AnalyticsRepository {
     });
   }
 
-  async upsertDaily(date: Date, data: Partial<AnalyticsDaily>): Promise<AnalyticsDaily> {
+  async upsertDaily(
+    date: Date,
+    data: Partial<AnalyticsDaily>,
+  ): Promise<AnalyticsDaily> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
     const existing = await this.findByDate(startOfDay);
 
     if (existing) {
-      await this.repository.update(existing.id, data as any);
+      await this.repository.update(existing.id, data);
       return (await this.findByDate(startOfDay))!;
     }
 
@@ -43,15 +49,22 @@ export class AnalyticsRepository {
     return this.repository.save(entity);
   }
 
-  async incrementField(date: Date, field: string, value: number = 1): Promise<void> {
+  async incrementField(
+    date: Date,
+    field: string,
+    value: number = 1,
+  ): Promise<void> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
     const existing = await this.findByDate(startOfDay);
 
     if (existing) {
-      const currentValue = Number((existing as unknown as Record<string, unknown>)[field]) || 0;
-      await this.repository.update(existing.id, { [field]: currentValue + value });
+      const currentValue =
+        Number((existing as unknown as Record<string, unknown>)[field]) || 0;
+      await this.repository.update(existing.id, {
+        [field]: currentValue + value,
+      });
     } else {
       const entity = this.repository.create({
         date: startOfDay,

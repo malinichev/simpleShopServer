@@ -8,7 +8,8 @@ const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 дней
 @Injectable()
 export class SessionIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    let sessionId = req.cookies?.[COOKIE_NAME];
+    const cookies = req.cookies as Record<string, string> | undefined;
+    let sessionId: string = cookies?.[COOKIE_NAME] ?? '';
 
     if (!sessionId) {
       sessionId = uuidv4();

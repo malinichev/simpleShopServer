@@ -53,9 +53,7 @@ export class AuthService {
 
     // Генерируем токен для подтверждения email
     const verificationToken =
-      await this.usersService.generateEmailVerificationToken(
-        user.id,
-      );
+      await this.usersService.generateEmailVerificationToken(user.id);
 
     const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [
       'http://localhost:3001',
@@ -85,7 +83,9 @@ export class AuthService {
   ): Promise<AuthResponseDto> {
     if (audience === TokenAudience.ADMIN_PANEL) {
       if (user.role !== UserRole.ADMIN && user.role !== UserRole.MANAGER) {
-        throw new UnauthorizedException('Недостаточно прав для входа в панель администратора');
+        throw new UnauthorizedException(
+          'Недостаточно прав для входа в панель администратора',
+        );
       }
     }
 
@@ -128,7 +128,9 @@ export class AuthService {
     // Re-check role for admin audience (in case role was downgraded)
     if (audience === TokenAudience.ADMIN_PANEL) {
       if (user.role !== UserRole.ADMIN && user.role !== UserRole.MANAGER) {
-        throw new ForbiddenException('Недостаточно прав для панели администратора');
+        throw new ForbiddenException(
+          'Недостаточно прав для панели администратора',
+        );
       }
     }
 
@@ -167,7 +169,7 @@ export class AuthService {
   async resetPassword(token: string, password: string): Promise<void> {
     try {
       await this.usersService.resetPassword(token, password);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Недействительный или истёкший токен');
     }
   }
@@ -175,7 +177,7 @@ export class AuthService {
   async verifyEmail(token: string): Promise<void> {
     try {
       await this.usersService.verifyEmail(token);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Недействительный или истёкший токен');
     }
   }

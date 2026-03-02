@@ -43,7 +43,7 @@ export class UsersRepository {
   }
 
   async update(id: string, dto: UpdateUserDto): Promise<User | null> {
-    await this.repository.update(id, dto as any);
+    await this.repository.update(id, dto as Partial<User>);
     return this.findById(id);
   }
 
@@ -101,10 +101,13 @@ export class UsersRepository {
     const hasTokens = Object.keys(refreshTokens).length > 0;
     await this.repository.update(id, {
       refreshTokens: hasTokens ? refreshTokens : null,
-    } as any);
+    } as Partial<User>);
   }
 
-  async addAddress(id: string, address: Omit<Address, 'id'>): Promise<User | null> {
+  async addAddress(
+    id: string,
+    address: Omit<Address, 'id'>,
+  ): Promise<User | null> {
     const user = await this.findById(id);
     if (!user) return null;
 
@@ -115,13 +118,18 @@ export class UsersRepository {
 
     // If this is the first address or isDefault is true, reset others
     if (newAddress.isDefault || user.addresses.length === 0) {
-      user.addresses = user.addresses.map((addr) => ({ ...addr, isDefault: false }));
+      user.addresses = user.addresses.map((addr) => ({
+        ...addr,
+        isDefault: false,
+      }));
       newAddress.isDefault = true;
     }
 
     user.addresses.push(newAddress);
 
-    await this.repository.update(id, { addresses: user.addresses } as any);
+    await this.repository.update(id, {
+      addresses: user.addresses,
+    } as Partial<User>);
     return this.findById(id);
   }
 
@@ -133,12 +141,17 @@ export class UsersRepository {
     const user = await this.findById(id);
     if (!user) return null;
 
-    const addressIndex = user.addresses.findIndex((addr) => addr.id === addressId);
+    const addressIndex = user.addresses.findIndex(
+      (addr) => addr.id === addressId,
+    );
     if (addressIndex === -1) return null;
 
     // If setting as default, reset others
     if (addressData.isDefault) {
-      user.addresses = user.addresses.map((addr) => ({ ...addr, isDefault: false }));
+      user.addresses = user.addresses.map((addr) => ({
+        ...addr,
+        isDefault: false,
+      }));
     }
 
     user.addresses[addressIndex] = {
@@ -146,7 +159,9 @@ export class UsersRepository {
       ...addressData,
     };
 
-    await this.repository.update(id, { addresses: user.addresses } as any);
+    await this.repository.update(id, {
+      addresses: user.addresses,
+    } as Partial<User>);
     return this.findById(id);
   }
 
@@ -154,7 +169,9 @@ export class UsersRepository {
     const user = await this.findById(id);
     if (!user) return null;
 
-    const wasDefault = user.addresses.find((addr) => addr.id === addressId)?.isDefault;
+    const wasDefault = user.addresses.find(
+      (addr) => addr.id === addressId,
+    )?.isDefault;
     user.addresses = user.addresses.filter((addr) => addr.id !== addressId);
 
     // If removed address was default and there are other addresses, set first as default
@@ -162,11 +179,17 @@ export class UsersRepository {
       user.addresses[0].isDefault = true;
     }
 
-    await this.repository.update(id, { addresses: user.addresses } as any);
+    await this.repository.update(id, {
+      addresses: user.addresses,
+    } as Partial<User>);
     return this.findById(id);
   }
 
-  async countByRole(): Promise<{ customer: number; manager: number; admin: number }> {
+  async countByRole(): Promise<{
+    customer: number;
+    manager: number;
+    admin: number;
+  }> {
     const users = await this.repository.find({ select: ['role'] });
 
     return users.reduce(

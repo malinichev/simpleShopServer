@@ -9,7 +9,6 @@ import {
   ValidateNested,
   Min,
   IsHexColor,
-  ArrayMinSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -126,7 +125,9 @@ export class CreateProductDto {
   @IsString()
   slug?: string;
 
-  @ApiProperty({ example: 'Лёгкая куртка из влагоотводящей ткани для комфортных пробежек.' })
+  @ApiProperty({
+    example: 'Лёгкая куртка из влагоотводящей ткани для комфортных пробежек.',
+  })
   @IsString()
   @IsNotEmpty()
   description: string;

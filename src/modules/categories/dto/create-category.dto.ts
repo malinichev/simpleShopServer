@@ -47,7 +47,9 @@ export class CreateCategoryDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/categories/sport.jpg' })
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/categories/sport.jpg',
+  })
   @IsOptional()
   @IsString()
   image?: string;

@@ -24,7 +24,10 @@ export class EligibleOrderDto {
   @ApiProperty({ description: 'Дата создания заказа' })
   createdAt: Date;
 
-  @ApiProperty({ description: 'Товары из заказа', type: [EligibleOrderItemDto] })
+  @ApiProperty({
+    description: 'Товары из заказа',
+    type: [EligibleOrderItemDto],
+  })
   items: EligibleOrderItemDto[];
 }
 
