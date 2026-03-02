@@ -31,11 +31,13 @@ export class UploadService implements OnModuleInit {
   private readonly s3: S3Client;
   private readonly bucket: string;
   private readonly publicUrl: string;
+  private readonly cdnUrl: string;
   private readonly logger = new Logger(UploadService.name);
 
   constructor(private readonly configService: ConfigService) {
     const endpoint = this.configService.get<string>('s3.endpoint')!;
     this.publicUrl = this.configService.get<string>('s3.publicUrl')!;
+    this.cdnUrl = this.configService.get<string>('s3.cdnUrl') || '';
     this.bucket = this.configService.get<string>('s3.bucket')!;
 
     this.s3 = new S3Client({
@@ -217,6 +219,9 @@ export class UploadService implements OnModuleInit {
   }
 
   getFileUrl(key: string): string {
+    if (this.cdnUrl) {
+      return `${this.cdnUrl}/${key}`;
+    }
     return `${this.publicUrl}/${this.bucket}/${key}`;
   }
 

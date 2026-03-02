@@ -1,13 +1,16 @@
 import 'reflect-metadata';
-import { config } from 'dotenv';
+import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 
-config({ path: '.env.development' });
-config({ path: '.env' });
 import { seedUsers } from './users.seed';
 import { seedCategories } from './categories.seed';
 import { seedProducts } from './products.seed';
 import { seedPromotions } from './promotions.seed';
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+dotenv.config({ path: '.env.development' });
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+dotenv.config({ path: '.env' });
 
 const dataSource = new DataSource({
   type: 'postgres',
@@ -29,9 +32,22 @@ async function runSeeds(): Promise<void> {
 
     // Clear all tables respecting FK constraints
     const tables = [
-      'analytics_daily', 'page_files', 'pages', 'payment_methods', 'shipping_methods', 'settings',
-      'reviews', 'order_items', 'cart_items', 'carts', 'orders',
-      'product_variants', 'products', 'categories', 'promotions', 'users',
+      'analytics_daily',
+      'page_files',
+      'pages',
+      'payment_methods',
+      'shipping_methods',
+      'settings',
+      'reviews',
+      'order_items',
+      'cart_items',
+      'carts',
+      'orders',
+      'product_variants',
+      'products',
+      'categories',
+      'promotions',
+      'users',
     ];
     for (const table of tables) {
       try {
@@ -67,4 +83,4 @@ async function runSeeds(): Promise<void> {
   }
 }
 
-runSeeds();
+void runSeeds();
