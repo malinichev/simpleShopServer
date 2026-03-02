@@ -1,5 +1,9 @@
 import 'reflect-metadata';
+import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
+
+config({ path: '.env.development' });
+config({ path: '.env' });
 import { seedUsers } from './users.seed';
 import { seedCategories } from './categories.seed';
 import { seedProducts } from './products.seed';
