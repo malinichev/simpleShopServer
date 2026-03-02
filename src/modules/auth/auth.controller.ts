@@ -271,6 +271,19 @@ export class AuthController {
     return audience === TokenAudience.ADMIN_PANEL ? 'refreshToken_admin' : 'refreshToken';
   }
 
+  private getCookieOptions(): {
+    secure: boolean;
+    sameSite: 'lax';
+    domain?: string;
+  } {
+    const cookieDomain = process.env.COOKIE_DOMAIN; // e.g. '.yourdomain.com'
+    return {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    };
+  }
+
   private setRefreshTokenCookie(
     response: Response,
     refreshToken: string,
@@ -278,8 +291,7 @@ export class AuthController {
   ): void {
     response.cookie(this.getCookieName(audience), refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      ...this.getCookieOptions(),
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
       path: '/',
     });
@@ -288,8 +300,7 @@ export class AuthController {
   private clearRefreshTokenCookie(response: Response, audience: TokenAudience): void {
     response.clearCookie(this.getCookieName(audience), {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      ...this.getCookieOptions(),
       path: '/',
     });
   }

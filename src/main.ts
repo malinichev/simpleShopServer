@@ -29,17 +29,22 @@ async function bootstrap() {
   });
 
   // Security
+  const isProduction = process.env.NODE_ENV === 'production';
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: isProduction ? ["'self'"] : ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
           imgSrc: ["'self'", 'data:', 'https:'],
-          upgradeInsecureRequests: null,
+          frameAncestors: ["'none'"],
+          upgradeInsecureRequests: isProduction ? [] : null,
         },
       },
+      hsts: isProduction
+        ? { maxAge: 63072000, includeSubDomains: true, preload: true }
+        : false,
     }),
   );
   app.use(cookieParser());
@@ -56,8 +61,8 @@ async function bootstrap() {
     }),
   );
 
-  {
-    // Swagger документация
+  if (!isProduction) {
+    // Swagger документация (отключена в production)
     const config = new DocumentBuilder()
       .setTitle('Sports Shop API')
       .setDescription(
@@ -96,7 +101,7 @@ async function bootstrap() {
       },
     });
 
-    // Создаем эндпоинт для YAML
+    // Эндпоинт для YAML
     app.use(`/${apiPrefix}/openapi.yaml`, (_, res) => {
       res.setHeader('Content-Type', 'application/yaml');
       res.send(yaml.dump(document));
