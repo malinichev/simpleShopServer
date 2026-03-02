@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { APP_GUARD } from '@nestjs/core';
+import Redis from 'ioredis';
+import { ProgressiveDelayMiddleware } from './common/middleware/progressive-delay.middleware';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -31,6 +33,7 @@ import {
   s3Config,
   mailConfig,
   throttleConfig,
+  ddosConfig,
 } from './config';
 
 @Module({
@@ -47,6 +50,7 @@ import {
         s3Config,
         mailConfig,
         throttleConfig,
+        ddosConfig,
       ],
 
       envFilePath: ['.env.development', '.env.production', '.env'],
@@ -102,6 +106,19 @@ import {
   ],
   controllers: [],
   providers: [
+    // Redis-клиент для middleware (progressive delay)
+    {
+      provide: 'REDIS_CLIENT',
+      useFactory: (configService: ConfigService) => {
+        return new Redis({
+          host: configService.get<string>('redis.host', 'localhost'),
+          port: configService.get<number>('redis.port', 6379),
+          password: configService.get<string>('redis.password') || undefined,
+          lazyConnect: true,
+        });
+      },
+      inject: [ConfigService],
+    },
     // Глобальный guard для JWT аутентификации
     {
       provide: APP_GUARD,
@@ -114,4 +131,8 @@ import {
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(ProgressiveDelayMiddleware).forRoutes('*path');
+  }
+}
