@@ -21,6 +21,7 @@
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
     "wb-import": "ts-node -r tsconfig-paths/register src/database/seeds/wb-import.ts",
     "wb-html-import": "ts-node -r tsconfig-paths/register src/database/seeds/wb-html-import.ts",
+    "wb-html-import:prod": "ts-node -r tsconfig-paths/register src/database/seeds/wb-html-import.ts --prod",
     "seed:prod": "node dist/database/seeds/seed.js",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",

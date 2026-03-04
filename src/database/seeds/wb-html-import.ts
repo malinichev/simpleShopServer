@@ -10,8 +10,15 @@ import * as cheerio from 'cheerio';
 import * as fs from 'fs';
 import * as path from 'path';
 
-dotenv.config({ path: '.env.development' });
-dotenv.config({ path: '.env' });
+// Support --prod flag to load .env.production
+const isProd = process.argv.includes('--prod');
+if (isProd) {
+  dotenv.config({ path: '.env.production' });
+  console.log('*** PRODUCTION MODE ***\n');
+} else {
+  dotenv.config({ path: '.env.development' });
+  dotenv.config({ path: '.env' });
+}
 
 // --- WB Image URL helpers ---
 
