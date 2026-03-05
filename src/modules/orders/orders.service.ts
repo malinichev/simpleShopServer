@@ -71,6 +71,7 @@ export class OrdersService {
         productId: cartItem.product.id,
         variantId: cartItem.variantId,
         name: product.name,
+        slug: product.slug,
         sku: variant.sku,
         image: product.images?.[0]?.url || '',
         size: variant.size,

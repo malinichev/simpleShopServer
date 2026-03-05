@@ -21,6 +21,9 @@ export class OrderItemEntity extends BaseEntity {
   @Column()
   name: string;
 
+  @Column({ default: '' })
+  slug: string;
+
   @Column()
   sku: string;
 
