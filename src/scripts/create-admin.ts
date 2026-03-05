@@ -18,19 +18,10 @@ async function createAdmin() {
     role: UserRole.ADMIN,
   };
 
-  const adminData2 = {
-    email: 'user@example.com',
-    password: 'Password123!',
-    firstName: 'Свагер',
-    lastName: 'Админыч',
-    phone: '+79842791121',
-    role: UserRole.ADMIN,
-  };
-
   try {
     // Проверяем, существует ли уже админ
     const existingUser = await usersService.findByEmail(adminData.email);
-    const existingUser2 = await usersService.findByEmail(adminData2.email);
+    // const existingUser2 = await usersService.findByEmail(adminData2.email);
 
     if (existingUser) {
       console.log('❌ Администратор уже существует:', adminData.email);
@@ -39,31 +30,16 @@ async function createAdmin() {
       console.log('❌ Удалили его:', adminData.email);
     }
 
-    if (existingUser2) {
-      console.log('❌ Администратор уже существует:', adminData2.email);
-      const userIid = existingUser2.id;
-      await usersService.delete(userIid);
-      console.log('❌ Удалили его:', adminData2.email);
-    }
-
     // Создаем админа
     const admin = await authService.register({
       ...adminData,
       password: adminData.password,
     });
-    // Создаем админа
-    const admin2 = await authService.register({
-      ...adminData2,
-      password: adminData2.password,
-    });
 
     console.log('✅ Администратор успешно создан!');
     console.log('📧 Email:', admin.user.email);
-    console.log('📧 Email2:', admin2.user.email);
     console.log('👤 Имя:', `${admin.user.firstName} ${admin.user.lastName}`);
-    console.log('👤 Имя:', `${admin2.user.firstName} ${admin2.user.lastName}`);
     console.log('🔐 Роль:', admin.user.role);
-    console.log('🔐 Роль:', admin2.user.role);
 
     await app.close();
     process.exit(0);
