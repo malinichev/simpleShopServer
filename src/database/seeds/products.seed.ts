@@ -27,6 +27,89 @@ function pickColors(count: number) {
   return shuffled.slice(0, count);
 }
 
+// Unsplash images per category × color
+// Each key = categorySlug, value = map of colorName → image URL
+const imagesByCategory: Record<string, Record<string, string>> = {
+  leggings: {
+    'черный': 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=800&q=80',
+  },
+  tops: {
+    'черный': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1554568218-0f1715e72254?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1571455786673-9d9d6c194f90?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1518577915332-c2a19f149a75?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=800&q=80',
+  },
+  'sports-bras': {
+    'черный': 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1574180566232-aaad1b5b8450?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&q=80',
+  },
+  shorts: {
+    'черный': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1544441893-675973e31985?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=800&q=80',
+  },
+  sets: {
+    'черный': 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1574180566232-aaad1b5b8450?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1518577915332-c2a19f149a75?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&q=80',
+  },
+  hoodies: {
+    'черный': 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1578587018452-892bacefd3f2?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1614975059251-992f11792571?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1542406775-ade58c52d2e4?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=800&q=80',
+  },
+  jackets: {
+    'черный': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1544441893-675973e31985?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1614975059251-992f11792571?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=800&q=80',
+  },
+  accessories: {
+    'черный': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80',
+    'белый': 'https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?w=800&q=80',
+    'серый': 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=800&q=80',
+    'розовый': 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&q=80',
+    'синий': 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80',
+    'бирюзовый': 'https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=800&q=80',
+  },
+};
+
+function getImage(categorySlug: string, colorName: string, productName: string): { id: string; url: string; alt: string; order: number; isMain?: boolean }[] {
+  const catImages = imagesByCategory[categorySlug];
+  const url = catImages?.[colorName] ?? 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80';
+  return [
+    {
+      id: `${categorySlug}-${colorName}-main`,
+      url,
+      alt: `${productName} — ${colorName}`,
+      order: 0,
+      isMain: true,
+    },
+  ];
+}
+
 interface ProductData {
   categorySlug: string;
   name: string;
@@ -423,8 +506,10 @@ export async function seedProducts(
       const colorSuffix = color.name.slice(0, 3).toUpperCase();
       const isFirst = ci === 0;
 
+      const productName = isFirst ? data.name : `${data.name} (${color.name})`;
+
       const product = productRepository.create({
-        name: isFirst ? data.name : `${data.name} (${color.name})`,
+        name: productName,
         slug: isFirst ? data.slug : `${data.slug}-${color.name}`,
         description: data.description,
         shortDescription: data.shortDescription,
@@ -433,7 +518,7 @@ export async function seedProducts(
         compareAtPrice: data.compareAtPrice,
         categoryId: category.id,
         tags: data.tags,
-        images: [],
+        images: getImage(data.categorySlug, color.name, productName),
         color: color.name,
         colorHex: color.hex,
         modelId,
@@ -448,7 +533,7 @@ export async function seedProducts(
         status: ProductStatus.ACTIVE,
         isVisible: true,
         seo: {
-          title: isFirst ? data.name : `${data.name} (${color.name})`,
+          title: productName,
           description: data.shortDescription,
           keywords: data.tags,
         },
