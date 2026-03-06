@@ -63,7 +63,7 @@ export class OrdersService {
 
       if (variant.stock < cartItem.quantity) {
         throw new BadRequestException(
-          `Недостаточно товара "${product.name}" (${variant.size}, ${variant.color}). Доступно: ${variant.stock}`,
+          `Недостаточно товара "${product.name}" (${variant.size}, ${product.color ?? ''}). Доступно: ${variant.stock}`,
         );
       }
 
@@ -75,7 +75,7 @@ export class OrdersService {
         sku: variant.sku,
         image: product.images?.[0]?.url || '',
         size: variant.size,
-        color: variant.color,
+        color: product.color ?? '',
         price: cartItem.price,
         quantity: cartItem.quantity,
         total: cartItem.total,

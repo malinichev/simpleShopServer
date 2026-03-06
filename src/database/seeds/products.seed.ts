@@ -1,4 +1,5 @@
 import { DataSource } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Product,
   ProductStatus,
@@ -24,30 +25,6 @@ function randomStock(): number {
 function pickColors(count: number) {
   const shuffled = [...colors].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
-}
-
-function generateVariants(
-  colorCount: number,
-  baseSku: string,
-  basePrice: number,
-): Partial<ProductVariantEntity>[] {
-  const selectedColors = pickColors(colorCount);
-  const variants: Partial<ProductVariantEntity>[] = [];
-
-  for (const color of selectedColors) {
-    for (const size of sizes) {
-      variants.push({
-        size,
-        color: color.name,
-        colorHex: color.hex,
-        sku: `${baseSku}-${color.name.slice(0, 3).toUpperCase()}-${size}`,
-        stock: randomStock(),
-        price: basePrice,
-      });
-    }
-  }
-
-  return variants;
 }
 
 interface ProductData {
@@ -437,41 +414,60 @@ export async function seedProducts(
       throw new Error(`Category not found: ${data.categorySlug}`);
     }
 
-    const product = productRepository.create({
-      name: data.name,
-      slug: data.slug,
-      description: data.description,
-      shortDescription: data.shortDescription,
-      sku: data.sku,
-      price: data.price,
-      compareAtPrice: data.compareAtPrice,
-      categoryId: category.id,
-      tags: data.tags,
-      images: [],
-      attributes: {
-        material: data.material,
-        activity: data.activity,
-        features: data.features,
-      },
-      rating: 0,
-      reviewsCount: 0,
-      soldCount: 0,
-      status: ProductStatus.ACTIVE,
-      isVisible: true,
-      seo: {
-        title: data.name,
-        description: data.shortDescription,
-        keywords: data.tags,
-      },
-    });
+    const selectedColors = pickColors(data.colorCount);
+    // One modelId shared across all color variants of this model
+    const modelId = selectedColors.length > 1 ? uuidv4() : null;
 
-    const savedProduct = await productRepository.save(product);
+    for (let ci = 0; ci < selectedColors.length; ci++) {
+      const color = selectedColors[ci];
+      const colorSuffix = color.name.slice(0, 3).toUpperCase();
+      const isFirst = ci === 0;
 
-    const variants = generateVariants(data.colorCount, data.sku, data.price);
-    const variantEntities = variants.map((v) =>
-      variantRepository.create({ ...v, productId: savedProduct.id }),
-    );
-    await variantRepository.save(variantEntities);
+      const product = productRepository.create({
+        name: isFirst ? data.name : `${data.name} (${color.name})`,
+        slug: isFirst ? data.slug : `${data.slug}-${color.name}`,
+        description: data.description,
+        shortDescription: data.shortDescription,
+        sku: isFirst ? data.sku : `${data.sku}-${colorSuffix}`,
+        price: data.price,
+        compareAtPrice: data.compareAtPrice,
+        categoryId: category.id,
+        tags: data.tags,
+        images: [],
+        color: color.name,
+        colorHex: color.hex,
+        modelId,
+        attributes: {
+          material: data.material,
+          activity: data.activity,
+          features: data.features,
+        },
+        rating: 0,
+        reviewsCount: 0,
+        soldCount: 0,
+        status: ProductStatus.ACTIVE,
+        isVisible: true,
+        seo: {
+          title: isFirst ? data.name : `${data.name} (${color.name})`,
+          description: data.shortDescription,
+          keywords: data.tags,
+        },
+      });
+
+      const savedProduct = await productRepository.save(product);
+
+      // Variants are now size-only (all same color)
+      const variantEntities = sizes.map((size) =>
+        variantRepository.create({
+          productId: savedProduct.id,
+          size,
+          sku: `${savedProduct.sku}-${size}`,
+          stock: randomStock(),
+          price: data.price,
+        }),
+      );
+      await variantRepository.save(variantEntities);
+    }
   }
 
   const count = await productRepository.count();

@@ -361,8 +361,8 @@ export class CartService {
         variant: {
           id: variant.id,
           size: variant.size,
-          color: variant.color,
-          colorHex: variant.colorHex,
+          color: product.color ?? '',
+          colorHex: product.colorHex ?? '',
         },
         variantId: item.variantId,
         quantity: item.quantity,

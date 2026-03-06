@@ -132,10 +132,11 @@ export class ProductsService implements OnModuleDestroy {
       categoryId: dto.categoryId,
       tags: dto.tags || [],
       images: (dto.images || []) as ProductImage[],
+      color: dto.color,
+      colorHex: dto.colorHex,
+      modelId: dto.modelId ?? null,
       variants: (dto.variants || []).map((v) => ({
         size: v.size,
-        color: v.color,
-        colorHex: v.colorHex,
         sku: v.sku,
         stock: v.stock ?? 0,
         price: v.price,
@@ -206,6 +207,12 @@ export class ProductsService implements OnModuleDestroy {
     if (restDto.seo !== undefined) updateData.seo = restDto.seo;
     if (restDto.isVisible !== undefined)
       updateData.isVisible = restDto.isVisible;
+    if ((restDto as any).color !== undefined)
+      (updateData as any).color = (restDto as any).color;
+    if ((restDto as any).colorHex !== undefined)
+      (updateData as any).colorHex = (restDto as any).colorHex;
+    if ((restDto as any).modelId !== undefined)
+      (updateData as any).modelId = (restDto as any).modelId;
 
     const updated = await this.productsRepository.update(id, updateData);
     if (!updated) {
@@ -218,8 +225,6 @@ export class ProductsService implements OnModuleDestroy {
         id,
         variantsDto.map((v) => ({
           size: v.size,
-          color: v.color,
-          colorHex: v.colorHex,
           sku: v.sku,
           stock: v.stock ?? 0,
           price: v.price,
@@ -305,9 +310,28 @@ export class ProductsService implements OnModuleDestroy {
       status: product.status,
       seo: product.seo,
       isVisible: product.isVisible,
+      color: product.color,
+      colorHex: product.colorHex,
+      modelId: product.modelId,
+      colorSiblings: (product as any).colorSiblings,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };
+  }
+
+  async findColorSiblings(productId: string) {
+    const product = await this.findById(productId);
+    if (!product.modelId) return [];
+    const siblings =
+      await this.productsRepository.findColorSiblings(product.modelId, productId);
+    return siblings.map((s) => ({
+      id: s.id,
+      slug: s.slug,
+      name: s.name,
+      color: s.color,
+      colorHex: s.colorHex,
+      image: s.images?.[0]?.url,
+    }));
   }
 
   private generateSlug(name: string): string {

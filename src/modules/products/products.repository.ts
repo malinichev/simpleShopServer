@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, ILike } from 'typeorm';
+import { Repository, Not, ILike, In } from 'typeorm';
 import { Product, ProductStatus } from './entities/product.entity';
 import { ProductVariantEntity } from './entities/product-variant.entity';
 import { ProductQueryDto, SortOption } from './dto';
@@ -59,7 +59,7 @@ export class ProductsRepository {
     }
 
     if (query.colors?.length) {
-      qb.andWhere('variant.color IN (:...colors)', { colors: query.colors });
+      qb.andWhere('product.color IN (:...colors)', { colors: query.colors });
     }
 
     if (query.activity?.length) {
@@ -79,6 +79,44 @@ export class ProductsRepository {
     qb.skip(skip).take(limit);
 
     const [data, total] = await qb.getManyAndCount();
+
+    // Batch-load color siblings for products with modelId
+    const modelIds = [
+      ...new Set(data.filter((p) => p.modelId).map((p) => p.modelId!)),
+    ];
+    if (modelIds.length > 0) {
+      const siblings = await this.repository.find({
+        where: {
+          modelId: In(modelIds),
+          status: ProductStatus.ACTIVE,
+          isVisible: true,
+        },
+        select: ['id', 'slug', 'name', 'color', 'colorHex', 'images', 'modelId'],
+      });
+
+      const siblingsByModel = new Map<string, typeof siblings>();
+      for (const s of siblings) {
+        const list = siblingsByModel.get(s.modelId!) ?? [];
+        list.push(s);
+        siblingsByModel.set(s.modelId!, list);
+      }
+
+      for (const product of data) {
+        if (product.modelId) {
+          const allSiblings = siblingsByModel.get(product.modelId) ?? [];
+          (product as any).colorSiblings = allSiblings
+            .filter((s) => s.id !== product.id)
+            .map((s) => ({
+              id: s.id,
+              slug: s.slug,
+              name: s.name,
+              color: s.color,
+              colorHex: s.colorHex,
+              image: s.images?.[0]?.url,
+            }));
+        }
+      }
+    }
 
     return {
       data,
@@ -170,6 +208,21 @@ export class ProductsRepository {
     variantId: string,
   ): Promise<ProductVariantEntity | null> {
     return this.variantRepository.findOne({ where: { id: variantId } });
+  }
+
+  async findColorSiblings(
+    modelId: string,
+    excludeProductId: string,
+  ): Promise<Product[]> {
+    return this.repository.find({
+      where: {
+        modelId,
+        id: Not(excludeProductId),
+        status: ProductStatus.ACTIVE,
+        isVisible: true,
+      },
+      select: ['id', 'slug', 'name', 'color', 'colorHex', 'images'],
+    });
   }
 
   async findRelated(productId: string, limit: number): Promise<Product[]> {

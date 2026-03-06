@@ -79,9 +79,41 @@ export class ProductResponseDto {
   @ApiProperty()
   isVisible: boolean;
 
+  @ApiPropertyOptional()
+  color?: string;
+
+  @ApiPropertyOptional()
+  colorHex?: string;
+
+  @ApiPropertyOptional()
+  modelId?: string | null;
+
+  @ApiPropertyOptional()
+  colorSiblings?: ColorSiblingDto[];
+
   @ApiProperty()
   createdAt: Date;
 
   @ApiProperty()
   updatedAt: Date;
+}
+
+export class ColorSiblingDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  slug: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiPropertyOptional()
+  color?: string;
+
+  @ApiPropertyOptional()
+  colorHex?: string;
+
+  @ApiPropertyOptional()
+  image?: string;
 }

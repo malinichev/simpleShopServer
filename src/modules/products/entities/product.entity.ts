@@ -27,8 +27,6 @@ export interface ProductImage {
 export interface ProductVariant {
   id: string;
   size: string;
-  color: string;
-  colorHex: string;
   sku: string;
   stock: number;
   price?: number;
@@ -131,6 +129,16 @@ export class Product extends BaseEntity {
 
   @Column('jsonb', { default: {} })
   seo: ProductSEO;
+
+  @Column({ nullable: true })
+  color: string;
+
+  @Column({ nullable: true })
+  colorHex: string;
+
+  @Index()
+  @Column('uuid', { nullable: true })
+  modelId: string | null;
 
   @Column({ default: true })
   isVisible: boolean;

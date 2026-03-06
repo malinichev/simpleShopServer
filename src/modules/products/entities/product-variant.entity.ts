@@ -17,12 +17,6 @@ export class ProductVariantEntity extends BaseEntity {
   @Column()
   size: string;
 
-  @Column()
-  color: string;
-
-  @Column()
-  colorHex: string;
-
   @Column({ unique: true })
   sku: string;
 

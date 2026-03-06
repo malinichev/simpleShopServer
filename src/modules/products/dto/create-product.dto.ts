@@ -9,6 +9,7 @@ import {
   ValidateNested,
   Min,
   IsHexColor,
+  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -45,15 +46,6 @@ export class ProductVariantDto {
   @IsString()
   @IsNotEmpty()
   size: string;
-
-  @ApiProperty({ example: 'Чёрный' })
-  @IsString()
-  @IsNotEmpty()
-  color: string;
-
-  @ApiProperty({ example: '#000000' })
-  @IsHexColor()
-  colorHex: string;
 
   @ApiProperty({ example: 'JKT-BLK-M' })
   @IsString()
@@ -200,4 +192,19 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   isVisible?: boolean;
+
+  @ApiPropertyOptional({ example: 'Чёрный' })
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @ApiPropertyOptional({ example: '#000000' })
+  @IsOptional()
+  @IsHexColor()
+  colorHex?: string;
+
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsOptional()
+  @IsUUID()
+  modelId?: string;
 }

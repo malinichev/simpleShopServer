@@ -79,6 +79,15 @@ export class ProductsController {
   }
 
   @Public()
+  @Get(':id/siblings')
+  @ApiOperation({ summary: 'Получить цветовые сиблинги товара' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiResponse({ status: 200, description: 'Color siblings' })
+  async findColorSiblings(@Param('id') id: string) {
+    return this.productsService.findColorSiblings(id);
+  }
+
+  @Public()
   @Get(':id/related')
   @ApiOperation({ summary: 'Получить похожие товары' })
   @ApiParam({ name: 'id', description: 'Product ID' })
