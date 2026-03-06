@@ -17,7 +17,6 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "create:admin": "ts-node -r tsconfig-paths/register src/scripts/create-admin.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
     "wb-import": "ts-node -r tsconfig-paths/register src/database/seeds/wb-import.ts",
     "wb-html-import": "ts-node -r tsconfig-paths/register src/database/seeds/wb-html-import.ts",
