@@ -95,10 +95,45 @@ function generateDescription(name: string): string {
   return `Стильный ${type}${featuresStr} от SVOYA ESTHETICA. Идеально подходит для фитнеса, йоги, танцев и активного образа жизни. Выполнен из высококачественной ткани с отличной посадкой, обеспечивает свободу движений и комфорт во время тренировок. Luxury-sport эстетика для уверенных в себе женщин.`;
 }
 
+// --- Color palette (same as products.seed.ts) ---
+
+interface ColorOption {
+  name: string;
+  hex: string;
+  code: string; // for SKU
+}
+
+const COLORS: ColorOption[] = [
+  { name: 'Черный', hex: '#000000', code: 'BLK' },
+  { name: 'Белый', hex: '#FFFFFF', code: 'WHT' },
+  { name: 'Серый', hex: '#808080', code: 'GRY' },
+  { name: 'Бежевый', hex: '#D4A574', code: 'BGE' },
+  { name: 'Розовый', hex: '#FFB6C1', code: 'PNK' },
+  { name: 'Бордовый', hex: '#800020', code: 'BRD' },
+  { name: 'Синий', hex: '#000080', code: 'BLU' },
+  { name: 'Оливковый', hex: '#808000', code: 'OLV' },
+  { name: 'Мокко', hex: '#4B3621', code: 'MCH' },
+  { name: 'Лавандовый', hex: '#B57EDC', code: 'LVN' },
+];
+
+function pickColors(count: number): ColorOption[] {
+  const shuffled = [...COLORS].sort(() => Math.random() - 0.5);
+  // Always include black as first
+  const blackIdx = shuffled.findIndex((c) => c.code === 'BLK');
+  if (blackIdx > 0) {
+    [shuffled[0], shuffled[blackIdx]] = [shuffled[blackIdx], shuffled[0]];
+  }
+  return shuffled.slice(0, count);
+}
+
 // --- Default sizes for sportswear ---
 
 const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL'];
 const SWIMSUIT_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL'];
+
+// How many color variants per product (2-4)
+const MIN_COLORS = 2;
+const MAX_COLORS = 4;
 
 // --- Parse HTML ---
 
@@ -320,65 +355,82 @@ async function main(): Promise<void> {
 
         console.log(`    ${images.length} images uploaded`);
 
-        // Generate data
+        // Generate base data
         const catName = guessCategory(wp.name);
         const categoryId = categoryMap.get(catName);
         const description = generateDescription(wp.name);
         const shortDescription = description.slice(0, 200).replace(/\s+\S*$/, '');
-        const sku = `SE-${wp.nmId}`;
-        const productSlug = slugify(wp.name, { lower: true, strict: true }) + '-' + uuidv4().slice(0, 6);
-
-        const product = productRepo.create({
-          name: wp.name,
-          slug: productSlug,
-          description,
-          shortDescription,
-          sku,
-          price: wp.salePrice,
-          compareAtPrice: wp.oldPrice > wp.salePrice ? wp.oldPrice : undefined,
-          categoryId,
-          tags: ['svoya esthetica'],
-          images,
-          attributes: {
-            material: 'Полиамид 80%, Эластан 20%',
-            activity: ['Фитнес', 'Йога', 'Танцы'],
-            features: [],
-          },
-          seo: {
-            title: `${wp.name} | SVOYA ESTHETICA`,
-            description: shortDescription,
-            keywords: [wp.name.toLowerCase(), 'svoya esthetica', 'спортивная одежда'],
-          },
-          rating: wp.rating,
-          reviewsCount: wp.reviewsCount,
-          soldCount: Math.floor(Math.random() * 200) + 50,
-          status: 'active',
-          isVisible: true,
-        });
-
-        const savedProduct = await productRepo.save(product);
-        const productId = (savedProduct as any).id;
-
-        // Create variants — all sizes, one color (black default)
+        const baseSku = `SE-${wp.nmId}`;
+        const baseSlug = slugify(wp.name, { lower: true, strict: true });
         const isSwimsuits = wp.name.toLowerCase().includes('купальник');
         const sizes = isSwimsuits ? SWIMSUIT_SIZES : DEFAULT_SIZES;
 
-        for (const size of sizes) {
-          const stock = Math.floor(Math.random() * 15) + 3;
-          const variant = variantRepo.create({
-            productId,
-            size,
-            color: 'Черный',
-            colorHex: '#000000',
-            sku: `${sku}-BLK-${size}`,
-            stock,
+        // Each color = separate product, linked by modelId
+        const colorCount = MIN_COLORS + Math.floor(Math.random() * (MAX_COLORS - MIN_COLORS + 1));
+        const colors = pickColors(colorCount);
+        const modelId = uuidv4();
+
+        for (let ci = 0; ci < colors.length; ci++) {
+          const color = colors[ci];
+          const isFirst = ci === 0;
+
+          // First color uses original name/slug, others append color name
+          const productName = isFirst ? wp.name : `${wp.name} (${color.name})`;
+          const productSlug = isFirst
+            ? `${baseSlug}-${uuidv4().slice(0, 6)}`
+            : `${baseSlug}-${slugify(color.name, { lower: true, strict: true })}-${uuidv4().slice(0, 6)}`;
+          const productSku = isFirst ? baseSku : `${baseSku}-${color.code}`;
+
+          const product = productRepo.create({
+            name: productName,
+            slug: productSlug,
+            description,
+            shortDescription,
+            sku: productSku,
             price: wp.salePrice,
+            compareAtPrice: wp.oldPrice > wp.salePrice ? wp.oldPrice : undefined,
+            categoryId,
+            color: color.name,
+            colorHex: color.hex,
+            modelId,
+            tags: ['svoya esthetica'],
+            images,
+            attributes: {
+              material: 'Полиамид 80%, Эластан 20%',
+              activity: ['Фитнес', 'Йога', 'Танцы'],
+              features: [],
+            },
+            seo: {
+              title: `${productName} | SVOYA ESTHETICA`,
+              description: shortDescription,
+              keywords: [wp.name.toLowerCase(), color.name.toLowerCase(), 'svoya esthetica', 'спортивная одежда'],
+            },
+            rating: wp.rating,
+            reviewsCount: isFirst ? wp.reviewsCount : Math.floor(wp.reviewsCount * (0.3 + Math.random() * 0.5)),
+            soldCount: Math.floor(Math.random() * 200) + 50,
+            status: 'active',
+            isVisible: true,
           });
-          await variantRepo.save(variant);
+
+          const savedProduct = await productRepo.save(product);
+          const productId = (savedProduct as any).id;
+
+          // Create variants — sizes only (color is on product level)
+          for (const size of sizes) {
+            const stock = Math.floor(Math.random() * 15) + 3;
+            const variant = variantRepo.create({
+              productId,
+              size,
+              sku: `${productSku}-${size}`,
+              stock,
+              price: wp.salePrice,
+            });
+            await variantRepo.save(variant);
+          }
         }
 
         imported++;
-        console.log(`    OK — ${sizes.length} variants`);
+        console.log(`    OK — ${colors.length} colors × ${sizes.length} sizes = ${colors.length * sizes.length} variants`);
 
         // Small delay between image downloads
         await sleep(200);
