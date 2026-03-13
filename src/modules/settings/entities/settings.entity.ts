@@ -1,6 +1,12 @@
 import { Entity, Column } from 'typeorm';
 import { BaseEntity } from '@/common/entities/base.entity';
 
+export interface SocialLinks {
+  instagram?: string;
+  telegram?: string;
+  vk?: string;
+}
+
 export interface NotificationSettings {
   newOrder: boolean;
   statusChange: boolean;
@@ -28,8 +34,14 @@ export class Settings extends BaseEntity {
   @Column({ default: 'RUB' })
   currency: string;
 
+  @Column({ default: '' })
+  description: string;
+
   @Column({ default: 'ru' })
   language: string;
+
+  @Column('jsonb', { default: {} })
+  socialLinks: SocialLinks;
 
   @Column('jsonb', {
     default: {

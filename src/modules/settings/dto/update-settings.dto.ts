@@ -3,10 +3,28 @@ import {
   IsEmail,
   IsOptional,
   IsBoolean,
+  IsUrl,
   ValidateNested,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+
+export class SocialLinksDto {
+  @ApiPropertyOptional({ example: 'https://instagram.com/store' })
+  @IsOptional()
+  @IsString()
+  instagram?: string;
+
+  @ApiPropertyOptional({ example: 'https://t.me/store' })
+  @IsOptional()
+  @IsString()
+  telegram?: string;
+
+  @ApiPropertyOptional({ example: 'https://vk.com/store' })
+  @IsOptional()
+  @IsString()
+  vk?: string;
+}
 
 export class NotificationSettingsDto {
   @ApiPropertyOptional()
@@ -71,10 +89,21 @@ export class UpdateSettingsDto {
   @IsString()
   currency?: string;
 
+  @ApiPropertyOptional({ example: 'Стильная женская спортивная одежда' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
   @ApiPropertyOptional({ example: 'ru' })
   @IsOptional()
   @IsString()
   language?: string;
+
+  @ApiPropertyOptional({ type: SocialLinksDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SocialLinksDto)
+  socialLinks?: SocialLinksDto;
 
   @ApiPropertyOptional({ type: NotificationSettingsDto })
   @IsOptional()

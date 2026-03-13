@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Settings, NotificationSettings } from './entities/settings.entity';
+import { Settings, NotificationSettings, SocialLinks } from './entities/settings.entity';
 import { ShippingMethod } from './entities/shipping-method.entity';
 import { PaymentMethod } from './entities/payment-method.entity';
 import {
@@ -58,6 +58,33 @@ export class SettingsService {
     });
 
     return this.settingsRepository.save(defaults);
+  }
+
+  async getPublicSettings() {
+    const s = await this.getSettings();
+    return {
+      storeName: s.storeName,
+      description: s.description ?? '',
+      email: s.email,
+      phone: s.phone,
+      address: s.address,
+      currency: s.currency,
+      socialLinks: s.socialLinks ?? {},
+    };
+  }
+
+  async findActiveShippingMethods(): Promise<ShippingMethod[]> {
+    return this.shippingRepository.find({
+      where: { isActive: true },
+      order: { order: 'ASC' },
+    });
+  }
+
+  async findActivePaymentMethods(): Promise<PaymentMethod[]> {
+    return this.paymentRepository.find({
+      where: { isActive: true },
+      order: { order: 'ASC' },
+    });
   }
 
   async updateSettings(dto: UpdateSettingsDto): Promise<Settings> {

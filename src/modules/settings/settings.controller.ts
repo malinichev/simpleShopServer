@@ -25,6 +25,7 @@ import {
   UpdatePaymentMethodDto,
 } from './dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import { UserRole } from '@/modules/users/entities/user.entity';
 
 @ApiTags('settings')
@@ -33,6 +34,32 @@ import { UserRole } from '@/modules/users/entities/user.entity';
 @ApiBearerAuth('JWT-auth')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
+
+  // ======================== Public Endpoints ========================
+
+  @Public()
+  @Get('public')
+  @ApiOperation({ summary: 'Получить публичные настройки магазина' })
+  @ApiResponse({ status: 200 })
+  async getPublicSettings() {
+    return this.settingsService.getPublicSettings();
+  }
+
+  @Public()
+  @Get('public/shipping-methods')
+  @ApiOperation({ summary: 'Получить активные способы доставки' })
+  @ApiResponse({ status: 200 })
+  async getPublicShippingMethods() {
+    return this.settingsService.findActiveShippingMethods();
+  }
+
+  @Public()
+  @Get('public/payment-methods')
+  @ApiOperation({ summary: 'Получить активные способы оплаты' })
+  @ApiResponse({ status: 200 })
+  async getPublicPaymentMethods() {
+    return this.settingsService.findActivePaymentMethods();
+  }
 
   // ======================== General Settings ========================
 
