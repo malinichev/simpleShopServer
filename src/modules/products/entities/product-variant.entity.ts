@@ -33,4 +33,7 @@ export class ProductVariantEntity extends BaseEntity {
     },
   })
   price?: number;
+
+  @Column('varchar', { nullable: true, length: 14 })
+  gtin: string | null;
 }

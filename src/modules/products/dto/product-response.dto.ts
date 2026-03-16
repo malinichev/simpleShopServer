@@ -89,6 +89,9 @@ export class ProductResponseDto {
   modelId?: string | null;
 
   @ApiPropertyOptional()
+  gtin?: string | null;
+
+  @ApiPropertyOptional()
   colorSiblings?: ColorSiblingDto[];
 
   @ApiProperty()

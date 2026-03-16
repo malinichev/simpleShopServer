@@ -135,11 +135,13 @@ export class ProductsService implements OnModuleDestroy {
       color: dto.color,
       colorHex: dto.colorHex,
       modelId: dto.modelId ?? null,
+      gtin: dto.gtin ?? null,
       variants: (dto.variants || []).map((v) => ({
         size: v.size,
         sku: v.sku,
         stock: v.stock ?? 0,
         price: v.price,
+        gtin: v.gtin ?? null,
       })) as ProductVariantEntity[],
       attributes: dto.attributes,
       rating: 0,
@@ -213,6 +215,8 @@ export class ProductsService implements OnModuleDestroy {
       (updateData as any).colorHex = (restDto as any).colorHex;
     if ((restDto as any).modelId !== undefined)
       (updateData as any).modelId = (restDto as any).modelId;
+    if ((restDto as any).gtin !== undefined)
+      (updateData as any).gtin = (restDto as any).gtin || null;
 
     const updated = await this.productsRepository.update(id, updateData);
     if (!updated) {
@@ -228,6 +232,7 @@ export class ProductsService implements OnModuleDestroy {
           sku: v.sku,
           stock: v.stock ?? 0,
           price: v.price,
+          gtin: v.gtin ?? null,
         })),
       );
     }
@@ -313,6 +318,7 @@ export class ProductsService implements OnModuleDestroy {
       color: product.color,
       colorHex: product.colorHex,
       modelId: product.modelId,
+      gtin: product.gtin,
       colorSiblings: (product as any).colorSiblings,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,

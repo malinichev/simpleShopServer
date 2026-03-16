@@ -10,6 +10,7 @@ import {
   Min,
   IsHexColor,
   IsUUID,
+  Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -62,6 +63,11 @@ export class ProductVariantDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  @ApiPropertyOptional({ example: '4607123456790' })
+  @IsOptional()
+  @Matches(/^\d{8,14}$/, { message: 'GTIN должен содержать 8-14 цифр' })
+  gtin?: string;
 }
 
 export class ProductAttributesDto {
@@ -207,4 +213,9 @@ export class CreateProductDto {
   @IsOptional()
   @IsUUID()
   modelId?: string;
+
+  @ApiPropertyOptional({ example: '4607123456789' })
+  @IsOptional()
+  @Matches(/^\d{8,14}$/, { message: 'GTIN должен содержать 8-14 цифр' })
+  gtin?: string;
 }

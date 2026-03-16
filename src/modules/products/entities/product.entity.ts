@@ -140,6 +140,9 @@ export class Product extends BaseEntity {
   @Column('uuid', { nullable: true })
   modelId: string | null;
 
+  @Column('varchar', { nullable: true, length: 14 })
+  gtin: string | null;
+
   @Column({ default: true })
   isVisible: boolean;
 }

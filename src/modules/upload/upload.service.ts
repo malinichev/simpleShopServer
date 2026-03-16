@@ -281,6 +281,10 @@ export class UploadService implements OnModuleInit {
     }
   }
 
+  async uploadBuffer(buffer: Buffer, key: string, contentType: string): Promise<void> {
+    await this.uploadToS3(key, buffer, contentType);
+  }
+
   private async uploadToS3(
     key: string,
     buffer: Buffer,

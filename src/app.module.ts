@@ -20,6 +20,8 @@ import { MailModule } from './modules/mail/mail.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { PagesModule } from './modules/pages/pages.module';
+import { MarkingModule } from './modules/marking/marking.module';
+import { ImportModule } from './modules/import/import.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
@@ -101,6 +103,8 @@ import {
     AnalyticsModule,
     SettingsModule,
     PagesModule,
+    MarkingModule,
+    ImportModule,
     JobsModule,
   ],
   controllers: [],
