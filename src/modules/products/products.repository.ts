@@ -165,6 +165,22 @@ export class ProductsRepository {
     });
   }
 
+  async findBySkus(skus: string[]): Promise<Product[]> {
+    if (skus.length === 0) return [];
+    return this.repository.find({
+      where: { sku: In(skus) },
+      relations: ['variants'],
+    });
+  }
+
+  async findByNames(names: string[]): Promise<Product[]> {
+    if (names.length === 0) return [];
+    return this.repository.find({
+      where: { name: In(names) },
+      relations: ['variants'],
+    });
+  }
+
   async create(data: Partial<Product>): Promise<Product> {
     const product = this.repository.create(data);
     return this.repository.save(product);

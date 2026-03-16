@@ -16,6 +16,7 @@ interface ImportJobData {
   mapping: Record<string, string>;
   defaultStatus: string;
   skipDuplicates: boolean;
+  duplicateResolutions?: Record<string, 'db' | 'csv'>;
 }
 
 interface CsvRow {
@@ -37,7 +38,7 @@ export class ImportProcessor extends WorkerHost {
   }
 
   async process(job: Job<ImportJobData>): Promise<void> {
-    const { jobId, fileKey, mapping, defaultStatus, skipDuplicates } = job.data;
+    const { jobId, fileKey, mapping, defaultStatus, skipDuplicates, duplicateResolutions } = job.data;
     this.logger.log(`Processing import job ${jobId}`);
 
     await this.importJobRepo.update(jobId, { status: ImportJobStatus.PROCESSING });
@@ -73,6 +74,30 @@ export class ImportProcessor extends WorkerHost {
         categoryMap.set(cat.name.toLowerCase(), cat.id);
       }
 
+      // Build duplicate resolution map: productId → 'db' | 'csv'
+      // Also build reverse lookup: sku/name → existingProduct for matching
+      const existingProductMap = new Map<string, { id: string; resolution: 'db' | 'csv' }>();
+      if (duplicateResolutions && Object.keys(duplicateResolutions).length > 0) {
+        const productIds = Object.keys(duplicateResolutions);
+        for (const productId of productIds) {
+          try {
+            const product = await this.productsService.findById(productId);
+            if (product.sku) {
+              existingProductMap.set(`sku:${product.sku.toLowerCase()}`, {
+                id: product.id,
+                resolution: duplicateResolutions[productId],
+              });
+            }
+            existingProductMap.set(`name:${product.name.toLowerCase()}`, {
+              id: product.id,
+              resolution: duplicateResolutions[productId],
+            });
+          } catch {
+            // Product not found, skip
+          }
+        }
+      }
+
       // Group rows by SKU (for multi-variant products)
       const groups = this.groupRowsBySku(headers, dataRows, mapping);
 
@@ -100,6 +125,15 @@ export class ImportProcessor extends WorkerHost {
             errorCount++;
             processedRows += rows.length;
             continue;
+          }
+
+          // Check if this CSV row matches an existing product with a resolution
+          let existingMatch: { id: string; resolution: 'db' | 'csv' } | undefined;
+          if (mapped.sku) {
+            existingMatch = existingProductMap.get(`sku:${mapped.sku.toLowerCase()}`);
+          }
+          if (!existingMatch && mapped.name) {
+            existingMatch = existingProductMap.get(`name:${mapped.name.toLowerCase()}`);
           }
 
           // Build product DTO
@@ -136,20 +170,40 @@ export class ImportProcessor extends WorkerHost {
             },
           };
 
-          if (!productDto.name) {
-            errors.push({ row: firstRow.rowNum, field: 'name', message: 'Название обязательно' });
-            errorCount++;
-            processedRows += rows.length;
-            continue;
-          }
+          if (existingMatch) {
+            // Update existing product
+            const updateDto: any = { ...productDto };
+            // Remove sku to avoid uniqueness conflict on self-update
+            delete updateDto.sku;
 
-          await this.productsService.create(productDto as any);
-          successCount++;
+            if (existingMatch.resolution === 'db') {
+              // Keep name, description, images from DB — only update other fields
+              delete updateDto.name;
+              delete updateDto.description;
+              delete updateDto.shortDescription;
+              delete updateDto.images;
+            }
+            // resolution === 'csv' → update everything from CSV (including name/description/images)
+
+            await this.productsService.update(existingMatch.id, updateDto);
+            successCount++;
+          } else {
+            // Create new product
+            if (!productDto.name) {
+              errors.push({ row: firstRow.rowNum, field: 'name', message: 'Название обязательно' });
+              errorCount++;
+              processedRows += rows.length;
+              continue;
+            }
+
+            await this.productsService.create(productDto as any);
+            successCount++;
+          }
         } catch (err: any) {
           const row = rows[0].rowNum;
           const message = err?.message || 'Неизвестная ошибка';
-          if (skipDuplicates && message.includes('уже существует')) {
-            // Skip duplicates silently
+          if (skipDuplicates && !duplicateResolutions && message.includes('уже существует')) {
+            // Skip duplicates silently (only if no explicit resolutions provided)
           } else {
             errors.push({ row, message });
             errorCount++;

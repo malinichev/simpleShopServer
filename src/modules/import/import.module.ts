@@ -5,12 +5,14 @@ import { ImportJob } from './entities/import-job.entity';
 import { ImportService } from './import.service';
 import { ImportController } from './import.controller';
 import { UploadModule } from '@/modules/upload/upload.module';
+import { ProductsModule } from '@/modules/products/products.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ImportJob]),
     BullModule.registerQueue({ name: 'import' }),
     UploadModule,
+    ProductsModule,
   ],
   controllers: [ImportController],
   providers: [ImportService],

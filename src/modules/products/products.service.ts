@@ -95,6 +95,16 @@ export class ProductsService implements OnModuleDestroy {
     return product;
   }
 
+  async findBySkus(skus: string[]): Promise<Product[]> {
+    if (skus.length === 0) return [];
+    return this.productsRepository.findBySkus(skus);
+  }
+
+  async findByNames(names: string[]): Promise<Product[]> {
+    if (names.length === 0) return [];
+    return this.productsRepository.findByNames(names);
+  }
+
   async findRelated(id: string, limit: number = 8): Promise<Product[]> {
     const product = await this.productsRepository.findById(id);
     if (!product) {

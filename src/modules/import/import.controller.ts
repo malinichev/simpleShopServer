@@ -14,10 +14,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiConsumes } from '@nestjs/swagger';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { Roles, UserRole } from '@/common/decorators/roles.decorator';
 import { ImportService } from './import.service';
-import { StartImportDto } from './dto';
+import { StartImportDto, DetectDuplicatesDto } from './dto';
 import { UploadService } from '@/modules/upload/upload.service';
 
 @ApiTags('import')
@@ -48,9 +48,17 @@ export class ImportController {
     return { ...preview, fileKey: key };
   }
 
+  @Post('detect-duplicates')
+  async detectDuplicates(@Body() dto: DetectDuplicatesDto) {
+    return this.importService.detectDuplicates(dto);
+  }
+
   @Post('start')
-  async start(@Body() dto: StartImportDto, @Req() req: any) {
-    const userId = req.user?.sub || req.user?.id;
+  async start(
+    @Body() dto: StartImportDto,
+    @Req() req: Request & { user?: { sub?: string; id?: string } },
+  ) {
+    const userId = req.user?.sub || req.user?.id || '';
     return this.importService.start(dto, userId);
   }
 
