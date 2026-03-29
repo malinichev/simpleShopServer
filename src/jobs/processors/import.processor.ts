@@ -151,9 +151,9 @@ export class ImportProcessor extends WorkerHost {
             tags: mapped.tags ? mapped.tags.split('|').map((t: string) => t.trim()) : [],
             color: mapped.color || undefined,
             colorHex: mapped.colorHex || undefined,
-            gtin: mapped.gtin || undefined,
+            gtin: this.validateGtin(mapped.gtin, firstRow.rowNum, errors),
             images: this.buildImages(mapped),
-            variants: this.buildVariants(headers, rows, mapping),
+            variants: this.buildVariants(headers, rows, mapping, errors),
             attributes: {
               material: mapped.material || '',
               activity: mapped.activity
@@ -313,10 +313,26 @@ export class ImportProcessor extends WorkerHost {
     return images;
   }
 
+  private validateGtin(
+    value: string | undefined,
+    rowNum: number,
+    errors: Array<{ row: number; field?: string; message: string }>,
+  ): string | undefined {
+    if (!value) return undefined;
+    const cleaned = value.trim();
+    if (!cleaned) return undefined;
+    if (!/^\d{8,14}$/.test(cleaned)) {
+      errors.push({ row: rowNum, field: 'gtin', message: `Невалидный GTIN: "${cleaned}" (ожидается 8-14 цифр)` });
+      return undefined;
+    }
+    return cleaned;
+  }
+
   private buildVariants(
     headers: string[],
     rows: Array<{ rowNum: number; data: string[] }>,
     mapping: Record<string, string>,
+    errors: Array<{ row: number; field?: string; message: string }>,
   ): Array<{ id: string; size: string; sku: string; stock: number; price?: number; gtin?: string }> {
     const variants: Array<{
       id: string;
@@ -338,7 +354,7 @@ export class ImportProcessor extends WorkerHost {
         sku: mapped.variantSku || `${mapped.sku || 'PRD'}-${size}`,
         stock: parseInt(mapped.variantStock, 10) || 0,
         price: mapped.variantPrice ? parseFloat(mapped.variantPrice) : undefined,
-        gtin: mapped.variantGtin || undefined,
+        gtin: this.validateGtin(mapped.variantGtin, rows[i].rowNum, errors),
       });
     }
 

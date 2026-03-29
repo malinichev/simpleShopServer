@@ -57,7 +57,9 @@ export class ProductsService implements OnModuleDestroy {
       return JSON.parse(cached) as PaginatedResult<Product>;
     }
 
-    const result = await this.productsRepository.findAll(query);
+    const result = query.groupByModel
+      ? await this.productsRepository.findAllGrouped(query)
+      : await this.productsRepository.findAll(query);
 
     await this.redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
     return result;

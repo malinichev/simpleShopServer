@@ -105,4 +105,10 @@ export class ProductQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ description: 'Group products by modelId (1 card per model)' })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  groupByModel?: boolean;
 }
