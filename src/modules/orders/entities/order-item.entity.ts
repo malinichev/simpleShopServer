@@ -58,4 +58,15 @@ export class OrderItemEntity extends BaseEntity {
     },
   })
   total: number;
+
+  @Column('jsonb', { default: [] })
+  markingCodes: Array<{
+    id: string;
+    code: string;
+    gtin: string;
+    serial: string;
+  }>;
+
+  @Column({ default: false })
+  markingCodesAssigned: boolean;
 }

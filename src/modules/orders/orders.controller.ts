@@ -8,6 +8,7 @@ import {
   Query,
   Inject,
   forwardRef,
+  ParseUUIDPipe,
   ForbiddenException,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
+import { OrderMarkingService } from './order-marking.service';
 import { UsersService } from '@/modules/users/users.service';
 import {
   CreateOrderDto,
@@ -35,6 +37,7 @@ import { User, UserRole } from '@/modules/users/entities/user.entity';
 export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
+    private readonly orderMarkingService: OrderMarkingService,
     @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
   ) {}
@@ -74,6 +77,18 @@ export class OrdersController {
       dateFrom ? new Date(dateFrom) : undefined,
       dateTo ? new Date(dateTo) : undefined,
     );
+  }
+
+  @Get(':id/marking-codes')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Коды маркировки заказа (Честный знак)' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  @ApiResponse({ status: 200, description: 'List of marking codes for the order' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async getMarkingCodes(@Param('id', ParseUUIDPipe) id: string) {
+    await this.ordersService.findById(id);
+    return this.orderMarkingService.getCodesForOrder(id);
   }
 
   @Get(':id')

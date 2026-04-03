@@ -2,17 +2,22 @@ import {
   Injectable,
   Inject,
   forwardRef,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { OrdersRepository } from './orders.repository';
+import { OrderMarkingService } from './order-marking.service';
 import { CartService } from '@/modules/cart/cart.service';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
 import { Order, OrderStatus, OrderHistory } from './entities/order.entity';
 import { OrderItemEntity } from './entities/order-item.entity';
+import { MarkingCodeStatus } from '@/modules/marking/entities/marking-code.entity';
 import {
   CreateOrderDto,
   OrderQueryDto,
@@ -30,13 +35,18 @@ const SHIPPING_COSTS: Record<string, number> = {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly ordersRepository: OrdersRepository,
+    private readonly orderMarkingService: OrderMarkingService,
     private readonly cartService: CartService,
     private readonly productsService: ProductsService,
     private readonly promotionsService: PromotionsService,
     @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
+    @InjectRepository(OrderItemEntity)
+    private readonly orderItemRepository: Repository<OrderItemEntity>,
   ) {}
 
   async create(userId: string, dto: CreateOrderDto): Promise<Order> {
@@ -144,6 +154,27 @@ export class OrdersService {
       history: [initialHistory],
     });
 
+    // 7.5 Резервирование кодов маркировки (Честный знак)
+    try {
+      const markingResult =
+        await this.orderMarkingService.reserveCodesForOrder(
+          order.id,
+          order.items,
+        );
+      if (markingResult.items.some((i) => i.assigned > 0)) {
+        await this.orderItemRepository.save(order.items);
+      }
+      if (!markingResult.fullyAssigned) {
+        this.logger.warn(
+          `Order ${order.orderNumber}: not all items have marking codes assigned`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Marking reservation failed for order ${order.id}: ${error.message}`,
+      );
+    }
+
     // 8. Очистить корзину
     await this.cartService.clearCart(userId, undefined);
 
@@ -235,6 +266,27 @@ export class OrdersService {
       throw new NotFoundException('Заказ не найден');
     }
 
+    // Синхронизация кодов маркировки (Честный знак)
+    try {
+      if (status === OrderStatus.PROCESSING) {
+        await this.orderMarkingService.transitionCodes(
+          id,
+          MarkingCodeStatus.SOLD,
+          [MarkingCodeStatus.RESERVED],
+        );
+      } else if (status === OrderStatus.REFUNDED) {
+        await this.orderMarkingService.transitionCodes(
+          id,
+          MarkingCodeStatus.RETURNED,
+          [MarkingCodeStatus.SOLD],
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Marking transition failed for order ${id}: ${error.message}`,
+      );
+    }
+
     return updated;
   }
 
@@ -269,6 +321,19 @@ export class OrdersService {
           variant.stock + item.quantity,
         );
       }
+    }
+
+    // Освободить зарезервированные коды маркировки (Честный знак)
+    try {
+      await this.orderMarkingService.transitionCodes(
+        id,
+        MarkingCodeStatus.IN_STOCK,
+        [MarkingCodeStatus.RESERVED],
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Marking release failed for order ${id}: ${error.message}`,
+      );
     }
 
     const historyEntry: OrderHistory = {
