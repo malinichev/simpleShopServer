@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
@@ -26,6 +27,8 @@ function parseDataMatrix(code: string): { gtin: string; serial: string } {
 
 @Injectable()
 export class MarkingService {
+  private readonly logger = new Logger(MarkingService.name);
+
   constructor(
     @InjectRepository(MarkingCode)
     private readonly repository: Repository<MarkingCode>,
@@ -98,6 +101,36 @@ export class MarkingService {
     return stats;
   }
 
+  /**
+   * Пересчитать stock варианта по количеству кодов IN_STOCK.
+   */
+  async syncVariantStock(variantId: string): Promise<void> {
+    await this.repository.query(
+      `UPDATE product_variants
+       SET stock = (
+         SELECT COUNT(*)::int FROM marking_codes
+         WHERE "variantId" = $1 AND status = 'in_stock'
+       )
+       WHERE id = $1`,
+      [variantId],
+    );
+  }
+
+  /**
+   * Пересчитать stock для ВСЕХ вариантов продукта.
+   */
+  async syncProductStock(productId: string): Promise<void> {
+    await this.repository.query(
+      `UPDATE product_variants pv
+       SET stock = (
+         SELECT COUNT(*)::int FROM marking_codes mc
+         WHERE mc."variantId" = pv.id AND mc.status = 'in_stock'
+       )
+       WHERE pv."productId" = $1`,
+      [productId],
+    );
+  }
+
   async create(dto: CreateMarkingCodeDto): Promise<MarkingCode> {
     const existing = await this.repository.findOne({
       where: { code: dto.code },
@@ -114,7 +147,9 @@ export class MarkingService {
       serial,
       status: MarkingCodeStatus.IN_STOCK,
     });
-    return this.repository.save(entity);
+    const saved = await this.repository.save(entity);
+    await this.syncVariantStock(dto.variantId);
+    return saved;
   }
 
   async bulkCreate(
@@ -147,6 +182,7 @@ export class MarkingService {
       created++;
     }
 
+    await this.syncVariantStock(dto.variantId);
     return { created, duplicates };
   }
 
@@ -162,10 +198,19 @@ export class MarkingService {
     code.status = dto.status;
     code.orderId = dto.orderId ?? code.orderId;
     code.statusChangedAt = new Date();
-    return this.repository.save(code);
+    const saved = await this.repository.save(code);
+    await this.syncVariantStock(code.variantId);
+    return saved;
   }
 
   async bulkUpdateStatus(dto: BulkUpdateMarkingStatusDto): Promise<number> {
+    // Собрать variantId до обновления для синхронизации stock
+    const codes = await this.repository.find({
+      where: { id: In(dto.ids) },
+      select: ['variantId'],
+    });
+    const variantIds = [...new Set(codes.map((c) => c.variantId))];
+
     const result = await this.repository.update(
       { id: In(dto.ids) },
       {
@@ -174,6 +219,11 @@ export class MarkingService {
         statusChangedAt: new Date(),
       },
     );
+
+    for (const vid of variantIds) {
+      await this.syncVariantStock(vid);
+    }
+
     return result.affected ?? 0;
   }
 
@@ -182,6 +232,8 @@ export class MarkingService {
     if (!code) {
       throw new NotFoundException('Код маркировки не найден');
     }
+    const { variantId } = code;
     await this.repository.remove(code);
+    await this.syncVariantStock(variantId);
   }
 }

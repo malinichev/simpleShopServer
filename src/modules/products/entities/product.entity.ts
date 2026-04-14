@@ -145,4 +145,7 @@ export class Product extends BaseEntity {
 
   @Column({ default: true })
   isVisible: boolean;
+
+  @Column({ default: false })
+  requiresMarking: boolean;
 }

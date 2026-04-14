@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -164,6 +165,12 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: 'Product not found' })
   @ApiResponse({ status: 400, description: 'Variant not found' })
   async updateStock(@Param('id') id: string, @Body() dto: UpdateStockDto) {
+    const product = await this.productsService.findById(id);
+    if (product.requiresMarking) {
+      throw new BadRequestException(
+        'Для маркированных товаров stock управляется автоматически через коды маркировки',
+      );
+    }
     return this.productsService.updateStock(id, dto.variantId, dto.stock);
   }
 }

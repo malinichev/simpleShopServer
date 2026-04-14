@@ -92,6 +92,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
+    console.log(233223232323);
     const audience =
       (req['tokenAudience'] as TokenAudience) || TokenAudience.WEB;
     const result = await this.authService.login(req.user as User, audience);

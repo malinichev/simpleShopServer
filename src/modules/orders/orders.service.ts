@@ -178,9 +178,11 @@ export class OrdersService {
     // 8. Очистить корзину
     await this.cartService.clearCart(userId, undefined);
 
-    // 9. Обновить stock товаров
+    // 9. Обновить stock товаров (только для товаров БЕЗ маркировки —
+    //    для маркированных stock синхронизируется автоматически через marking codes)
     for (const item of orderItems) {
       const product = await this.productsService.findById(item.productId!);
+      if (product.requiresMarking) continue;
       const variant = product.variants.find((v) => v.id === item.variantId);
       if (variant) {
         const newStock = Math.max(variant.stock - (item.quantity ?? 0), 0);
@@ -310,9 +312,11 @@ export class OrdersService {
       throw new BadRequestException('Заказ уже отменён');
     }
 
-    // Вернуть stock товаров
+    // Вернуть stock товаров (только для товаров БЕЗ маркировки —
+    //   для маркированных stock восстановится через transitionCodes → syncVariantStock)
     for (const item of order.items) {
       const product = await this.productsService.findById(item.productId);
+      if (product.requiresMarking) continue;
       const variant = product.variants.find((v) => v.id === item.variantId);
       if (variant) {
         await this.productsService.updateStock(

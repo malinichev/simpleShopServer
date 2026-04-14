@@ -5,6 +5,7 @@ import {
   MarkingCode,
   MarkingCodeStatus,
 } from '@/modules/marking/entities/marking-code.entity';
+import { MarkingService } from '@/modules/marking/marking.service';
 import { OrderItemEntity } from './entities/order-item.entity';
 
 export interface MarkingAssignmentResult {
@@ -19,6 +20,7 @@ export class OrderMarkingService {
   constructor(
     @InjectRepository(MarkingCode)
     private readonly markingRepo: Repository<MarkingCode>,
+    private readonly markingService: MarkingService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -86,6 +88,12 @@ export class OrderMarkingService {
       await queryRunner.release();
     }
 
+    // Синхронизировать stock вариантов после резервирования
+    const variantIds = [...new Set(items.map((i) => i.variantId))];
+    for (const vid of variantIds) {
+      await this.markingService.syncVariantStock(vid);
+    }
+
     return result;
   }
 
@@ -120,6 +128,18 @@ export class OrderMarkingService {
     this.logger.log(
       `Transition ${affected} codes for order ${orderId} → ${toStatus}`,
     );
+
+    // Синхронизировать stock затронутых вариантов
+    if (affected > 0) {
+      const codes = await this.markingRepo.find({
+        where: { orderId },
+        select: ['variantId'],
+      });
+      const variantIds = [...new Set(codes.map((c) => c.variantId))];
+      for (const vid of variantIds) {
+        await this.markingService.syncVariantStock(vid);
+      }
+    }
 
     return affected;
   }
