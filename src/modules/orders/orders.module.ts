@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItemEntity } from './entities/order-item.entity';
@@ -11,15 +12,18 @@ import { ProductsModule } from '@/modules/products/products.module';
 import { PromotionsModule } from '@/modules/promotions/promotions.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { MarkingModule } from '@/modules/marking/marking.module';
+import { MailModule } from '@/modules/mail/mail.module';
 import { MarkingCode } from '@/modules/marking/entities/marking-code.entity';
 
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forFeature([Order, OrderItemEntity, MarkingCode]),
     CartModule,
     ProductsModule,
     PromotionsModule,
     MarkingModule,
+    MailModule,
     forwardRef(() => UsersModule),
   ],
   controllers: [OrdersController],

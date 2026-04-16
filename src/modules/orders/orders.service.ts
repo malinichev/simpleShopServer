@@ -7,6 +7,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OrdersRepository } from './orders.repository';
@@ -15,6 +16,7 @@ import { CartService } from '@/modules/cart/cart.service';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
+import { MailService } from '@/modules/mail/mail.service';
 import { Order, OrderStatus, OrderHistory } from './entities/order.entity';
 import { OrderItemEntity } from './entities/order-item.entity';
 import { MarkingCodeStatus } from '@/modules/marking/entities/marking-code.entity';
@@ -33,6 +35,16 @@ const SHIPPING_COSTS: Record<string, number> = {
   post: 300,
 };
 
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  [OrderStatus.PENDING]: 'Ожидает обработки',
+  [OrderStatus.CONFIRMED]: 'Подтверждён',
+  [OrderStatus.PROCESSING]: 'В обработке',
+  [OrderStatus.SHIPPED]: 'Отправлен',
+  [OrderStatus.DELIVERED]: 'Доставлен',
+  [OrderStatus.CANCELLED]: 'Отменён',
+  [OrderStatus.REFUNDED]: 'Возврат',
+};
+
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
@@ -45,6 +57,8 @@ export class OrdersService {
     private readonly promotionsService: PromotionsService,
     @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
+    private readonly mailService: MailService,
+    private readonly configService: ConfigService,
     @InjectRepository(OrderItemEntity)
     private readonly orderItemRepository: Repository<OrderItemEntity>,
   ) {}
@@ -199,7 +213,8 @@ export class OrdersService {
       await this.promotionsService.applyUsage(promoCode, userId);
     }
 
-    // TODO: Отправить email через очередь (интеграция с Mail модулем)
+    // 11. Отправить письмо-подтверждение заказа (не блокируем заказ при ошибке SMTP)
+    await this.sendOrderConfirmationEmail(order);
 
     return order;
   }
@@ -289,6 +304,9 @@ export class OrdersService {
       );
     }
 
+    // Уведомить покупателя о смене статуса
+    await this.sendOrderStatusEmail(updated, comment);
+
     return updated;
   }
 
@@ -357,6 +375,12 @@ export class OrdersService {
     if (!updated) {
       throw new NotFoundException('Заказ не найден');
     }
+
+    // Уведомить покупателя об отмене
+    await this.sendOrderStatusEmail(
+      updated,
+      isAdmin ? 'Отменён администратором' : 'Отменён покупателем',
+    );
 
     return updated;
   }
@@ -496,6 +520,84 @@ export class OrdersService {
     if (!allowed[current]?.includes(next)) {
       throw new BadRequestException(
         `Невозможно изменить статус с "${current}" на "${next}"`,
+      );
+    }
+  }
+
+  private getClientBaseUrl(): string {
+    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [];
+    // Prefer the storefront origin; fallback to the first configured origin
+    return (
+      corsOrigins.find((o) => !o.includes('admin')) ??
+      corsOrigins[0] ??
+      'http://localhost:3002'
+    );
+  }
+
+  private formatAddress(addr: Address): string {
+    const parts = [
+      addr.postalCode,
+      addr.city,
+      addr.street && `ул. ${addr.street}`,
+      addr.building && `д. ${addr.building}`,
+      addr.apartment && `кв. ${addr.apartment}`,
+    ].filter(Boolean);
+    const who = [addr.lastName, addr.firstName, addr.phone]
+      .filter(Boolean)
+      .join(', ');
+    return who ? `${who}\n${parts.join(', ')}` : parts.join(', ');
+  }
+
+  private async sendOrderConfirmationEmail(order: Order): Promise<void> {
+    try {
+      const user = await this.usersService.findById(order.userId);
+      if (!user?.email) return;
+
+      const baseUrl = this.getClientBaseUrl();
+      await this.mailService.sendOrderConfirmation(user.email, {
+        firstName: user.firstName,
+        orderNumber: order.orderNumber,
+        orderDate: new Date(order.createdAt).toLocaleDateString('ru-RU'),
+        items: order.items.map((item) => ({
+          name: item.name,
+          size: item.size,
+          color: item.color,
+          quantity: item.quantity,
+          total: item.total,
+        })),
+        subtotal: order.subtotal,
+        discount: order.discount || undefined,
+        shipping: order.shipping,
+        total: order.total,
+        shippingAddress: this.formatAddress(order.shippingAddress),
+        orderUrl: `${baseUrl}/account/orders/${order.id}`,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to queue order confirmation email for ${order.orderNumber}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  private async sendOrderStatusEmail(
+    order: Order,
+    comment?: string,
+  ): Promise<void> {
+    try {
+      const user = await this.usersService.findById(order.userId);
+      if (!user?.email) return;
+
+      const baseUrl = this.getClientBaseUrl();
+      await this.mailService.sendOrderStatusUpdate(user.email, {
+        firstName: user.firstName,
+        orderNumber: order.orderNumber,
+        statusLabel: STATUS_LABELS[order.status] ?? order.status,
+        comment,
+        orderUrl: `${baseUrl}/account/orders/${order.id}`,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to queue status email for ${order.orderNumber}: ${(error as Error).message}`,
       );
     }
   }
