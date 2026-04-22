@@ -28,6 +28,7 @@ import {
   BulkDeleteDto,
   BulkUpdateStatusDto,
   UpdateStockDto,
+  ProductFacetsDto,
 } from './dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -46,6 +47,17 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Paginated list of products' })
   async findAll(@Query() query: ProductQueryDto) {
     return this.productsService.findAll(query);
+  }
+
+  @Public()
+  @Get('facets')
+  @ApiOperation({
+    summary:
+      'Фасеты каталога: доступные цвета/размеры/активности и диапазон цен',
+  })
+  @ApiResponse({ status: 200, type: ProductFacetsDto })
+  async getFacets(@Query() query: ProductQueryDto): Promise<ProductFacetsDto> {
+    return this.productsService.getFacets(query);
   }
 
   @Public()

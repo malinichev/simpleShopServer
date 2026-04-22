@@ -3,13 +3,29 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, ILike, In } from 'typeorm';
 import { Product, ProductStatus } from './entities/product.entity';
 import { ProductVariantEntity } from './entities/product-variant.entity';
-import { ProductQueryDto, SortOption } from './dto';
+import {
+  ProductQueryDto,
+  SortOption,
+  ProductFacetsDto,
+  FacetItemDto,
+} from './dto';
 import {
   PaginatedResult,
   createPaginationMeta,
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
 } from '@/common/types/pagination.types';
+
+const ACTIVITY_LABELS: Record<string, string> = {
+  yoga: 'Йога',
+  running: 'Бег',
+  gym: 'Тренажёрный зал',
+  casual: 'Повседневный',
+  pilates: 'Пилатес',
+  fitness: 'Фитнес',
+  dance: 'Танцы',
+  swimming: 'Плавание',
+};
 
 @Injectable()
 export class ProductsRepository {
@@ -59,7 +75,9 @@ export class ProductsRepository {
     }
 
     if (query.colors?.length) {
-      qb.andWhere('product.color IN (:...colors)', { colors: query.colors });
+      qb.andWhere('LOWER(product.color) IN (:...colors)', {
+        colors: query.colors,
+      });
     }
 
     if (query.activity?.length) {
@@ -268,7 +286,7 @@ export class ProductsRepository {
     let colorOrderCase = '';
     if (query.colors?.length) {
       const placeholders = query.colors.map((_, i) => `$${paramIdx + i}`);
-      colorOrderCase = `CASE WHEN c.color IN (${placeholders.join(', ')}) THEN 0 ELSE 1 END,`;
+      colorOrderCase = `CASE WHEN LOWER(c.color) IN (${placeholders.join(', ')}) THEN 0 ELSE 1 END,`;
       allParams.push(...query.colors);
       paramIdx += query.colors.length;
     }
@@ -339,10 +357,126 @@ export class ProductsRepository {
     return { data, meta: createPaginationMeta(page, limit, total) };
   }
 
+  async getFacets(query: ProductQueryDto): Promise<ProductFacetsDto> {
+    const [colors, sizes, activities, priceRange] = await Promise.all([
+      this.getColorFacet(query),
+      this.getSizeFacet(query),
+      this.getActivityFacet(query),
+      this.getPriceRange(query),
+    ]);
+
+    return { colors, sizes, activities, priceRange };
+  }
+
+  private async getColorFacet(query: ProductQueryDto): Promise<FacetItemDto[]> {
+    const { clauses, params } = this.buildRawFilters(query, true, 1, 'colors');
+    const sql = `
+      SELECT
+        LOWER(p.color) AS value,
+        MIN(p.color)   AS label,
+        MIN(p."colorHex") AS hex,
+        COUNT(DISTINCT COALESCE(p."modelId"::text, p.id::text))::int AS count
+      FROM products p
+      LEFT JOIN product_variants v ON v."productId" = p.id
+      WHERE ${clauses.join(' AND ')}
+        AND p.color IS NOT NULL
+        AND p.color <> ''
+      GROUP BY LOWER(p.color)
+      ORDER BY count DESC, value ASC
+    `;
+    const rows: Array<{
+      value: string;
+      label: string;
+      hex: string | null;
+      count: number;
+    }> = await this.repository.query(sql, params);
+    return rows.map((r) => ({
+      value: r.value,
+      label: this.capitalize(r.label ?? r.value),
+      hex: r.hex ?? undefined,
+      count: Number(r.count),
+    }));
+  }
+
+  private async getSizeFacet(query: ProductQueryDto): Promise<FacetItemDto[]> {
+    const { clauses, params } = this.buildRawFilters(query, true, 1, 'sizes');
+    const sql = `
+      SELECT
+        v.size AS value,
+        COUNT(DISTINCT COALESCE(p."modelId"::text, p.id::text))::int AS count
+      FROM products p
+      JOIN product_variants v ON v."productId" = p.id
+      WHERE ${clauses.join(' AND ')}
+        AND v.size IS NOT NULL
+        AND v.size <> ''
+      GROUP BY v.size
+      ORDER BY count DESC, value ASC
+    `;
+    const rows: Array<{ value: string; count: number }> =
+      await this.repository.query(sql, params);
+    return rows.map((r) => ({
+      value: r.value,
+      label: r.value,
+      count: Number(r.count),
+    }));
+  }
+
+  private async getActivityFacet(
+    query: ProductQueryDto,
+  ): Promise<FacetItemDto[]> {
+    const { clauses, params } = this.buildRawFilters(query, true, 1, 'activity');
+    const sql = `
+      SELECT
+        act AS value,
+        COUNT(DISTINCT COALESCE(p."modelId"::text, p.id::text))::int AS count
+      FROM products p
+      LEFT JOIN product_variants v ON v."productId" = p.id
+      CROSS JOIN LATERAL jsonb_array_elements_text(
+        COALESCE(p.attributes->'activity', '[]'::jsonb)
+      ) AS act
+      WHERE ${clauses.join(' AND ')}
+      GROUP BY act
+      ORDER BY count DESC, value ASC
+    `;
+    const rows: Array<{ value: string; count: number }> =
+      await this.repository.query(sql, params);
+    return rows.map((r) => ({
+      value: r.value,
+      label: ACTIVITY_LABELS[r.value] ?? this.capitalize(r.value),
+      count: Number(r.count),
+    }));
+  }
+
+  private async getPriceRange(
+    query: ProductQueryDto,
+  ): Promise<{ min: number; max: number }> {
+    const { clauses, params } = this.buildRawFilters(query, true, 1, 'price');
+    const sql = `
+      SELECT
+        COALESCE(MIN(p.price), 0)::float AS min,
+        COALESCE(MAX(p.price), 0)::float AS max
+      FROM products p
+      LEFT JOIN product_variants v ON v."productId" = p.id
+      WHERE ${clauses.join(' AND ')}
+    `;
+    const rows: Array<{ min: number; max: number }> = await this.repository.query(
+      sql,
+      params,
+    );
+    const row = rows[0] ?? { min: 0, max: 0 };
+    return { min: Number(row.min), max: Number(row.max) };
+  }
+
+  private capitalize(s: string): string {
+    if (!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   private buildRawFilters(
     query: ProductQueryDto,
     includeVariantFilters: boolean,
     startIdx: number,
+    excludeField: 'colors' | 'sizes' | 'activity' | 'price' | null = null,
   ): { clauses: string[]; params: any[]; nextIdx: number } {
     const clauses: string[] = [];
     const params: any[] = [];
@@ -365,26 +499,26 @@ export class ProductsRepository {
       paramIdx++;
     }
 
-    if (query.minPrice !== undefined) {
+    if (excludeField !== 'price' && query.minPrice !== undefined) {
       clauses.push(`p.price >= $${paramIdx}`);
       params.push(query.minPrice);
       paramIdx++;
     }
 
-    if (query.maxPrice !== undefined) {
+    if (excludeField !== 'price' && query.maxPrice !== undefined) {
       clauses.push(`p.price <= $${paramIdx}`);
       params.push(query.maxPrice);
       paramIdx++;
     }
 
-    if (query.colors?.length) {
+    if (excludeField !== 'colors' && query.colors?.length) {
       const placeholders = query.colors.map((_, i) => `$${paramIdx + i}`);
-      clauses.push(`p.color IN (${placeholders.join(', ')})`);
+      clauses.push(`LOWER(p.color) IN (${placeholders.join(', ')})`);
       params.push(...query.colors);
       paramIdx += query.colors.length;
     }
 
-    if (query.activity?.length) {
+    if (excludeField !== 'activity' && query.activity?.length) {
       const placeholders = query.activity.map((_, i) => `$${paramIdx + i}`);
       clauses.push(`p.attributes->'activity' ?| ARRAY[${placeholders.join(', ')}]`);
       params.push(...query.activity);
@@ -392,7 +526,7 @@ export class ProductsRepository {
     }
 
     if (includeVariantFilters) {
-      if (query.sizes?.length) {
+      if (excludeField !== 'sizes' && query.sizes?.length) {
         const placeholders = query.sizes.map((_, i) => `$${paramIdx + i}`);
         clauses.push(`v.size IN (${placeholders.join(', ')})`);
         params.push(...query.sizes);

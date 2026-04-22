@@ -22,6 +22,7 @@ import {
   UpdateProductDto,
   ProductQueryDto,
   ProductResponseDto,
+  ProductFacetsDto,
 } from './dto';
 import { PaginatedResult } from '@/common/types/pagination.types';
 
@@ -60,6 +61,20 @@ export class ProductsService implements OnModuleDestroy {
     const result = query.groupByModel
       ? await this.productsRepository.findAllGrouped(query)
       : await this.productsRepository.findAll(query);
+
+    await this.redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
+    return result;
+  }
+
+  async getFacets(query: ProductQueryDto): Promise<ProductFacetsDto> {
+    const cacheKey = `${CACHE_PREFIX}:facets:${JSON.stringify(query)}`;
+
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as ProductFacetsDto;
+    }
+
+    const result = await this.productsRepository.getFacets(query);
 
     await this.redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
     return result;

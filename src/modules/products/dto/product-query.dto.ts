@@ -71,9 +71,16 @@ export class ProductQueryDto {
 
   @ApiPropertyOptional({ description: 'Filter by colors', type: [String] })
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }: { value: unknown }) => {
+    const arr = typeof value === 'string'
+      ? value.split(',')
+      : Array.isArray(value)
+        ? value
+        : [];
+    return arr
+      .map((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v))
+      .filter(Boolean);
+  })
   @IsArray()
   @IsString({ each: true })
   colors?: string[];
