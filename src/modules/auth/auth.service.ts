@@ -90,7 +90,6 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user, audience);
-    console.log({ tokens });
     await this.usersService.updateRefreshToken(
       user.id,
       tokens.refreshToken,
