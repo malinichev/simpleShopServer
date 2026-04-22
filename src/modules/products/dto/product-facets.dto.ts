@@ -7,7 +7,10 @@ export class FacetItemDto {
   @ApiProperty({ description: 'Отображаемая форма' })
   label: string;
 
-  @ApiProperty({ description: 'HEX цвета — только для фасета colors', required: false })
+  @ApiProperty({
+    description: 'HEX цвета — только для фасета colors',
+    required: false,
+  })
   hex?: string;
 
   @ApiProperty({ description: 'Количество товаров / моделей под это значение' })

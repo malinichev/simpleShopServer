@@ -10,7 +10,11 @@ export enum ImportJobStatus {
 
 @Entity('import_jobs')
 export class ImportJob extends BaseEntity {
-  @Column({ type: 'enum', enum: ImportJobStatus, default: ImportJobStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: ImportJobStatus,
+    default: ImportJobStatus.PENDING,
+  })
   status: ImportJobStatus;
 
   @Column()

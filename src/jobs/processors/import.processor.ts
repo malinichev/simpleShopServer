@@ -7,7 +7,10 @@ import { Repository } from 'typeorm';
 import { ProductsService } from '@/modules/products/products.service';
 import { CategoriesService } from '@/modules/categories/categories.service';
 import { UploadService } from '@/modules/upload/upload.service';
-import { ImportJob, ImportJobStatus } from '@/modules/import/entities/import-job.entity';
+import {
+  ImportJob,
+  ImportJobStatus,
+} from '@/modules/import/entities/import-job.entity';
 import { ProductStatus } from '@/modules/products/entities/product.entity';
 
 interface ImportJobData {
@@ -19,6 +22,7 @@ interface ImportJobData {
   duplicateResolutions?: Record<string, 'db' | 'csv'>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface CsvRow {
   [key: string]: string;
 }
@@ -38,10 +42,19 @@ export class ImportProcessor extends WorkerHost {
   }
 
   async process(job: Job<ImportJobData>): Promise<void> {
-    const { jobId, fileKey, mapping, defaultStatus, skipDuplicates, duplicateResolutions } = job.data;
+    const {
+      jobId,
+      fileKey,
+      mapping,
+      defaultStatus,
+      skipDuplicates,
+      duplicateResolutions,
+    } = job.data;
     this.logger.log(`Processing import job ${jobId}`);
 
-    await this.importJobRepo.update(jobId, { status: ImportJobStatus.PROCESSING });
+    await this.importJobRepo.update(jobId, {
+      status: ImportJobStatus.PROCESSING,
+    });
 
     try {
       // Download CSV from S3
@@ -56,14 +69,17 @@ export class ImportProcessor extends WorkerHost {
       if (records.length < 2) {
         await this.importJobRepo.update(jobId, {
           status: ImportJobStatus.FAILED,
-          errors: [{ row: 0, message: 'CSV файл пуст или содержит только заголовки' }],
+          errors: [
+            { row: 0, message: 'CSV файл пуст или содержит только заголовки' },
+          ],
         });
         return;
       }
 
       const headers = records[0];
       const dataRows = records.slice(1);
-      const errors: Array<{ row: number; field?: string; message: string }> = [];
+      const errors: Array<{ row: number; field?: string; message: string }> =
+        [];
 
       await this.importJobRepo.update(jobId, { totalRows: dataRows.length });
 
@@ -76,8 +92,14 @@ export class ImportProcessor extends WorkerHost {
 
       // Build duplicate resolution map: productId → 'db' | 'csv'
       // Also build reverse lookup: sku/name → existingProduct for matching
-      const existingProductMap = new Map<string, { id: string; resolution: 'db' | 'csv' }>();
-      if (duplicateResolutions && Object.keys(duplicateResolutions).length > 0) {
+      const existingProductMap = new Map<
+        string,
+        { id: string; resolution: 'db' | 'csv' }
+      >();
+      if (
+        duplicateResolutions &&
+        Object.keys(duplicateResolutions).length > 0
+      ) {
         const productIds = Object.keys(duplicateResolutions);
         for (const productId of productIds) {
           try {
@@ -105,6 +127,7 @@ export class ImportProcessor extends WorkerHost {
       let successCount = 0;
       let errorCount = 0;
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for (const [groupKey, rows] of groups.entries()) {
         try {
           const firstRow = rows[0];
@@ -128,12 +151,18 @@ export class ImportProcessor extends WorkerHost {
           }
 
           // Check if this CSV row matches an existing product with a resolution
-          let existingMatch: { id: string; resolution: 'db' | 'csv' } | undefined;
+          let existingMatch:
+            | { id: string; resolution: 'db' | 'csv' }
+            | undefined;
           if (mapped.sku) {
-            existingMatch = existingProductMap.get(`sku:${mapped.sku.toLowerCase()}`);
+            existingMatch = existingProductMap.get(
+              `sku:${mapped.sku.toLowerCase()}`,
+            );
           }
           if (!existingMatch && mapped.name) {
-            existingMatch = existingProductMap.get(`name:${mapped.name.toLowerCase()}`);
+            existingMatch = existingProductMap.get(
+              `name:${mapped.name.toLowerCase()}`,
+            );
           }
 
           // Build product DTO
@@ -148,7 +177,9 @@ export class ImportProcessor extends WorkerHost {
               : undefined,
             categoryId,
             status: (mapped.status || defaultStatus) as ProductStatus,
-            tags: mapped.tags ? mapped.tags.split('|').map((t: string) => t.trim()) : [],
+            tags: mapped.tags
+              ? mapped.tags.split('|').map((t: string) => t.trim())
+              : [],
             color: mapped.color || undefined,
             colorHex: mapped.colorHex || undefined,
             gtin: this.validateGtin(mapped.gtin, firstRow.rowNum, errors),
@@ -165,7 +196,8 @@ export class ImportProcessor extends WorkerHost {
             },
             seo: {
               title: mapped.seoTitle || mapped.name || '',
-              description: mapped.seoDescription || mapped.shortDescription || '',
+              description:
+                mapped.seoDescription || mapped.shortDescription || '',
               keywords: [] as string[],
             },
           };
@@ -174,13 +206,18 @@ export class ImportProcessor extends WorkerHost {
             // Update existing product
             const updateDto: any = { ...productDto };
             // Remove sku to avoid uniqueness conflict on self-update
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             delete updateDto.sku;
 
             if (existingMatch.resolution === 'db') {
               // Keep name, description, images from DB — only update other fields
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               delete updateDto.name;
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               delete updateDto.description;
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               delete updateDto.shortDescription;
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               delete updateDto.images;
             }
             // resolution === 'csv' → update everything from CSV (including name/description/images)
@@ -190,7 +227,11 @@ export class ImportProcessor extends WorkerHost {
           } else {
             // Create new product
             if (!productDto.name) {
-              errors.push({ row: firstRow.rowNum, field: 'name', message: 'Название обязательно' });
+              errors.push({
+                row: firstRow.rowNum,
+                field: 'name',
+                message: 'Название обязательно',
+              });
               errorCount++;
               processedRows += rows.length;
               continue;
@@ -201,10 +242,17 @@ export class ImportProcessor extends WorkerHost {
           }
         } catch (err: any) {
           const row = rows[0].rowNum;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
           const message = err?.message || 'Неизвестная ошибка';
-          if (skipDuplicates && !duplicateResolutions && message.includes('уже существует')) {
+          if (
+            skipDuplicates &&
+            !duplicateResolutions &&
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+            message.includes('уже существует')
+          ) {
             // Skip duplicates silently (only if no explicit resolutions provided)
           } else {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             errors.push({ row, message });
             errorCount++;
           }
@@ -235,9 +283,11 @@ export class ImportProcessor extends WorkerHost {
         `Import ${jobId} completed: ${successCount} success, ${errorCount} errors`,
       );
     } catch (err: any) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.error(`Import ${jobId} failed: ${err.message}`);
       await this.importJobRepo.update(jobId, {
         status: ImportJobStatus.FAILED,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         errors: [{ row: 0, message: err.message || 'Ошибка обработки файла' }],
       });
     }
@@ -297,7 +347,12 @@ export class ImportProcessor extends WorkerHost {
   private buildImages(
     mapped: Record<string, string>,
   ): Array<{ id: string; url: string; alt: string; order: number }> {
-    const images: Array<{ id: string; url: string; alt: string; order: number }> = [];
+    const images: Array<{
+      id: string;
+      url: string;
+      alt: string;
+      order: number;
+    }> = [];
 
     for (let i = 1; i <= 5; i++) {
       const url = mapped[`imageUrl${i}`];
@@ -322,7 +377,11 @@ export class ImportProcessor extends WorkerHost {
     const cleaned = value.trim();
     if (!cleaned) return undefined;
     if (!/^\d{8,14}$/.test(cleaned)) {
-      errors.push({ row: rowNum, field: 'gtin', message: `Невалидный GTIN: "${cleaned}" (ожидается 8-14 цифр)` });
+      errors.push({
+        row: rowNum,
+        field: 'gtin',
+        message: `Невалидный GTIN: "${cleaned}" (ожидается 8-14 цифр)`,
+      });
       return undefined;
     }
     return cleaned;
@@ -333,7 +392,14 @@ export class ImportProcessor extends WorkerHost {
     rows: Array<{ rowNum: number; data: string[] }>,
     mapping: Record<string, string>,
     errors: Array<{ row: number; field?: string; message: string }>,
-  ): Array<{ id: string; size: string; sku: string; stock: number; price?: number; gtin?: string }> {
+  ): Array<{
+    id: string;
+    size: string;
+    sku: string;
+    stock: number;
+    price?: number;
+    gtin?: string;
+  }> {
     const variants: Array<{
       id: string;
       size: string;
@@ -353,7 +419,9 @@ export class ImportProcessor extends WorkerHost {
         size,
         sku: mapped.variantSku || `${mapped.sku || 'PRD'}-${size}`,
         stock: parseInt(mapped.variantStock, 10) || 0,
-        price: mapped.variantPrice ? parseFloat(mapped.variantPrice) : undefined,
+        price: mapped.variantPrice
+          ? parseFloat(mapped.variantPrice)
+          : undefined,
         gtin: this.validateGtin(mapped.variantGtin, rows[i].rowNum, errors),
       });
     }

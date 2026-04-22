@@ -72,13 +72,18 @@ export class ProductQueryDto {
   @ApiPropertyOptional({ description: 'Filter by colors', type: [String] })
   @IsOptional()
   @Transform(({ value }: { value: unknown }) => {
-    const arr = typeof value === 'string'
-      ? value.split(',')
-      : Array.isArray(value)
-        ? value
-        : [];
+    const arr =
+      typeof value === 'string'
+        ? value.split(',')
+        : Array.isArray(value)
+          ? value
+          : [];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return arr
-      .map((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v))
+      .map((v) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return typeof v === 'string' ? v.trim().toLowerCase() : v;
+      })
       .filter(Boolean);
   })
   @IsArray()
@@ -113,7 +118,9 @@ export class ProductQueryDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Group products by modelId (1 card per model)' })
+  @ApiPropertyOptional({
+    description: 'Group products by modelId (1 card per model)',
+  })
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()

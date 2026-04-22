@@ -170,11 +170,10 @@ export class OrdersService {
 
     // 7.5 Резервирование кодов маркировки (Честный знак)
     try {
-      const markingResult =
-        await this.orderMarkingService.reserveCodesForOrder(
-          order.id,
-          order.items,
-        );
+      const markingResult = await this.orderMarkingService.reserveCodesForOrder(
+        order.id,
+        order.items,
+      );
       if (markingResult.items.some((i) => i.assigned > 0)) {
         await this.orderItemRepository.save(order.items);
       }

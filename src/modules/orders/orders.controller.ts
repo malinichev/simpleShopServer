@@ -84,7 +84,10 @@ export class OrdersController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Коды маркировки заказа (Честный знак)' })
   @ApiParam({ name: 'id', description: 'Order ID' })
-  @ApiResponse({ status: 200, description: 'List of marking codes for the order' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of marking codes for the order',
+  })
   @ApiResponse({ status: 404, description: 'Order not found' })
   async getMarkingCodes(@Param('id', ParseUUIDPipe) id: string) {
     await this.ordersService.findById(id);

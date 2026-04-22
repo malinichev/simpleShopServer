@@ -2,7 +2,8 @@ import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-require-imports
 const sharp = require('sharp');
 import slugify from 'slugify';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,15 +25,42 @@ if (isProd) {
 
 function getBasketNum(vol: number): string {
   const ranges: [number, number, number][] = [
-    [0, 143, 1], [144, 287, 2], [288, 431, 3], [432, 719, 4],
-    [720, 1007, 5], [1008, 1061, 6], [1062, 1115, 7], [1116, 1169, 8],
-    [1170, 1313, 9], [1314, 1601, 10], [1602, 1655, 11], [1656, 1919, 12],
-    [1920, 2045, 13], [2046, 2189, 14], [2190, 2405, 15], [2406, 2621, 16],
-    [2622, 2837, 17], [2838, 3053, 18], [3054, 3269, 19], [3270, 3485, 20],
-    [3486, 3701, 21], [3702, 3917, 22], [3918, 4133, 23], [4134, 4349, 24],
-    [4350, 4565, 25], [4566, 4781, 26], [4782, 4997, 27], [4998, 5213, 28],
-    [5214, 5429, 29], [5430, 5645, 30], [5646, 5861, 31], [5862, 6077, 32],
-    [6078, 6293, 33], [6294, 6509, 34], [6510, 6725, 35], [6726, 6941, 36],
+    [0, 143, 1],
+    [144, 287, 2],
+    [288, 431, 3],
+    [432, 719, 4],
+    [720, 1007, 5],
+    [1008, 1061, 6],
+    [1062, 1115, 7],
+    [1116, 1169, 8],
+    [1170, 1313, 9],
+    [1314, 1601, 10],
+    [1602, 1655, 11],
+    [1656, 1919, 12],
+    [1920, 2045, 13],
+    [2046, 2189, 14],
+    [2190, 2405, 15],
+    [2406, 2621, 16],
+    [2622, 2837, 17],
+    [2838, 3053, 18],
+    [3054, 3269, 19],
+    [3270, 3485, 20],
+    [3486, 3701, 21],
+    [3702, 3917, 22],
+    [3918, 4133, 23],
+    [4134, 4349, 24],
+    [4350, 4565, 25],
+    [4566, 4781, 26],
+    [4782, 4997, 27],
+    [4998, 5213, 28],
+    [5214, 5429, 29],
+    [5430, 5645, 30],
+    [5646, 5861, 31],
+    [5862, 6077, 32],
+    [6078, 6293, 33],
+    [6294, 6509, 34],
+    [6510, 6725, 35],
+    [6726, 6941, 36],
   ];
   for (const [min, max, basket] of ranges) {
     if (vol >= min && vol <= max) return String(basket).padStart(2, '0');
@@ -56,7 +84,12 @@ function sleep(ms: number): Promise<void> {
 function guessCategory(name: string): string {
   const lower = name.toLowerCase();
   if (lower.includes('костюм')) return 'Костюмы';
-  if (lower.includes('леггинсы') || lower.includes('лосины') || lower.includes('тайтсы')) return 'Леггинсы';
+  if (
+    lower.includes('леггинсы') ||
+    lower.includes('лосины') ||
+    lower.includes('тайтсы')
+  )
+    return 'Леггинсы';
   if (lower.includes('купальник')) return 'Купальники';
   if (lower.includes('комбинезон')) return 'Комбинезоны';
   if (lower.includes('топ') || lower.includes('бра')) return 'Топы';
@@ -74,7 +107,8 @@ function generateDescription(name: string): string {
   let type = 'изделие';
   if (lower.includes('комбинезон')) type = 'комбинезон';
   else if (lower.includes('костюм')) type = 'костюм';
-  else if (lower.includes('леггинсы') || lower.includes('лосины')) type = 'леггинсы';
+  else if (lower.includes('леггинсы') || lower.includes('лосины'))
+    type = 'леггинсы';
   else if (lower.includes('купальник')) type = 'купальник';
   else if (lower.includes('топ')) type = 'топ';
 
@@ -85,9 +119,12 @@ function generateDescription(name: string): string {
   if (lower.includes('юбк')) features.push('с юбкой-шортами');
   if (lower.includes('клеш')) features.push('с расклешённым низом');
   if (lower.includes('обтяг')) features.push('облегающего силуэта');
-  if (lower.includes('флис') || lower.includes('тепл')) features.push('с мягкой флисовой подкладкой для тепла');
-  if (lower.includes('рубчик')) features.push('из фактурного трикотажа в рубчик');
-  if (lower.includes('пушап') || lower.includes('сборк')) features.push('с эффектом пуш-ап');
+  if (lower.includes('флис') || lower.includes('тепл'))
+    features.push('с мягкой флисовой подкладкой для тепла');
+  if (lower.includes('рубчик'))
+    features.push('из фактурного трикотажа в рубчик');
+  if (lower.includes('пушап') || lower.includes('сборк'))
+    features.push('с эффектом пуш-ап');
   if (lower.includes('утяг')) features.push('с утягивающим эффектом');
 
   const featuresStr = features.length > 0 ? ' ' + features.join(', ') : '';
@@ -158,14 +195,29 @@ function parseHtml(html: string): ParsedProduct[] {
 
     // Name: brand name + product name
     const brandName = $el.find('.product-card__brand').text().trim();
-    const productName = $el.find('.product-card__name').contents().filter(function () {
-      return this.type === 'text' || (this as any).tagName !== 'span' || !$(this).hasClass('product-card__name-separator');
-    }).text().replace(/\s*\/\s*/, '').trim();
+    const productName = $el
+      .find('.product-card__name')
+      .contents()
+      .filter(function () {
+        return (
+          // eslint-disable-next-line
+          this.type === 'text' ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (this as any).tagName !== 'span' ||
+          !$(this).hasClass('product-card__name-separator')
+        );
+      })
+      .text()
+      .replace(/\s*\/\s*/, '')
+      .trim();
 
     const name = productName || `${brandName} Спортивная одежда`;
 
     // Price — remove &nbsp; and non-digit chars
-    const salePriceText = $el.find('.price__lower-price').text().replace(/[^\d]/g, '');
+    const salePriceText = $el
+      .find('.price__lower-price')
+      .text()
+      .replace(/[^\d]/g, '');
     const oldPriceText = $el.find('del').text().replace(/[^\d]/g, '');
     const salePrice = parseInt(salePriceText, 10) || 0;
     const oldPrice = parseInt(oldPriceText, 10) || 0;
@@ -175,13 +227,24 @@ function parseHtml(html: string): ParsedProduct[] {
     const rating = parseFloat(ratingText) || 0;
 
     // Reviews count
-    const reviewsText = $el.find('.product-card__count').text().replace(/[^\d]/g, '');
+    const reviewsText = $el
+      .find('.product-card__count')
+      .text()
+      .replace(/[^\d]/g, '');
     const reviewsCount = parseInt(reviewsText, 10) || 0;
 
     // Image URL
     const imageUrl = $el.find('.j-thumbnail').attr('src') || '';
 
-    products.push({ nmId, name, salePrice, oldPrice, rating, reviewsCount, imageUrl });
+    products.push({
+      nmId,
+      name,
+      salePrice,
+      oldPrice,
+      rating,
+      reviewsCount,
+      imageUrl,
+    });
   });
 
   return products;
@@ -196,7 +259,9 @@ async function main(): Promise<void> {
   const htmlPath = path.resolve(__dirname, 'wb-catalog.html');
   if (!fs.existsSync(htmlPath)) {
     console.error(`HTML file not found: ${htmlPath}`);
-    console.error('Save the WB brand page HTML to server/src/database/seeds/wb-catalog.html');
+    console.error(
+      'Save the WB brand page HTML to server/src/database/seeds/wb-catalog.html',
+    );
     process.exit(1);
   }
   const html = fs.readFileSync(htmlPath, 'utf-8');
@@ -212,7 +277,9 @@ async function main(): Promise<void> {
 
   // Print parsed products
   for (const p of parsed) {
-    console.log(`  ${p.nmId}: ${p.name} — ${p.salePrice}₽ (было ${p.oldPrice}₽) ★${p.rating}`);
+    console.log(
+      `  ${p.nmId}: ${p.name} — ${p.salePrice}₽ (было ${p.oldPrice}₽) ★${p.rating}`,
+    );
   }
   console.log('');
 
@@ -232,7 +299,10 @@ async function main(): Promise<void> {
   const s3Endpoint = process.env.S3_ENDPOINT || 'http://localhost:9000';
   const s3Bucket = process.env.S3_BUCKET || 'sports-shop';
   const s3CdnUrl = process.env.S3_CDN_URL || '';
-  const s3PublicUrl = process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT || 'http://localhost:9000';
+  const s3PublicUrl =
+    process.env.S3_PUBLIC_URL ||
+    process.env.S3_ENDPOINT ||
+    'http://localhost:9000';
 
   const s3 = new S3Client({
     endpoint: s3Endpoint,
@@ -255,7 +325,16 @@ async function main(): Promise<void> {
 
     // Clear existing products & categories
     console.log('Clearing products & categories...');
-    for (const table of ['cart_items', 'carts', 'order_items', 'orders', 'reviews', 'product_variants', 'products', 'categories']) {
+    for (const table of [
+      'cart_items',
+      'carts',
+      'order_items',
+      'orders',
+      'reviews',
+      'product_variants',
+      'products',
+      'categories',
+    ]) {
       try {
         await dataSource.query(`TRUNCATE TABLE "${table}" CASCADE`);
       } catch {
@@ -270,9 +349,12 @@ async function main(): Promise<void> {
     const categoryMap = new Map<string, string>(); // name -> id
     let catOrder = 0;
 
-    const categoryNames = [...new Set(parsed.map((p) => guessCategory(p.name)))];
+    const categoryNames = [
+      ...new Set(parsed.map((p) => guessCategory(p.name))),
+    ];
     for (const catName of categoryNames) {
-      const catSlug = slugify(catName, { lower: true, strict: true }) || `cat-${catOrder}`;
+      const catSlug =
+        slugify(catName, { lower: true, strict: true }) || `cat-${catOrder}`;
       const cat = categoryRepo.create({
         name: catName,
         slug: catSlug,
@@ -282,10 +364,15 @@ async function main(): Promise<void> {
         seo: {
           title: `${catName} | SVOYA ESTHETICA`,
           description: `Купить ${catName.toLowerCase()} от SVOYA ESTHETICA`,
-          keywords: [catName.toLowerCase(), 'спортивная одежда', 'svoya esthetica'],
+          keywords: [
+            catName.toLowerCase(),
+            'спортивная одежда',
+            'svoya esthetica',
+          ],
         },
       });
       const saved = await categoryRepo.save(cat);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       categoryMap.set(catName, (saved as any).id);
       console.log(`  ${catName} (slug: ${catSlug})`);
     }
@@ -302,7 +389,12 @@ async function main(): Promise<void> {
         console.log(`  [${imported + 1}/${parsed.length}] ${wp.name}...`);
 
         // Download images from WB CDN (try up to 15 photos)
-        const images: { id: string; url: string; alt: string; order: number }[] = [];
+        const images: {
+          id: string;
+          url: string;
+          alt: string;
+          order: number;
+        }[] = [];
         const MAX_PHOTOS = 15;
 
         for (let i = 1; i <= MAX_PHOTOS; i++) {
@@ -310,8 +402,9 @@ async function main(): Promise<void> {
             const imgUrl = getWbImageUrl(wp.nmId, i, 'big');
             const imgRes = await fetch(imgUrl, {
               headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                'Referer': 'https://www.wildberries.ru/',
+                'User-Agent':
+                  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                Referer: 'https://www.wildberries.ru/',
               },
             });
 
@@ -334,12 +427,22 @@ async function main(): Promise<void> {
               .toBuffer();
 
             await Promise.all([
-              s3.send(new PutObjectCommand({
-                Bucket: s3Bucket, Key: key, Body: webp, ContentType: 'image/webp',
-              })),
-              s3.send(new PutObjectCommand({
-                Bucket: s3Bucket, Key: thumbKey, Body: thumb, ContentType: 'image/webp',
-              })),
+              s3.send(
+                new PutObjectCommand({
+                  Bucket: s3Bucket,
+                  Key: key,
+                  Body: webp,
+                  ContentType: 'image/webp',
+                }),
+              ),
+              s3.send(
+                new PutObjectCommand({
+                  Bucket: s3Bucket,
+                  Key: thumbKey,
+                  Body: thumb,
+                  ContentType: 'image/webp',
+                }),
+              ),
             ]);
 
             images.push({
@@ -359,14 +462,18 @@ async function main(): Promise<void> {
         const catName = guessCategory(wp.name);
         const categoryId = categoryMap.get(catName);
         const description = generateDescription(wp.name);
-        const shortDescription = description.slice(0, 200).replace(/\s+\S*$/, '');
+        const shortDescription = description
+          .slice(0, 200)
+          .replace(/\s+\S*$/, '');
         const baseSku = `SE-${wp.nmId}`;
         const baseSlug = slugify(wp.name, { lower: true, strict: true });
         const isSwimsuits = wp.name.toLowerCase().includes('купальник');
         const sizes = isSwimsuits ? SWIMSUIT_SIZES : DEFAULT_SIZES;
 
         // Each color = separate product, linked by modelId
-        const colorCount = MIN_COLORS + Math.floor(Math.random() * (MAX_COLORS - MIN_COLORS + 1));
+        const colorCount =
+          MIN_COLORS +
+          Math.floor(Math.random() * (MAX_COLORS - MIN_COLORS + 1));
         const colors = pickColors(colorCount);
         const modelId = uuidv4();
 
@@ -388,7 +495,8 @@ async function main(): Promise<void> {
             shortDescription,
             sku: productSku,
             price: wp.salePrice,
-            compareAtPrice: wp.oldPrice > wp.salePrice ? wp.oldPrice : undefined,
+            compareAtPrice:
+              wp.oldPrice > wp.salePrice ? wp.oldPrice : undefined,
             categoryId,
             color: color.name,
             colorHex: color.hex,
@@ -403,10 +511,17 @@ async function main(): Promise<void> {
             seo: {
               title: `${productName} | SVOYA ESTHETICA`,
               description: shortDescription,
-              keywords: [wp.name.toLowerCase(), color.name.toLowerCase(), 'svoya esthetica', 'спортивная одежда'],
+              keywords: [
+                wp.name.toLowerCase(),
+                color.name.toLowerCase(),
+                'svoya esthetica',
+                'спортивная одежда',
+              ],
             },
             rating: wp.rating,
-            reviewsCount: isFirst ? wp.reviewsCount : Math.floor(wp.reviewsCount * (0.3 + Math.random() * 0.5)),
+            reviewsCount: isFirst
+              ? wp.reviewsCount
+              : Math.floor(wp.reviewsCount * (0.3 + Math.random() * 0.5)),
             soldCount: Math.floor(Math.random() * 200) + 50,
             status: 'active',
             isVisible: true,
@@ -430,7 +545,9 @@ async function main(): Promise<void> {
         }
 
         imported++;
-        console.log(`    OK — ${colors.length} colors × ${sizes.length} sizes = ${colors.length * sizes.length} variants`);
+        console.log(
+          `    OK — ${colors.length} colors × ${sizes.length} sizes = ${colors.length * sizes.length} variants`,
+        );
 
         // Small delay between image downloads
         await sleep(200);

@@ -6,17 +6,23 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   imports: [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        username: configService.get<string>('database.username'),
-        password: configService.get<string>('database.password'),
-        database: configService.get<string>('database.database'),
-        synchronize: configService.get<string>('nodeEnv') === 'development',
-        logging: configService.get<string>('nodeEnv') === 'development',
-        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-      }),
+      useFactory: (configService: ConfigService) => {
+        const isProd = configService.get<string>('nodeEnv') === 'production';
+        return {
+          type: 'postgres' as const,
+          host: configService.get<string>('database.host'),
+          port: configService.get<number>('database.port'),
+          username: configService.get<string>('database.username'),
+          password: configService.get<string>('database.password'),
+          database: configService.get<string>('database.database'),
+          synchronize: !isProd,
+          logging: !isProd,
+          entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+          // Beget managed-PG использует self-signed CA → rejectUnauthorized=false.
+          // Трафик шифруется (TLS 1.3), но identity chain не верифицируется.
+          ssl: isProd ? { rejectUnauthorized: false } : false,
+        };
+      },
       inject: [ConfigService],
     }),
   ],

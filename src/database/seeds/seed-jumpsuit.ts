@@ -8,7 +8,10 @@ import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { Product, ProductStatus } from '@/modules/products/entities/product.entity';
+import {
+  Product,
+  ProductStatus,
+} from '@/modules/products/entities/product.entity';
 import { ProductVariantEntity } from '@/modules/products/entities/product-variant.entity';
 import { Category } from '@/modules/categories/entities/category.entity';
 
@@ -32,17 +35,20 @@ const COLORS = [
   {
     name: 'черный',
     hex: '#000000',
-    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80',
   },
   {
     name: 'розовый',
     hex: '#FFC0CB',
-    image: 'https://images.unsplash.com/photo-1518577915332-c2a19f149a75?w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1518577915332-c2a19f149a75?w=800&q=80',
   },
   {
     name: 'серый',
     hex: '#808080',
-    image: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1544441893-675973e31985?w=800&q=80',
   },
 ];
 
@@ -63,7 +69,8 @@ async function run() {
       categoryRepo.create({
         name: 'Комбинезоны',
         slug: 'jumpsuits',
-        description: 'Спортивные комбинезоны для тренировок и повседневной носки',
+        description:
+          'Спортивные комбинезоны для тренировок и повседневной носки',
         order: 9,
         isActive: true,
       }),
@@ -85,7 +92,9 @@ async function run() {
     const suffix = color.name.slice(0, 3).toUpperCase();
 
     const productData: Partial<Product> = {
-      name: isFirst ? 'Комбинезон спортивный FlexOne' : `Комбинезон спортивный FlexOne (${color.name})`,
+      name: isFirst
+        ? 'Комбинезон спортивный FlexOne'
+        : `Комбинезон спортивный FlexOne (${color.name})`,
       slug: isFirst ? 'jumpsuit-flexone' : `jumpsuit-flexone-${color.name}`,
       description:
         'Стильный спортивный комбинезон с молнией спереди. Эластичная ткань обеспечивает свободу движений. ' +
@@ -110,7 +119,12 @@ async function run() {
       attributes: {
         material: '75% нейлон, 25% спандекс',
         activity: ['yoga', 'casual'],
-        features: ['Молния спереди', 'Широкий пояс', 'Эластичная ткань', 'Карманы'],
+        features: [
+          'Молния спереди',
+          'Широкий пояс',
+          'Эластичная ткань',
+          'Карманы',
+        ],
       },
       rating: 0,
       reviewsCount: 0,
@@ -118,7 +132,9 @@ async function run() {
       status: ProductStatus.ACTIVE,
       isVisible: true,
       seo: {
-        title: isFirst ? 'Комбинезон спортивный FlexOne' : `Комбинезон FlexOne (${color.name})`,
+        title: isFirst
+          ? 'Комбинезон спортивный FlexOne'
+          : `Комбинезон FlexOne (${color.name})`,
         description: 'Спортивный комбинезон с молнией и широким поясом',
         keywords: ['комбинезон', 'спортивный', color.name],
       },
@@ -147,7 +163,9 @@ async function run() {
   }
 
   console.log('─────────────────────────────────────');
-  console.log(`✅ Создано ${createdProducts.length} товара с modelId = ${modelId}`);
+  console.log(
+    `✅ Создано ${createdProducts.length} товара с modelId = ${modelId}`,
+  );
   console.log('   Все связаны как цветовые сиблинги.\n');
 
   await dataSource.destroy();

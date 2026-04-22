@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-require-imports
 const sharp = require('sharp');
 import slugify from 'slugify';
 import { v4 as uuidv4 } from 'uuid';
@@ -75,70 +75,70 @@ function randomDelay(min: number, max: number): number {
 // --- Category mapping ---
 
 const CATEGORY_NAME_MAP: Record<string, string> = {
-  'Леггинсы': 'Леггинсы',
-  'Легинсы': 'Леггинсы',
-  'Тайтсы': 'Леггинсы',
-  'Топ': 'Топы',
-  'Топы': 'Топы',
-  'Бра': 'Бра',
+  Леггинсы: 'Леггинсы',
+  Легинсы: 'Леггинсы',
+  Тайтсы: 'Леггинсы',
+  Топ: 'Топы',
+  Топы: 'Топы',
+  Бра: 'Бра',
   'Бюстгальтер спортивный': 'Бра',
-  'Шорты': 'Шорты',
+  Шорты: 'Шорты',
   'Костюмы спортивные': 'Костюмы',
-  'Комплекты': 'Костюмы',
-  'Худи': 'Худи',
-  'Свитшоты': 'Свитшоты',
-  'Куртки': 'Куртки',
-  'Ветровки': 'Куртки',
-  'Футболки': 'Футболки',
-  'Боди': 'Боди',
-  'Комбинезоны': 'Комбинезоны',
-  'Брюки': 'Брюки',
-  'Платья': 'Платья',
-  'Рашгарды': 'Рашгарды',
-  'Лонгсливы': 'Лонгсливы',
-  'Жилеты': 'Жилеты',
+  Комплекты: 'Костюмы',
+  Худи: 'Худи',
+  Свитшоты: 'Свитшоты',
+  Куртки: 'Куртки',
+  Ветровки: 'Куртки',
+  Футболки: 'Футболки',
+  Боди: 'Боди',
+  Комбинезоны: 'Комбинезоны',
+  Брюки: 'Брюки',
+  Платья: 'Платья',
+  Рашгарды: 'Рашгарды',
+  Лонгсливы: 'Лонгсливы',
+  Жилеты: 'Жилеты',
 };
 
 const COLOR_HEX_MAP: Record<string, string> = {
-  'черный': '#000000',
-  'чёрный': '#000000',
-  'белый': '#FFFFFF',
-  'серый': '#808080',
-  'розовый': '#FFC0CB',
-  'красный': '#FF0000',
-  'синий': '#0000FF',
-  'голубой': '#87CEEB',
-  'зеленый': '#008000',
-  'зелёный': '#008000',
-  'фиолетовый': '#800080',
-  'бежевый': '#F5F5DC',
-  'коричневый': '#8B4513',
-  'оранжевый': '#FF8C00',
-  'желтый': '#FFD700',
-  'жёлтый': '#FFD700',
-  'бордовый': '#800020',
-  'молочный': '#FFFDD0',
-  'пудровый': '#E8C4C4',
-  'хаки': '#806B2A',
-  'мятный': '#98FF98',
-  'лавандовый': '#E6E6FA',
-  'леопардовый': '#C6923E',
+  черный: '#000000',
+  чёрный: '#000000',
+  белый: '#FFFFFF',
+  серый: '#808080',
+  розовый: '#FFC0CB',
+  красный: '#FF0000',
+  синий: '#0000FF',
+  голубой: '#87CEEB',
+  зеленый: '#008000',
+  зелёный: '#008000',
+  фиолетовый: '#800080',
+  бежевый: '#F5F5DC',
+  коричневый: '#8B4513',
+  оранжевый: '#FF8C00',
+  желтый: '#FFD700',
+  жёлтый: '#FFD700',
+  бордовый: '#800020',
+  молочный: '#FFFDD0',
+  пудровый: '#E8C4C4',
+  хаки: '#806B2A',
+  мятный: '#98FF98',
+  лавандовый: '#E6E6FA',
+  леопардовый: '#C6923E',
   'темно-синий': '#00008B',
   'темно-серый': '#404040',
   'светло-серый': '#D3D3D3',
-  'графитовый': '#383838',
-  'малиновый': '#DC143C',
-  'персиковый': '#FFDAB9',
-  'лиловый': '#CC99CC',
-  'марсала': '#964B52',
+  графитовый: '#383838',
+  малиновый: '#DC143C',
+  персиковый: '#FFDAB9',
+  лиловый: '#CC99CC',
+  марсала: '#964B52',
   'темно-зеленый': '#006400',
-  'оливковый': '#808000',
-  'сливовый': '#660066',
-  'шоколадный': '#7B3F00',
-  'терракотовый': '#CC4E24',
-  'кремовый': '#FFFDD0',
-  'айвори': '#FFFFF0',
-  'пепельный': '#B2BEB5',
+  оливковый: '#808000',
+  сливовый: '#660066',
+  шоколадный: '#7B3F00',
+  терракотовый: '#CC4E24',
+  кремовый: '#FFFDD0',
+  айвори: '#FFFFF0',
+  пепельный: '#B2BEB5',
 };
 
 // --- WB product interface ---
@@ -215,7 +215,9 @@ async function collectCatalog(page: Page): Promise<WbProduct[]> {
               allProducts.push(p);
             }
           }
-          console.log(`  Intercepted ${products.length} products (total unique: ${allProducts.length})`);
+          console.log(
+            `  Intercepted ${products.length} products (total unique: ${allProducts.length})`,
+          );
         }
       } catch {
         // Not JSON or parsing failed — skip
@@ -240,7 +242,9 @@ async function collectCatalog(page: Page): Promise<WbProduct[]> {
 
     if (allProducts.length === prevCount) {
       noNewProductsCount++;
-      console.log(`  No new products after scroll (${noNewProductsCount}/${MAX_NO_NEW})`);
+      console.log(
+        `  No new products after scroll (${noNewProductsCount}/${MAX_NO_NEW})`,
+      );
     } else {
       noNewProductsCount = 0;
       prevCount = allProducts.length;
@@ -248,7 +252,9 @@ async function collectCatalog(page: Page): Promise<WbProduct[]> {
 
     // Try clicking "Show more" button if exists
     try {
-      const showMoreBtn = await page.$('.pagination-next, .btn__more, [class*="showMore"]');
+      const showMoreBtn = await page.$(
+        '.pagination-next, .btn__more, [class*="showMore"]',
+      );
       if (showMoreBtn) {
         await showMoreBtn.click();
         console.log('  Clicked "Show more" button');
@@ -370,7 +376,9 @@ async function main(): Promise<void> {
   const s3Bucket = process.env.S3_BUCKET || 'sports-shop';
   const s3CdnUrl = process.env.S3_CDN_URL || '';
   const s3PublicUrl =
-    process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT || 'http://localhost:9000';
+    process.env.S3_PUBLIC_URL ||
+    process.env.S3_ENDPOINT ||
+    'http://localhost:9000';
 
   const s3 = new S3Client({
     endpoint: s3Endpoint,
@@ -418,7 +426,9 @@ async function main(): Promise<void> {
 
     if (allProducts.length === 0) {
       console.log('No products found! Check if WB requires captcha.');
-      console.log('The browser is still open — solve captcha manually, then restart the script.');
+      console.log(
+        'The browser is still open — solve captcha manually, then restart the script.',
+      );
       // Keep browser open for manual intervention
       await sleep(60000);
       return;
@@ -426,7 +436,10 @@ async function main(): Promise<void> {
 
     // --- Phase 2: Create categories ---
     console.log('[2/5] Creating categories...');
-    const subjectGroups = new Map<number, { name: string; products: WbProduct[] }>();
+    const subjectGroups = new Map<
+      number,
+      { name: string; products: WbProduct[] }
+    >();
     for (const p of allProducts) {
       const subjectId = p.subjectId;
       if (!subjectGroups.has(subjectId)) {
@@ -442,7 +455,9 @@ async function main(): Promise<void> {
     let catOrder = 0;
 
     for (const [subjectId, group] of Array.from(subjectGroups.entries())) {
-      const catSlug = slugify(group.name, { lower: true, strict: true }) || `cat-${subjectId}`;
+      const catSlug =
+        slugify(group.name, { lower: true, strict: true }) ||
+        `cat-${subjectId}`;
       const existing = await categoryRepo.findOne({ where: { slug: catSlug } });
       if (existing) {
         categoryMap.set(subjectId, (existing as any).id);
@@ -458,12 +473,18 @@ async function main(): Promise<void> {
         seo: {
           title: `${group.name} | SVOYA ESTHETICA`,
           description: `Купить ${group.name.toLowerCase()} от SVOYA ESTHETICA`,
-          keywords: [group.name.toLowerCase(), 'спортивная одежда', 'svoya esthetica'],
+          keywords: [
+            group.name.toLowerCase(),
+            'спортивная одежда',
+            'svoya esthetica',
+          ],
         },
       });
       const saved = await categoryRepo.save(cat);
       categoryMap.set(subjectId, (saved as any).id);
-      console.log(`  Created: ${group.name} (${group.products.length} products)`);
+      console.log(
+        `  Created: ${group.name} (${group.products.length} products)`,
+      );
     }
     console.log('');
 
@@ -479,16 +500,24 @@ async function main(): Promise<void> {
         const baseUrl = getBasketUrl(nm);
 
         // Fetch card details via Puppeteer page navigation
-        console.log(`  [${imported + 1}/${allProducts.length}] Fetching details for ${wp.name}...`);
+        console.log(
+          `  [${imported + 1}/${allProducts.length}] Fetching details for ${wp.name}...`,
+        );
         const card = await fetchCardDetails(page, nm);
         await sleep(randomDelay(PAGE_DELAY_MIN, PAGE_DELAY_MAX));
 
         const description = card.description || wp.name;
-        const shortDescription = description.slice(0, 200).replace(/\s+\S*$/, '') || wp.name;
+        const shortDescription =
+          description.slice(0, 200).replace(/\s+\S*$/, '') || wp.name;
         const vendorCode = card.vendorCode;
 
         // Download & upload images (via fetch — images are static CDN, no blocking)
-        const images: { id: string; url: string; alt: string; order: number }[] = [];
+        const images: {
+          id: string;
+          url: string;
+          alt: string;
+          order: number;
+        }[] = [];
         const picCount = Math.min(wp.pics || 1, 10);
 
         for (let i = 1; i <= picCount; i++) {
@@ -496,13 +525,16 @@ async function main(): Promise<void> {
             let buf: Buffer | null = null;
             for (const ext of ['webp', 'jpg']) {
               try {
-                const imgRes = await fetch(`${baseUrl}/images/big/${i}.${ext}`, {
-                  headers: {
-                    'User-Agent':
-                      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    Referer: 'https://www.wildberries.ru/',
+                const imgRes = await fetch(
+                  `${baseUrl}/images/big/${i}.${ext}`,
+                  {
+                    headers: {
+                      'User-Agent':
+                        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                      Referer: 'https://www.wildberries.ru/',
+                    },
                   },
-                });
+                );
                 if (imgRes.ok) {
                   buf = Buffer.from(await imgRes.arrayBuffer());
                   break;
@@ -552,7 +584,9 @@ async function main(): Promise<void> {
               order: i - 1,
             });
           } catch (err) {
-            console.log(`    Image ${i} failed for ${nm}: ${(err as Error).message}`);
+            console.log(
+              `    Image ${i} failed for ${nm}: ${(err as Error).message}`,
+            );
             break;
           }
         }
@@ -648,11 +682,16 @@ async function main(): Promise<void> {
         );
         await sleep(CARD_DELAY);
       } catch (err) {
-        console.error(`  Failed: ${wp.name} (${wp.id}):`, (err as Error).message);
+        console.error(
+          `  Failed: ${wp.name} (${wp.id}):`,
+          (err as Error).message,
+        );
       }
     }
 
-    console.log(`\n[4/5] Done! Imported ${imported}/${allProducts.length} products.`);
+    console.log(
+      `\n[4/5] Done! Imported ${imported}/${allProducts.length} products.`,
+    );
 
     // Summary
     const productCount = await productRepo.count();

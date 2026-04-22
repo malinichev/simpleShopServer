@@ -263,7 +263,9 @@ export class ProductsRepository {
     );
   }
 
-  async findAllGrouped(query: ProductQueryDto): Promise<PaginatedResult<Product>> {
+  async findAllGrouped(
+    query: ProductQueryDto,
+  ): Promise<PaginatedResult<Product>> {
     const page = query.page || DEFAULT_PAGE;
     const limit = query.limit || DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
@@ -316,7 +318,10 @@ export class ProductsRepository {
       SELECT id FROM ranked WHERE rn = 1
     `;
 
-    const repRows: Array<{ id: string }> = await this.repository.query(cteQuery, allParams);
+    const repRows: Array<{ id: string }> = await this.repository.query(
+      cteQuery,
+      allParams,
+    );
     const repIds = repRows.map((r) => r.id);
     const total = repIds.length;
 
@@ -424,7 +429,12 @@ export class ProductsRepository {
   private async getActivityFacet(
     query: ProductQueryDto,
   ): Promise<FacetItemDto[]> {
-    const { clauses, params } = this.buildRawFilters(query, true, 1, 'activity');
+    const { clauses, params } = this.buildRawFilters(
+      query,
+      true,
+      1,
+      'activity',
+    );
     const sql = `
       SELECT
         act AS value,
@@ -459,10 +469,8 @@ export class ProductsRepository {
       LEFT JOIN product_variants v ON v."productId" = p.id
       WHERE ${clauses.join(' AND ')}
     `;
-    const rows: Array<{ min: number; max: number }> = await this.repository.query(
-      sql,
-      params,
-    );
+    const rows: Array<{ min: number; max: number }> =
+      await this.repository.query(sql, params);
     const row = rows[0] ?? { min: 0, max: 0 };
     return { min: Number(row.min), max: Number(row.max) };
   }
@@ -520,7 +528,9 @@ export class ProductsRepository {
 
     if (excludeField !== 'activity' && query.activity?.length) {
       const placeholders = query.activity.map((_, i) => `$${paramIdx + i}`);
-      clauses.push(`p.attributes->'activity' ?| ARRAY[${placeholders.join(', ')}]`);
+      clauses.push(
+        `p.attributes->'activity' ?| ARRAY[${placeholders.join(', ')}]`,
+      );
       params.push(...query.activity);
       paramIdx += query.activity.length;
     }

@@ -355,8 +355,10 @@ export class ProductsService implements OnModuleDestroy {
   async findColorSiblings(productId: string) {
     const product = await this.findById(productId);
     if (!product.modelId) return [];
-    const siblings =
-      await this.productsRepository.findColorSiblings(product.modelId, productId);
+    const siblings = await this.productsRepository.findColorSiblings(
+      product.modelId,
+      productId,
+    );
     return siblings.map((s) => ({
       id: s.id,
       slug: s.slug,

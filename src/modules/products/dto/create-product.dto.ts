@@ -219,7 +219,10 @@ export class CreateProductDto {
   @Matches(/^\d{8,14}$/, { message: 'GTIN должен содержать 8-14 цифр' })
   gtin?: string;
 
-  @ApiPropertyOptional({ default: false, description: 'Товар подлежит обязательной маркировке (Честный знак)' })
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Товар подлежит обязательной маркировке (Честный знак)',
+  })
   @IsOptional()
   @IsBoolean()
   requiresMarking?: boolean;

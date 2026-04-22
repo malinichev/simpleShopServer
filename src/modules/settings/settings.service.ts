@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Settings, NotificationSettings, SocialLinks } from './entities/settings.entity';
+import { Settings, NotificationSettings } from './entities/settings.entity';
 import { ShippingMethod } from './entities/shipping-method.entity';
 import { PaymentMethod } from './entities/payment-method.entity';
 import {
