@@ -21,6 +21,19 @@ if (isProd) {
   dotenv.config({ path: '.env' });
 }
 
+// Extra guard: не запускаем импорт когда NODE_ENV=production
+// (это может быть и с --prod, и без — любая конфигурация с prod-БД опасна).
+if (
+  (isProd || process.env.NODE_ENV === 'production') &&
+  process.env.FORCE_PROD_SEED !== 'yes'
+) {
+  console.error(
+    '❌ Refusing wb-html-import against production DB. ' +
+      'Set FORCE_PROD_SEED=yes to override (DANGEROUS).',
+  );
+  process.exit(1);
+}
+
 // --- WB Image URL helpers ---
 
 function getBasketNum(vol: number): string {
@@ -292,7 +305,11 @@ async function main(): Promise<void> {
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_DATABASE || 'sports-shop',
     entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-    synchronize: true,
+    synchronize: process.env.NODE_ENV !== 'production',
+    ssl:
+      process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
   });
 
   // Initialize S3

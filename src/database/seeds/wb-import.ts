@@ -11,6 +11,19 @@ import puppeteer, { Browser, Page } from 'puppeteer';
 dotenv.config({ path: '.env.development' });
 dotenv.config({ path: '.env' });
 
+// Защита от запуска импорта против prod-БД (перезапишет синхронизацией схему
+// и может залить demo-данные поверх реального каталога).
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.FORCE_PROD_SEED !== 'yes'
+) {
+  console.error(
+    '❌ Refusing to run wb-import in NODE_ENV=production. ' +
+      'Set FORCE_PROD_SEED=yes to override (DANGEROUS).',
+  );
+  process.exit(1);
+}
+
 // --- Config ---
 
 const BRAND_URL = 'https://www.wildberries.ru/brands/311318479-svoyaesthetica';
@@ -368,7 +381,11 @@ async function main(): Promise<void> {
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_DATABASE || 'sports-shop',
     entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-    synchronize: true,
+    synchronize: process.env.NODE_ENV !== 'production',
+    ssl:
+      process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
   });
 
   // 2. Initialize S3

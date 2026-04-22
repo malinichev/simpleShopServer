@@ -111,7 +111,13 @@ async function bootstrap() {
   }
 
   const port = configService.get<number>('port', 4000);
-  await app.listen(port);
+  // В prod слушаем только loopback — внешний доступ идёт через nginx reverse proxy.
+  // В dev оставляем 0.0.0.0 чтобы можно было стучаться из соседних контейнеров / мобилки в LAN.
+  const host =
+    configService.get<string>('nodeEnv') === 'production'
+      ? '127.0.0.1'
+      : '0.0.0.0';
+  await app.listen(port, host);
 
   console.log(
     `🚀 Application is running on: http://localhost:${port}/${apiPrefix}`,

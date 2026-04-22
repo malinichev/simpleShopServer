@@ -18,6 +18,17 @@ import { Category } from '@/modules/categories/entities/category.entity';
 dotenv.config({ path: '.env.development' });
 dotenv.config({ path: '.env' });
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.FORCE_PROD_SEED !== 'yes'
+) {
+  console.error(
+    '❌ Refusing seed-jumpsuit in NODE_ENV=production. ' +
+      'Set FORCE_PROD_SEED=yes to override.',
+  );
+  process.exit(1);
+}
+
 const dataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -26,7 +37,11 @@ const dataSource = new DataSource({
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_DATABASE || 'sports-shop',
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-  synchronize: true,
+  synchronize: process.env.NODE_ENV !== 'production',
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL'];

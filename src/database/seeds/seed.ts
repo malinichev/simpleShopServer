@@ -11,6 +11,22 @@ dotenv.config({ path: '.env.development' });
 
 dotenv.config({ path: '.env' });
 
+// Защита от случайного запуска в prod: seed TRUNCATE-ит все таблицы
+// и использует synchronize: true (перезапишет схему).
+// Чтобы запустить против prod-БД сознательно — выставить FORCE_PROD_SEED=yes.
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.FORCE_PROD_SEED !== 'yes'
+) {
+  console.error(
+    '❌ Refusing to run seed in NODE_ENV=production. ' +
+      'Set FORCE_PROD_SEED=yes if you REALLY mean it (it will DROP data).',
+  );
+  process.exit(1);
+}
+
+const isProd = process.env.NODE_ENV === 'production';
+
 const dataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -19,7 +35,8 @@ const dataSource = new DataSource({
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_DATABASE || 'sports-shop',
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-  synchronize: true,
+  synchronize: !isProd,
+  ssl: isProd ? { rejectUnauthorized: false } : false,
 });
 
 async function runSeeds(): Promise<void> {
