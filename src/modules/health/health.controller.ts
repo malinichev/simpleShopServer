@@ -10,8 +10,10 @@ import {
   HealthCheckService,
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('health')
+@Public() // ← добавить
 @Controller('health')
 export class HealthController {
   constructor(
