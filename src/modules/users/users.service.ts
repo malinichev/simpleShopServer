@@ -235,6 +235,26 @@ export class UsersService {
     return this.findByIdOrFail(user.id);
   }
 
+  /**
+   * Установка пароля для OAuth-only юзера, у которого password IS NULL.
+   * Если пароль уже задан — нужно использовать changePassword.
+   */
+  async setInitialPassword(userId: string, newPassword: string): Promise<void> {
+    const user = await this.findByIdOrFail(userId);
+
+    if (user.password) {
+      throw new BadRequestException(
+        'Пароль уже задан. Используйте смену пароля.',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await this.usersRepository.update(userId, {
+      password: hashedPassword,
+    } as UpdateUserDto);
+  }
+
   async changePassword(
     userId: string,
     currentPassword: string,

@@ -69,7 +69,8 @@ export class OAuthAuthController {
     name: 'mode',
     required: false,
     enum: ['login', 'link'],
-    description: 'login (по умолчанию) или link для привязки к текущему юзеру (PR-3)',
+    description:
+      'login (по умолчанию) или link для привязки к текущему юзеру (PR-3)',
   })
   @ApiResponse({ status: 302, description: 'Редирект на id.vk.ru/authorize' })
   async vkInit(
@@ -186,7 +187,10 @@ export class OAuthAuthController {
     required: false,
     enum: ['login', 'link'],
   })
-  @ApiResponse({ status: 302, description: 'Редирект на oauth.yandex.ru/authorize' })
+  @ApiResponse({
+    status: 302,
+    description: 'Редирект на oauth.yandex.ru/authorize',
+  })
   async yandexInit(
     @Query('redirectTo') redirectTo: string | undefined,
     @Query('mode') mode: OAuthStateMode | undefined,
@@ -259,9 +263,25 @@ export class OAuthAuthController {
   ): Promise<void> {
     try {
       if (statePayload.mode === 'link') {
+        if (!statePayload.userId) {
+          res.redirect(
+            this.buildRedirect(redirects.errorRedirect, {
+              error: 'bad_state',
+            }),
+          );
+          return;
+        }
+
+        await this.oauthService.linkToUser(statePayload.userId, profile);
+
+        const linkSuccess =
+          this.configService.get<string>('oauth.linkSuccessRedirect') ||
+          redirects.successRedirect;
+
         res.redirect(
-          this.buildRedirect(redirects.errorRedirect, {
-            error: 'link_mode_not_ready',
+          this.buildRedirect(linkSuccess, {
+            status: 'ok',
+            linked: profile.provider,
           }),
         );
         return;

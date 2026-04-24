@@ -15,6 +15,7 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { OAuthService } from './oauth/oauth.service';
 import { OAuthStateService } from './oauth/oauth-state.service';
 import { OAuthAuthController } from './oauth/oauth-auth.controller';
+import { OAuthAccountController } from './oauth/oauth-account.controller';
 import { VkIdOAuthService } from './oauth/vk-id.service';
 import { YandexStrategy } from './oauth/strategies/yandex.strategy';
 
@@ -26,7 +27,7 @@ import { YandexStrategy } from './oauth/strategies/yandex.strategy';
     JwtModule.register({}), // Конфигурация будет передаваться динамически в сервисе
     ConfigModule,
   ],
-  controllers: [AuthController, OAuthAuthController],
+  controllers: [AuthController, OAuthAuthController, OAuthAccountController],
   providers: [
     AuthService,
     JwtStrategy,

@@ -29,6 +29,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ChangePasswordDto,
+  SetPasswordDto,
   AuthResponseDto,
   TokensDto,
 } from './dto';
@@ -242,6 +243,25 @@ export class AuthController {
   ): Promise<{ message: string }> {
     await this.authService.changePassword(user.id, changePasswordDto);
     return { message: 'Пароль успешно изменён' };
+  }
+
+  @Post('set-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Установка начального пароля для OAuth-only юзера',
+    description:
+      'Работает только если у пользователя ещё не задан пароль (hasPassword=false). Для смены существующего пароля — /change-password.',
+  })
+  @ApiResponse({ status: 200, description: 'Пароль установлен' })
+  @ApiResponse({ status: 400, description: 'Пароль уже задан' })
+  async setPassword(
+    @CurrentUser() user: User,
+    @Body() dto: SetPasswordDto,
+  ): Promise<{ message: string }> {
+    await this.usersService.setInitialPassword(user.id, dto.newPassword);
+    return { message: 'Пароль установлен' };
   }
 
   @Post('me/addresses')
