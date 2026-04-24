@@ -24,7 +24,6 @@ export class JwtRefreshStrategy extends PassportStrategy(
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
-          // Try admin cookie first, then web cookie
           const cookies = request?.cookies as
             | Record<string, string>
             | undefined;

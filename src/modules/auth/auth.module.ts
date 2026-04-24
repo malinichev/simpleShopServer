@@ -14,6 +14,9 @@ import { RolesGuard } from './guards/roles.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { OAuthService } from './oauth/oauth.service';
 import { OAuthStateService } from './oauth/oauth-state.service';
+import { OAuthAuthController } from './oauth/oauth-auth.controller';
+import { VkIdOAuthService } from './oauth/vk-id.service';
+import { YandexStrategy } from './oauth/strategies/yandex.strategy';
 
 @Module({
   imports: [
@@ -23,7 +26,7 @@ import { OAuthStateService } from './oauth/oauth-state.service';
     JwtModule.register({}), // Конфигурация будет передаваться динамически в сервисе
     ConfigModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, OAuthAuthController],
   providers: [
     AuthService,
     JwtStrategy,
@@ -34,6 +37,8 @@ import { OAuthStateService } from './oauth/oauth-state.service';
     RefreshTokenGuard,
     OAuthService,
     OAuthStateService,
+    VkIdOAuthService,
+    YandexStrategy,
   ],
   exports: [
     AuthService,
