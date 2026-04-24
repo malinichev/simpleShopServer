@@ -33,6 +33,12 @@ export class UsersRepository {
     return this.repository.findOne({ where: { email } });
   }
 
+  async findByPendingEmailToken(hashedToken: string): Promise<User | null> {
+    return this.repository.findOne({
+      where: { pendingEmailToken: hashedToken },
+    });
+  }
+
   async create(dto: CreateUserDto & { password: string }): Promise<User> {
     const user = this.repository.create({
       ...dto,

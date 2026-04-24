@@ -62,6 +62,15 @@ export class User extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpires?: Date;
 
+  @Column({ nullable: true })
+  pendingEmail?: string;
+
+  @Column({ nullable: true })
+  pendingEmailToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  pendingEmailExpires?: Date;
+
   @Column('jsonb', { nullable: true, default: null })
   refreshTokens?: Record<string, string>;
 

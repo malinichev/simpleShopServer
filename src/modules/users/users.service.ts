@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -229,6 +230,94 @@ export class UsersService {
       password: hashedPassword,
       passwordResetToken: undefined,
       passwordResetExpires: undefined,
+      refreshTokens: null,
+    } as UpdateUserDto);
+
+    return this.findByIdOrFail(user.id);
+  }
+
+  /**
+   * Шаг 1 двухшаговой смены email. Проверяет текущий пароль, генерит token,
+   * сохраняет hashed token + pendingEmail + 1h expiry. Возвращает plain token,
+   * который контроллер вкладывает в письмо на новый email.
+   * Текущий email НЕ меняется до подтверждения через confirmEmailChange.
+   */
+  async requestEmailChange(
+    userId: string,
+    newEmail: string,
+    currentPassword: string,
+  ): Promise<{ token: string }> {
+    const user = await this.findByIdOrFail(userId);
+
+    if (!user.password) {
+      throw new BadRequestException(
+        'Сначала установите пароль в разделе «Безопасность»',
+      );
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      throw new UnauthorizedException('Неверный пароль');
+    }
+
+    const normalized = newEmail.trim().toLowerCase();
+    if (normalized === user.email.toLowerCase()) {
+      throw new BadRequestException('Этот email уже используется');
+    }
+
+    const existing = await this.usersRepository.findByEmail(normalized);
+    if (existing) {
+      throw new ConflictException('Email уже занят');
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 1);
+
+    await this.usersRepository.update(userId, {
+      pendingEmail: normalized,
+      pendingEmailToken: hashedToken,
+      pendingEmailExpires: expires,
+    } as UpdateUserDto);
+
+    return { token };
+  }
+
+  /**
+   * Шаг 2: применяет смену email если token валиден и не истёк.
+   * Race protection: повторно проверяет уникальность pendingEmail.
+   * Инвалидирует все refresh-токены — юзер должен заново залогиниться.
+   */
+  async confirmEmailChange(token: string): Promise<User> {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user =
+      await this.usersRepository.findByPendingEmailToken(hashedToken);
+
+    if (
+      !user ||
+      !user.pendingEmail ||
+      !user.pendingEmailExpires ||
+      new Date(user.pendingEmailExpires) < new Date()
+    ) {
+      throw new BadRequestException('Недействительный или истёкший токен');
+    }
+
+    const taken = await this.usersRepository.findByEmail(user.pendingEmail);
+    if (taken && taken.id !== user.id) {
+      await this.usersRepository.update(user.id, {
+        pendingEmail: undefined,
+        pendingEmailToken: undefined,
+        pendingEmailExpires: undefined,
+      } as UpdateUserDto);
+      throw new ConflictException('Email уже занят');
+    }
+
+    await this.usersRepository.update(user.id, {
+      email: user.pendingEmail,
+      pendingEmail: undefined,
+      pendingEmailToken: undefined,
+      pendingEmailExpires: undefined,
       refreshTokens: null,
     } as UpdateUserDto);
 

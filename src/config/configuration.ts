@@ -5,6 +5,8 @@ export default () => ({
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || [
     'http://localhost:3000',
   ],
+  /** Базовый URL storefront для построения ссылок в письмах (verify, reset, etc) */
+  webUrl: process.env.WEB_URL || 'http://localhost:3002',
 
   database: {
     host: process.env.DB_HOST || 'localhost',

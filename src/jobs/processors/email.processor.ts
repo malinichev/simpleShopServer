@@ -16,15 +16,25 @@ export class EmailProcessor extends WorkerHost {
   ) {
     super();
 
-    this.transporter = createTransport({
+    const port = this.configService.get<number>('mail.port');
+    /**
+     * `family: 4` — принудительно IPv4. У mail.ru/yandex SMTP в DNS лежит IPv6,
+     * который часто недоступен с домашних сетей → EHOSTUNREACH. Опция
+     * не торчит в TS-типах nodemailer верхнего уровня, поэтому каст.
+     */
+    const transportOptions: Record<string, unknown> = {
       host: this.configService.get<string>('mail.host'),
-      port: this.configService.get<number>('mail.port'),
-      secure: this.configService.get<number>('mail.port') === 465,
+      port,
+      secure: port === 465,
+      family: 4,
       auth: {
         user: this.configService.get<string>('mail.user'),
         pass: this.configService.get<string>('mail.pass'),
       },
-    });
+    };
+    this.transporter = createTransport(
+      transportOptions as Parameters<typeof createTransport>[0],
+    );
   }
 
   async process(job: Job<EmailJobData>): Promise<void> {

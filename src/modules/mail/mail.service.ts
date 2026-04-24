@@ -48,6 +48,12 @@ export interface EmailVerificationData {
   verificationUrl: string;
 }
 
+export interface EmailChangeVerificationData {
+  firstName: string;
+  verificationUrl: string;
+  expiresIn: string;
+}
+
 export interface EmailJobData {
   to: string;
   subject: string;
@@ -107,6 +113,18 @@ export class MailService {
       to,
       'Подтвердите ваш email — SportShop',
       'email-verification',
+      { ...data },
+    );
+  }
+
+  async sendEmailChangeVerification(
+    to: string,
+    data: EmailChangeVerificationData,
+  ): Promise<void> {
+    await this.addEmailJob(
+      to,
+      'Подтвердите новый email — SportShop',
+      'email-change-verification',
       { ...data },
     );
   }

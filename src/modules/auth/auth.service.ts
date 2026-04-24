@@ -55,12 +55,11 @@ export class AuthService {
     const verificationToken =
       await this.usersService.generateEmailVerificationToken(user.id);
 
-    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [
-      'http://localhost:3001',
-    ];
+    const webUrl =
+      this.configService.get<string>('webUrl') || 'http://localhost:3002';
     await this.mailService.sendEmailVerification(user.email, {
       firstName: user.firstName,
-      verificationUrl: `${corsOrigins[0]}/verify-email?token=${verificationToken}`,
+      verificationUrl: `${webUrl}/verify-email?token=${verificationToken}`,
     });
 
     const audience = TokenAudience.WEB;
@@ -156,12 +155,11 @@ export class AuthService {
       user.id,
     );
 
-    const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [
-      'http://localhost:3000',
-    ];
+    const webUrl =
+      this.configService.get<string>('webUrl') || 'http://localhost:3002';
     await this.mailService.sendPasswordReset(user.email, {
       firstName: user.firstName,
-      resetUrl: `${corsOrigins[0]}/reset-password?token=${resetToken}`,
+      resetUrl: `${webUrl}/reset-password?token=${resetToken}`,
       expiresIn: '1 час',
     });
   }

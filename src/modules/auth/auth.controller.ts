@@ -22,6 +22,7 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -30,6 +31,9 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
   SetPasswordDto,
+  UpdateProfileDto,
+  RequestEmailChangeDto,
+  ConfirmEmailChangeDto,
   AuthResponseDto,
   TokensDto,
 } from './dto';
@@ -38,12 +42,9 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@/modules/users/entities/user.entity';
-import {
-  UpdateUserDto,
-  CreateAddressDto,
-  UpdateAddressDto,
-} from '@/modules/users/dto';
+import { CreateAddressDto, UpdateAddressDto } from '@/modules/users/dto';
 import { UsersService } from '@/modules/users/users.service';
+import { MailService } from '@/modules/mail/mail.service';
 import { TokenAudience, UserWithTokenAudience } from '@/common/types';
 
 @ApiTags('auth')
@@ -52,6 +53,8 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private usersService: UsersService,
+    private mailService: MailService,
+    private configService: ConfigService,
   ) {}
 
   @Public()
@@ -220,12 +223,16 @@ export class AuthController {
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Обновление профиля текущего пользователя' })
+  @ApiOperation({
+    summary: 'Обновление профиля текущего пользователя',
+    description:
+      'Только firstName/lastName/phone/avatar. Email — через /auth/request-email-change, пароль — через /auth/change-password.',
+  })
   @ApiResponse({ status: 200, description: 'Профиль обновлён' })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   async updateProfile(
     @CurrentUser() user: User,
-    @Body() updateData: UpdateUserDto,
+    @Body() updateData: UpdateProfileDto,
   ) {
     return this.authService.updateProfile(user.id, updateData);
   }
@@ -262,6 +269,71 @@ export class AuthController {
   ): Promise<{ message: string }> {
     await this.usersService.setInitialPassword(user.id, dto.newPassword);
     return { message: 'Пароль установлен' };
+  }
+
+  @Post('request-email-change')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Шаг 1: запросить смену email',
+    description:
+      'Проверяет текущий пароль, шлёт письмо со ссылкой на новый email. Текущий email НЕ меняется до подтверждения.',
+  })
+  @ApiResponse({ status: 200, description: 'Письмо отправлено' })
+  @ApiResponse({
+    status: 400,
+    description: 'Неверный/невалидный email или пароль не установлен',
+  })
+  @ApiResponse({ status: 401, description: 'Неверный текущий пароль' })
+  @ApiResponse({ status: 409, description: 'Email уже занят' })
+  async requestEmailChange(
+    @CurrentUser() user: User,
+    @Body() dto: RequestEmailChangeDto,
+  ): Promise<{ message: string }> {
+    const { token } = await this.usersService.requestEmailChange(
+      user.id,
+      dto.newEmail,
+      dto.currentPassword,
+    );
+
+    const webUrl =
+      this.configService.get<string>('webUrl') || 'http://localhost:3002';
+    await this.mailService.sendEmailChangeVerification(dto.newEmail, {
+      firstName: user.firstName,
+      verificationUrl: `${webUrl}/auth/confirm-email-change?token=${token}`,
+      expiresIn: '1 час',
+    });
+
+    return {
+      message:
+        'Письмо отправлено на новый адрес. Перейдите по ссылке для подтверждения.',
+    };
+  }
+
+  @Public()
+  @Post('confirm-email-change')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Шаг 2: подтвердить смену email',
+    description:
+      'Применяет новый email и инвалидирует все refresh-токены. Юзер должен заново залогиниться с новым email.',
+  })
+  @ApiResponse({ status: 200, description: 'Email обновлён' })
+  @ApiResponse({
+    status: 400,
+    description: 'Недействительный или истёкший токен',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Новый email был занят пока ждали подтверждение',
+  })
+  async confirmEmailChange(
+    @Body() dto: ConfirmEmailChangeDto,
+  ): Promise<{ message: string }> {
+    await this.usersService.confirmEmailChange(dto.token);
+    return { message: 'Email обновлён. Войдите с новым адресом.' };
   }
 
   @Post('me/addresses')

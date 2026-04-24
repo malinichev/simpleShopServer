@@ -524,8 +524,10 @@ export class OrdersService {
   }
 
   private getClientBaseUrl(): string {
+    const webUrl = this.configService.get<string>('webUrl');
+    if (webUrl) return webUrl;
+    // Fallback на corsOrigins для legacy конфигов без WEB_URL
     const corsOrigins = this.configService.get<string[]>('corsOrigins') ?? [];
-    // Prefer the storefront origin; fallback to the first configured origin
     return (
       corsOrigins.find((o) => !o.includes('admin')) ??
       corsOrigins[0] ??
