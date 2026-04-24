@@ -18,6 +18,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           synchronize: !isProd,
           logging: !isProd,
           entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+          migrations: [__dirname + '/migrations/*{.ts,.js}'],
+          migrationsTableName: 'typeorm_migrations',
+          // На прод миграции запускаются через `pnpm migration:run`, а НЕ
+          // автоматически при старте приложения — иначе несколько PM2-процессов
+          // или хот-restart могут попытаться накатить параллельно.
+          migrationsRun: false,
           // Beget managed-PG использует self-signed CA → rejectUnauthorized=false.
           // Трафик шифруется (TLS 1.3), но identity chain не верифицируется.
           ssl: isProd ? { rejectUnauthorized: false } : false,
