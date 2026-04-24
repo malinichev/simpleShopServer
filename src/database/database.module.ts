@@ -15,7 +15,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           username: configService.get<string>('database.username'),
           password: configService.get<string>('database.password'),
           database: configService.get<string>('database.database'),
-          synchronize: !isProd,
+          // Schema всегда через миграции — даже в dev. Так dev/prod схемы
+          // всегда совпадают и не возникает ситуаций «локально работает, на проде падает».
+          // Workflow миграций: docs/MIGRATIONS.md
+          synchronize: false,
           logging: !isProd,
           entities: [__dirname + '/../**/*.entity{.ts,.js}'],
           migrations: [__dirname + '/migrations/*{.ts,.js}'],
