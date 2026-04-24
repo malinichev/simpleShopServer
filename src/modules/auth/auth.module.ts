@@ -12,6 +12,8 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
+import { OAuthService } from './oauth/oauth.service';
+import { OAuthStateService } from './oauth/oauth-state.service';
 
 @Module({
   imports: [
@@ -30,7 +32,16 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
     JwtAuthGuard,
     RolesGuard,
     RefreshTokenGuard,
+    OAuthService,
+    OAuthStateService,
   ],
-  exports: [AuthService, JwtAuthGuard, RolesGuard, RefreshTokenGuard],
+  exports: [
+    AuthService,
+    JwtAuthGuard,
+    RolesGuard,
+    RefreshTokenGuard,
+    OAuthService,
+    OAuthStateService,
+  ],
 })
 export class AuthModule {}

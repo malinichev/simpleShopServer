@@ -47,4 +47,28 @@ export default () => ({
     ttl: parseInt(process.env.THROTTLE_TTL || '60', 10),
     limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
   },
+
+  oauth: {
+    stateSecret: process.env.OAUTH_STATE_SECRET || 'default-oauth-state-secret',
+    stateExpiresIn: process.env.OAUTH_STATE_EXPIRES || '5m',
+    successRedirect:
+      process.env.OAUTH_SUCCESS_REDIRECT ||
+      'http://localhost:3002/auth/callback',
+    errorRedirect:
+      process.env.OAUTH_ERROR_REDIRECT || 'http://localhost:3002/login',
+    vk: {
+      clientId: process.env.VK_CLIENT_ID || '',
+      clientSecret: process.env.VK_CLIENT_SECRET || '',
+      callbackUrl:
+        process.env.VK_CALLBACK_URL ||
+        'http://localhost:4000/api/auth/vk/callback',
+    },
+    yandex: {
+      clientId: process.env.YANDEX_CLIENT_ID || '',
+      clientSecret: process.env.YANDEX_CLIENT_SECRET || '',
+      callbackUrl:
+        process.env.YANDEX_CALLBACK_URL ||
+        'http://localhost:4000/api/auth/yandex/callback',
+    },
+  },
 });

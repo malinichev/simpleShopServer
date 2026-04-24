@@ -27,7 +27,7 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.usersService.findByEmail(email);
-    if (!user) {
+    if (!user || !user.password) {
       return null;
     }
 
@@ -206,7 +206,10 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, updateData: Partial<User>) {
-    const user = await this.usersService.update(userId, updateData);
+    const user = await this.usersService.update(
+      userId,
+      updateData as Parameters<typeof this.usersService.update>[1],
+    );
     return this.usersService.sanitizeUser(user);
   }
 

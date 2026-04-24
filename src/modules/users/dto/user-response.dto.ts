@@ -29,6 +29,11 @@ export class UserResponseDto {
   @ApiProperty()
   isEmailVerified: boolean;
 
+  @ApiProperty({
+    description: 'True если у пользователя задан пароль (не OAuth-only юзер)',
+  })
+  hasPassword: boolean;
+
   @ApiProperty({ type: [String] })
   wishlist: string[];
 

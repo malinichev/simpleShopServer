@@ -242,6 +242,12 @@ export class UsersService {
   ): Promise<void> {
     const user = await this.findByIdOrFail(userId);
 
+    if (!user.password) {
+      throw new BadRequestException(
+        'Пароль не установлен. Используйте set-password.',
+      );
+    }
+
     const isPasswordValid = await this.validatePassword(
       currentPassword,
       user.password,
@@ -339,6 +345,7 @@ export class UsersService {
       avatar: user.avatar,
       addresses: user.addresses || [],
       isEmailVerified: user.isEmailVerified,
+      hasPassword: Boolean(user.password),
       wishlist: user.wishlist || [],
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
