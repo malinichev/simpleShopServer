@@ -27,6 +27,38 @@ const usersData = [
     role: UserRole.CUSTOMER,
     isEmailVerified: true,
   },
+  {
+    email: 'olga.petrova@example.com',
+    password: 'User123!',
+    firstName: 'Ольга',
+    lastName: 'Петрова',
+    role: UserRole.CUSTOMER,
+    isEmailVerified: true,
+  },
+  {
+    email: 'maria.smirnova@example.com',
+    password: 'User123!',
+    firstName: 'Мария',
+    lastName: 'Смирнова',
+    role: UserRole.CUSTOMER,
+    isEmailVerified: true,
+  },
+  {
+    email: 'ekaterina.volkova@example.com',
+    password: 'User123!',
+    firstName: 'Екатерина',
+    lastName: 'Волкова',
+    role: UserRole.CUSTOMER,
+    isEmailVerified: true,
+  },
+  {
+    email: 'natalia.kuznetsova@example.com',
+    password: 'User123!',
+    firstName: 'Наталья',
+    lastName: 'Кузнецова',
+    role: UserRole.CUSTOMER,
+    isEmailVerified: true,
+  },
 ];
 
 export async function seedUsers(dataSource: DataSource): Promise<void> {

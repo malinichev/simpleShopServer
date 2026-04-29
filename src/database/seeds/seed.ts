@@ -6,6 +6,8 @@ import { seedUsers } from './users.seed';
 import { seedCategories } from './categories.seed';
 import { seedProducts } from './products.seed';
 import { seedPromotions } from './promotions.seed';
+import { seedOrders } from './orders.seed';
+import { seedAnalytics } from './analytics.seed';
 
 dotenv.config({ path: '.env.development' });
 
@@ -74,19 +76,27 @@ async function runSeeds(): Promise<void> {
     }
     console.log('Cleared all tables\n');
 
-    console.log('[1/4] Seeding users...');
+    console.log('[1/6] Seeding users...');
     await seedUsers(dataSource);
     console.log('');
 
-    console.log('[2/4] Seeding categories...');
+    console.log('[2/6] Seeding categories...');
     const categoryMap = await seedCategories(dataSource);
     console.log('');
 
-    console.log('[3/4] Seeding products...');
+    console.log('[3/6] Seeding products...');
     await seedProducts(dataSource, categoryMap);
     console.log('');
 
-    console.log('[4/4] Seeding promotions...');
+    console.log('[4/6] Seeding orders (60 days back)...');
+    await seedOrders(dataSource);
+    console.log('');
+
+    console.log('[5/6] Seeding analytics aggregates...');
+    await seedAnalytics(dataSource);
+    console.log('');
+
+    console.log('[6/6] Seeding promotions...');
     await seedPromotions(dataSource);
     console.log('');
 
