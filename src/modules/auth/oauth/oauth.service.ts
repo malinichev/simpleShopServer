@@ -14,6 +14,7 @@ import {
   OAuthCannotUnlinkLastException,
   OAuthEmailConflictException,
 } from './oauth.errors';
+import { OAuthEventsService } from './oauth-events.service';
 
 export interface OAuthResolveResult {
   user: User;
@@ -29,6 +30,7 @@ export class OAuthService {
     private readonly identityRepo: UserOAuthIdentityRepository,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    private readonly events: OAuthEventsService,
   ) {}
 
   /**
@@ -36,6 +38,21 @@ export class OAuthService {
    * или создать нового юзера + identity в транзакции.
    */
   async findOrCreateByOAuth(
+    profile: OAuthProfileDto,
+  ): Promise<OAuthResolveResult> {
+    const result = await this.resolveOAuth(profile);
+    this.events.emit({
+      type: 'oauth.login',
+      userId: result.user.id,
+      provider: profile.provider,
+      created: result.created,
+      email: profile.email ?? null,
+      occurredAt: new Date(),
+    });
+    return result;
+  }
+
+  private async resolveOAuth(
     profile: OAuthProfileDto,
   ): Promise<OAuthResolveResult> {
     const existing = await this.identityRepo.findByProvider(
@@ -104,13 +121,21 @@ export class OAuthService {
       throw new OAuthAlreadyLinkedException();
     }
 
-    return this.identityRepo.link({
+    const identity = await this.identityRepo.link({
       userId,
       provider: profile.provider,
       providerId: profile.providerId,
       email: profile.email,
       profileData: this.buildProfileData(profile),
     });
+    this.events.emit({
+      type: 'oauth.linked',
+      userId,
+      provider: profile.provider,
+      email: profile.email ?? null,
+      occurredAt: new Date(),
+    });
+    return identity;
   }
 
   async listUserIdentities(userId: string): Promise<UserOAuthIdentity[]> {
@@ -136,6 +161,12 @@ export class OAuthService {
     }
 
     await this.identityRepo.unlink(identityId);
+    this.events.emit({
+      type: 'oauth.unlinked',
+      userId,
+      provider: identity.provider,
+      occurredAt: new Date(),
+    });
   }
 
   private async createUserWithIdentity(

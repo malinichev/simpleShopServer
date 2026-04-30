@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Type, Provider } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule } from '@nestjs/config';
@@ -14,10 +14,34 @@ import { RolesGuard } from './guards/roles.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { OAuthService } from './oauth/oauth.service';
 import { OAuthStateService } from './oauth/oauth-state.service';
+import { OAuthEventsService } from './oauth/oauth-events.service';
 import { OAuthAuthController } from './oauth/oauth-auth.controller';
 import { OAuthAccountController } from './oauth/oauth-account.controller';
 import { VkIdOAuthService } from './oauth/vk-id.service';
 import { YandexStrategy } from './oauth/strategies/yandex.strategy';
+
+// OAuth-провайдеры регистрируются условно по env: если ни один CLIENT_ID не задан,
+// контроллеры и сервисы не подключаются — бэк поднимается без OAuth-функциональности.
+// Статус доступен на /api/settings/public.enabledOAuthProviders для фронта.
+const VK_ENABLED = !!process.env.VK_CLIENT_ID;
+const YANDEX_ENABLED = !!process.env.YANDEX_CLIENT_ID;
+const ANY_OAUTH_ENABLED = VK_ENABLED || YANDEX_ENABLED;
+
+const oauthControllers: Type<unknown>[] = ANY_OAUTH_ENABLED
+  ? [OAuthAuthController, OAuthAccountController]
+  : [];
+
+const oauthProviders: Provider[] = [
+  ...(ANY_OAUTH_ENABLED
+    ? [OAuthService, OAuthStateService, OAuthEventsService]
+    : []),
+  ...(VK_ENABLED ? [VkIdOAuthService] : []),
+  ...(YANDEX_ENABLED ? [YandexStrategy] : []),
+];
+
+const oauthExports: Provider[] = ANY_OAUTH_ENABLED
+  ? [OAuthService, OAuthStateService, OAuthEventsService]
+  : [];
 
 @Module({
   imports: [
@@ -27,7 +51,7 @@ import { YandexStrategy } from './oauth/strategies/yandex.strategy';
     JwtModule.register({}), // Конфигурация будет передаваться динамически в сервисе
     ConfigModule,
   ],
-  controllers: [AuthController, OAuthAuthController, OAuthAccountController],
+  controllers: [AuthController, ...oauthControllers],
   providers: [
     AuthService,
     JwtStrategy,
@@ -36,18 +60,14 @@ import { YandexStrategy } from './oauth/strategies/yandex.strategy';
     JwtAuthGuard,
     RolesGuard,
     RefreshTokenGuard,
-    OAuthService,
-    OAuthStateService,
-    VkIdOAuthService,
-    YandexStrategy,
+    ...oauthProviders,
   ],
   exports: [
     AuthService,
     JwtAuthGuard,
     RolesGuard,
     RefreshTokenGuard,
-    OAuthService,
-    OAuthStateService,
+    ...oauthExports,
   ],
 })
 export class AuthModule {}

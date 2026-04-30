@@ -1,3 +1,4 @@
+import './bootstrap-env'; // side-effect: грузит .env ДО декораторов модулей (см. bootstrap-env.ts)
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

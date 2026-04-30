@@ -65,6 +65,12 @@ export class SettingsService {
 
   async getPublicSettings() {
     const s = await this.getSettings();
+    // OAuth-провайдеры включаются по env (см. auth.module.ts conditional registration).
+    // Фронт читает enabledOAuthProviders, чтобы рендерить только активные кнопки.
+    const enabledOAuthProviders: ('vk' | 'yandex')[] = [];
+    if (process.env.VK_CLIENT_ID) enabledOAuthProviders.push('vk');
+    if (process.env.YANDEX_CLIENT_ID) enabledOAuthProviders.push('yandex');
+
     return {
       storeName: s.storeName,
       description: s.description ?? '',
@@ -73,6 +79,7 @@ export class SettingsService {
       address: s.address,
       currency: s.currency,
       socialLinks: s.socialLinks ?? {},
+      enabledOAuthProviders,
     };
   }
 
