@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
 import { CartRepository } from './cart.repository';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
@@ -75,13 +76,37 @@ export class CartService {
       existingItem.price = variant.price ?? product.price;
       await this.cartRepository.saveItem(existingItem);
     } else {
-      await this.cartRepository.createItem({
-        cartId: cart.id,
-        productId: dto.productId,
-        variantId: dto.variantId,
-        quantity: dto.quantity,
-        price: variant.price ?? product.price,
-      });
+      try {
+        await this.cartRepository.createItem({
+          cartId: cart.id,
+          productId: dto.productId,
+          variantId: dto.variantId,
+          quantity: dto.quantity,
+          price: variant.price ?? product.price,
+        });
+      } catch (err) {
+        // Race: параллельный addItem уже создал запись. Retry как update.
+        if (this.isUniqueViolation(err)) {
+          const raced = await this.cartRepository.findItemByCartAndVariant(
+            cart.id,
+            dto.variantId,
+            dto.productId,
+          );
+          if (raced) {
+            const newQuantity = Math.min(raced.quantity + dto.quantity, 10);
+            if (newQuantity > variant.stock) {
+              throw new BadRequestException(
+                `Недостаточно товара на складе. Доступно: ${variant.stock}`,
+              );
+            }
+            raced.quantity = newQuantity;
+            raced.price = variant.price ?? product.price;
+            await this.cartRepository.saveItem(raced);
+          }
+        } else {
+          throw err;
+        }
+      }
     }
 
     const updatedCart = await this.cartRepository.findById(cart.id);
@@ -91,22 +116,22 @@ export class CartService {
   async updateItem(
     userId: string | undefined,
     sessionId: string | undefined,
-    variantId: string,
+    itemId: string,
     quantity: number,
   ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
     if (quantity === 0) {
-      return this.removeItem(userId, sessionId, variantId);
+      return this.removeItem(userId, sessionId, itemId);
     }
 
-    const item = cart.items.find((item) => item.variantId === variantId);
+    const item = cart.items.find((it) => it.id === itemId);
     if (!item) {
       throw new NotFoundException('Товар не найден в корзине');
     }
 
     const product = await this.productsService.findById(item.productId);
-    const variant = product.variants.find((v) => v.id === variantId);
+    const variant = product.variants.find((v) => v.id === item.variantId);
 
     if (variant && quantity > variant.stock) {
       throw new BadRequestException(
@@ -125,11 +150,11 @@ export class CartService {
   async removeItem(
     userId: string | undefined,
     sessionId: string | undefined,
-    variantId: string,
+    itemId: string,
   ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
-    const item = cart.items.find((item) => item.variantId === variantId);
+    const item = cart.items.find((it) => it.id === itemId);
     if (!item) {
       throw new NotFoundException('Товар не найден в корзине');
     }
@@ -328,6 +353,13 @@ export class CartService {
     const date = new Date();
     date.setDate(date.getDate() + days);
     return date;
+  }
+
+  private isUniqueViolation(err: unknown): boolean {
+    return (
+      err instanceof QueryFailedError &&
+      (err as QueryFailedError & { code?: string }).code === '23505'
+    );
   }
 
   private async buildCartResponse(cart: Cart): Promise<CartResponseDto> {

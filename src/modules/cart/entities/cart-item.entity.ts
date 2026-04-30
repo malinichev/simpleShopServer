@@ -3,6 +3,7 @@ import { BaseEntity } from '@/common/entities/base.entity';
 import { Cart } from './cart.entity';
 
 @Entity('cart_items')
+@Index('cart_items_cart_variant_uniq', ['cartId', 'variantId'], { unique: true })
 export class CartItemEntity extends BaseEntity {
   @Index()
   @Column('uuid')

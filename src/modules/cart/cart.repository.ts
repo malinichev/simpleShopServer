@@ -70,6 +70,10 @@ export class CartRepository {
     });
   }
 
+  async findItemById(id: string): Promise<CartItemEntity | null> {
+    return this.itemRepository.findOne({ where: { id } });
+  }
+
   async saveItem(item: CartItemEntity): Promise<CartItemEntity> {
     return this.itemRepository.save(item);
   }

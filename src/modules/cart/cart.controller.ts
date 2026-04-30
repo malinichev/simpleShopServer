@@ -66,15 +66,15 @@ export class CartController {
 
   @Public()
   @UseGuards(OptionalJwtAuthGuard)
-  @Patch('items/:variantId')
+  @Patch('items/:itemId')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Изменить количество товара в корзине' })
-  @ApiParam({ name: 'variantId', description: 'ID варианта товара' })
+  @ApiParam({ name: 'itemId', description: 'cart_item PK (см. Cart.items[].id)' })
   @ApiResponse({ status: 200, type: CartResponseDto })
   @ApiResponse({ status: 404, description: 'Товар не найден в корзине' })
   async updateItem(
     @Req() req: RequestWithCart,
-    @Param('variantId') variantId: string,
+    @Param('itemId') itemId: string,
     @Body() dto: UpdateCartItemDto,
   ) {
     const userId = req.user?.id;
@@ -82,26 +82,26 @@ export class CartController {
     return this.cartService.updateItem(
       userId,
       sessionId,
-      variantId,
+      itemId,
       dto.quantity,
     );
   }
 
   @Public()
   @UseGuards(OptionalJwtAuthGuard)
-  @Delete('items/:variantId')
+  @Delete('items/:itemId')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Удалить товар из корзины' })
-  @ApiParam({ name: 'variantId', description: 'ID варианта товара' })
+  @ApiParam({ name: 'itemId', description: 'cart_item PK (см. Cart.items[].id)' })
   @ApiResponse({ status: 200, type: CartResponseDto })
   @ApiResponse({ status: 404, description: 'Товар не найден в корзине' })
   async removeItem(
     @Req() req: RequestWithCart,
-    @Param('variantId') variantId: string,
+    @Param('itemId') itemId: string,
   ) {
     const userId = req.user?.id;
     const sessionId = req.cartSessionId;
-    return this.cartService.removeItem(userId, sessionId, variantId);
+    return this.cartService.removeItem(userId, sessionId, itemId);
   }
 
   @Public()
