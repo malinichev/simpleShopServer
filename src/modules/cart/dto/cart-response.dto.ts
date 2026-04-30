@@ -29,7 +29,10 @@ export class CartItemVariantDto {
 }
 
 export class CartItemResponseDto {
-  @ApiProperty({ description: 'cart_item PK — стабильный уникальный ID, использовать как React key' })
+  @ApiProperty({
+    description:
+      'cart_item PK — стабильный уникальный ID, использовать как React key',
+  })
   id: string;
 
   @ApiProperty({ type: CartItemProductDto })

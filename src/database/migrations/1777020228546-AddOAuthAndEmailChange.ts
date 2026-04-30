@@ -12,9 +12,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * Идемпотентно: IF NOT EXISTS / IF EXISTS — миграцию можно рестартовать без
  * "already exists" ошибок.
  */
-export class AddOAuthAndEmailChange1777020228546
-  implements MigrationInterface
-{
+export class AddOAuthAndEmailChange1777020228546 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "users" ALTER COLUMN "password" DROP NOT NULL`,

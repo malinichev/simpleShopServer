@@ -4,10 +4,7 @@ import {
   TopProductStat,
   TopCategoryStat,
 } from '@/modules/analytics/entities/analytics.entity';
-import {
-  Order,
-  OrderStatus,
-} from '@/modules/orders/entities/order.entity';
+import { Order, OrderStatus } from '@/modules/orders/entities/order.entity';
 import { OrderItemEntity } from '@/modules/orders/entities/order-item.entity';
 import { Product } from '@/modules/products/entities/product.entity';
 import { Category } from '@/modules/categories/entities/category.entity';

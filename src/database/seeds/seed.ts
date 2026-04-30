@@ -8,6 +8,7 @@ import { seedProducts } from './products.seed';
 import { seedPromotions } from './promotions.seed';
 import { seedOrders } from './orders.seed';
 import { seedAnalytics } from './analytics.seed';
+import { seedLegalPages } from './legal-pages.seed';
 
 dotenv.config({ path: '.env.development' });
 
@@ -76,28 +77,32 @@ async function runSeeds(): Promise<void> {
     }
     console.log('Cleared all tables\n');
 
-    console.log('[1/6] Seeding users...');
+    console.log('[1/7] Seeding users...');
     await seedUsers(dataSource);
     console.log('');
 
-    console.log('[2/6] Seeding categories...');
+    console.log('[2/7] Seeding categories...');
     const categoryMap = await seedCategories(dataSource);
     console.log('');
 
-    console.log('[3/6] Seeding products...');
+    console.log('[3/7] Seeding products...');
     await seedProducts(dataSource, categoryMap);
     console.log('');
 
-    console.log('[4/6] Seeding orders (60 days back)...');
+    console.log('[4/7] Seeding orders (60 days back)...');
     await seedOrders(dataSource);
     console.log('');
 
-    console.log('[5/6] Seeding analytics aggregates...');
+    console.log('[5/7] Seeding analytics aggregates...');
     await seedAnalytics(dataSource);
     console.log('');
 
-    console.log('[6/6] Seeding promotions...');
+    console.log('[6/7] Seeding promotions...');
     await seedPromotions(dataSource);
+    console.log('');
+
+    console.log('[7/7] Seeding legal pages (privacy/terms/etc)...');
+    await seedLegalPages(dataSource);
     console.log('');
 
     console.log('✅ Seeds completed successfully!');

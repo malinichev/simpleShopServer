@@ -69,7 +69,10 @@ export class CartController {
   @Patch('items/:itemId')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Изменить количество товара в корзине' })
-  @ApiParam({ name: 'itemId', description: 'cart_item PK (см. Cart.items[].id)' })
+  @ApiParam({
+    name: 'itemId',
+    description: 'cart_item PK (см. Cart.items[].id)',
+  })
   @ApiResponse({ status: 200, type: CartResponseDto })
   @ApiResponse({ status: 404, description: 'Товар не найден в корзине' })
   async updateItem(
@@ -79,12 +82,7 @@ export class CartController {
   ) {
     const userId = req.user?.id;
     const sessionId = req.cartSessionId;
-    return this.cartService.updateItem(
-      userId,
-      sessionId,
-      itemId,
-      dto.quantity,
-    );
+    return this.cartService.updateItem(userId, sessionId, itemId, dto.quantity);
   }
 
   @Public()
@@ -92,7 +90,10 @@ export class CartController {
   @Delete('items/:itemId')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Удалить товар из корзины' })
-  @ApiParam({ name: 'itemId', description: 'cart_item PK (см. Cart.items[].id)' })
+  @ApiParam({
+    name: 'itemId',
+    description: 'cart_item PK (см. Cart.items[].id)',
+  })
   @ApiResponse({ status: 200, type: CartResponseDto })
   @ApiResponse({ status: 404, description: 'Товар не найден в корзине' })
   async removeItem(

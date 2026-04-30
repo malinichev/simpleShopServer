@@ -16,9 +16,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * Идемпотентно: IF NOT EXISTS для index, дедупликация безопасна на нулевых дублях.
  */
-export class AddCartItemsUniqueIndex1777020228547
-  implements MigrationInterface
-{
+export class AddCartItemsUniqueIndex1777020228547 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Consolidate quantities в самую новую запись (выживает та, что с max createdAt)
     await queryRunner.query(`

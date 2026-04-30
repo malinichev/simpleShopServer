@@ -2,60 +2,47 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
 
+// Sample-юзеры для dev/staging. На production seed запрещён без FORCE_PROD_SEED.
+// Email/имена — нейтральные, для template-демо. Реальные бренд-юзеры создаются
+// через `pnpm create:admin` или регистрацию.
 const usersData = [
   {
-    email: 'admin@sportshop.ru',
+    email: 'admin@example.com',
     password: 'Admin123!',
-    firstName: 'Админ',
-    lastName: 'Системы',
+    firstName: 'Admin',
+    lastName: 'User',
     role: UserRole.ADMIN,
     isEmailVerified: true,
   },
   {
-    email: 'manager@sportshop.ru',
+    email: 'manager@example.com',
     password: 'Manager123!',
-    firstName: 'Менеджер',
-    lastName: 'Магазина',
+    firstName: 'Manager',
+    lastName: 'User',
     role: UserRole.MANAGER,
     isEmailVerified: true,
   },
   {
     email: 'user@example.com',
     password: 'User123!',
-    firstName: 'Анна',
-    lastName: 'Иванова',
+    firstName: 'Demo',
+    lastName: 'Customer',
     role: UserRole.CUSTOMER,
     isEmailVerified: true,
   },
   {
-    email: 'olga.petrova@example.com',
+    email: 'customer2@example.com',
     password: 'User123!',
-    firstName: 'Ольга',
-    lastName: 'Петрова',
+    firstName: 'Sample',
+    lastName: 'Customer',
     role: UserRole.CUSTOMER,
     isEmailVerified: true,
   },
   {
-    email: 'maria.smirnova@example.com',
+    email: 'customer3@example.com',
     password: 'User123!',
-    firstName: 'Мария',
-    lastName: 'Смирнова',
-    role: UserRole.CUSTOMER,
-    isEmailVerified: true,
-  },
-  {
-    email: 'ekaterina.volkova@example.com',
-    password: 'User123!',
-    firstName: 'Екатерина',
-    lastName: 'Волкова',
-    role: UserRole.CUSTOMER,
-    isEmailVerified: true,
-  },
-  {
-    email: 'natalia.kuznetsova@example.com',
-    password: 'User123!',
-    firstName: 'Наталья',
-    lastName: 'Кузнецова',
+    firstName: 'Test',
+    lastName: 'Customer',
     role: UserRole.CUSTOMER,
     isEmailVerified: true,
   },
