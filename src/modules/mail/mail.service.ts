@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import * as Handlebars from 'handlebars';
@@ -66,13 +67,22 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly templates = new Map<string, Handlebars.TemplateDelegate>();
   private readonly templatesDir = join(__dirname, 'templates');
+  private readonly brandName: string;
 
-  constructor(@InjectQueue('email') private readonly emailQueue: Queue) {}
+  constructor(
+    @InjectQueue('email') private readonly emailQueue: Queue,
+    private readonly configService: ConfigService,
+  ) {
+    this.brandName = this.configService.get<string>('brandName') || 'My Shop';
+  }
 
   async sendWelcome(to: string, data: WelcomeEmailData): Promise<void> {
-    await this.addEmailJob(to, 'Добро пожаловать в SportShop!', 'welcome', {
-      ...data,
-    });
+    await this.addEmailJob(
+      to,
+      `Добро пожаловать в ${this.brandName}!`,
+      'welcome',
+      { ...data },
+    );
   }
 
   async sendOrderConfirmation(
@@ -100,9 +110,12 @@ export class MailService {
   }
 
   async sendPasswordReset(to: string, data: PasswordResetData): Promise<void> {
-    await this.addEmailJob(to, 'Сброс пароля — SportShop', 'password-reset', {
-      ...data,
-    });
+    await this.addEmailJob(
+      to,
+      `Сброс пароля — ${this.brandName}`,
+      'password-reset',
+      { ...data },
+    );
   }
 
   async sendEmailVerification(
@@ -111,7 +124,7 @@ export class MailService {
   ): Promise<void> {
     await this.addEmailJob(
       to,
-      'Подтвердите ваш email — SportShop',
+      `Подтвердите ваш email — ${this.brandName}`,
       'email-verification',
       { ...data },
     );
@@ -123,7 +136,7 @@ export class MailService {
   ): Promise<void> {
     await this.addEmailJob(
       to,
-      'Подтвердите новый email — SportShop',
+      `Подтвердите новый email — ${this.brandName}`,
       'email-change-verification',
       { ...data },
     );
@@ -139,7 +152,11 @@ export class MailService {
       this.templates.set(templateName, template);
     }
 
-    return template({ ...data, year: new Date().getFullYear() });
+    return template({
+      ...data,
+      year: new Date().getFullYear(),
+      brandName: this.brandName,
+    });
   }
 
   private async addEmailJob(

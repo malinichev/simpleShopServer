@@ -64,12 +64,12 @@ export class NotificationSettingsDto {
 }
 
 export class UpdateSettingsDto {
-  @ApiPropertyOptional({ example: 'SportShop' })
+  @ApiPropertyOptional({ example: 'My Shop' })
   @IsOptional()
   @IsString()
   storeName?: string;
 
-  @ApiPropertyOptional({ example: 'admin@sportshop.ru' })
+  @ApiPropertyOptional({ example: 'admin@example.com' })
   @IsOptional()
   @IsEmail()
   email?: string;
@@ -111,7 +111,7 @@ export class UpdateSettingsDto {
   @Type(() => NotificationSettingsDto)
   notifications?: NotificationSettingsDto;
 
-  @ApiPropertyOptional({ example: 'admin@sportshop.ru' })
+  @ApiPropertyOptional({ example: 'admin@example.com' })
   @IsOptional()
   @IsEmail()
   notificationEmail?: string;

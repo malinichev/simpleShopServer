@@ -19,10 +19,10 @@ export interface NotificationSettings {
 
 @Entity('settings')
 export class Settings extends BaseEntity {
-  @Column({ default: 'SportShop' })
+  @Column({ default: '' })
   storeName: string;
 
-  @Column({ default: 'admin@sportshop.ru' })
+  @Column({ default: '' })
   email: string;
 
   @Column({ default: '' })
@@ -56,6 +56,6 @@ export class Settings extends BaseEntity {
   })
   notifications: NotificationSettings;
 
-  @Column({ default: 'admin@sportshop.ru' })
+  @Column({ default: '' })
   notificationEmail: string;
 }

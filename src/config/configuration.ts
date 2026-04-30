@@ -1,3 +1,5 @@
+const brandName = process.env.BRAND_NAME || 'My Shop';
+
 export default () => ({
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '4000', 10),
@@ -7,6 +9,8 @@ export default () => ({
   ],
   /** Базовый URL storefront для построения ссылок в письмах (verify, reset, etc) */
   webUrl: process.env.WEB_URL || 'http://localhost:3002',
+  /** Имя бренда — используется в email-шаблонах и subject'ах. Override через BRAND_NAME env */
+  brandName,
 
   database: {
     host: process.env.DB_HOST || 'localhost',
@@ -42,7 +46,7 @@ export default () => ({
     port: parseInt(process.env.SMTP_PORT || '587', 10),
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
-    from: process.env.MAIL_FROM || '"SportShop" <noreply@sportshop.ru>',
+    from: process.env.MAIL_FROM || `"${brandName}" <noreply@example.com>`,
   },
 
   throttle: {

@@ -44,12 +44,13 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
-    const existingUser = await this.usersService.findByEmail(dto.email);
+    const email = dto.email?.toLowerCase() ?? '';
+    const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
       throw new ConflictException('Пользователь с таким email уже существует');
     }
 
-    const user = await this.usersService.create(dto);
+    const user = await this.usersService.create({ ...dto, email });
 
     // Генерируем токен для подтверждения email
     const verificationToken =

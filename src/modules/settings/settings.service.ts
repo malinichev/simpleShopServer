@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Settings, NotificationSettings } from './entities/settings.entity';
@@ -21,6 +22,7 @@ export class SettingsService {
     private readonly shippingRepository: Repository<ShippingMethod>,
     @InjectRepository(PaymentMethod)
     private readonly paymentRepository: Repository<PaymentMethod>,
+    private readonly configService: ConfigService,
   ) {}
 
   // ======================== Settings (singleton) ========================
@@ -37,24 +39,25 @@ export class SettingsService {
 
   async getSettings(): Promise<Settings> {
     const existing = await this.settingsRepository.find();
+    const brandName = this.configService.get<string>('brandName') || 'My Shop';
+
     if (existing.length > 0) {
       const settings = existing[0];
       settings.notifications =
         settings.notifications ?? this.defaultNotifications;
-      settings.notificationEmail =
-        settings.notificationEmail ?? 'admin@sportshop.ru';
+      settings.notificationEmail = settings.notificationEmail ?? '';
       return settings;
     }
 
     const defaults = this.settingsRepository.create({
-      storeName: 'SportShop',
-      email: 'admin@sportshop.ru',
-      phone: '+7 (999) 123-45-67',
-      address: 'Москва, ул. Примерная, д. 1',
+      storeName: brandName,
+      email: '',
+      phone: '',
+      address: '',
       currency: 'RUB',
       language: 'ru',
       notifications: this.defaultNotifications,
-      notificationEmail: 'admin@sportshop.ru',
+      notificationEmail: '',
     });
 
     return this.settingsRepository.save(defaults);

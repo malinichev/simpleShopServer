@@ -352,6 +352,7 @@ export class CartService {
       const currentPrice = variant.price ?? product.price;
 
       items.push({
+        id: item.id,
         product: {
           id: product.id,
           name: product.name,
@@ -364,6 +365,7 @@ export class CartService {
           color: product.color ?? '',
           colorHex: product.colorHex ?? '',
         },
+        productId: item.productId,
         variantId: item.variantId,
         quantity: item.quantity,
         price: currentPrice,
