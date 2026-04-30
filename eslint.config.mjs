@@ -6,7 +6,12 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: [
+      'eslint.config.mjs',
+      // One-off импорт-скрипты для fashion-preset (Wildberries data import).
+      // Запускаются вручную, не входят в runtime бэка.
+      'src/database/seeds/presets/*/import-scripts/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

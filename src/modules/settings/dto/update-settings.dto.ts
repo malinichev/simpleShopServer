@@ -3,7 +3,6 @@ import {
   IsEmail,
   IsOptional,
   IsBoolean,
-  IsUrl,
   ValidateNested,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
