@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Redis from 'ioredis';
 import { ProductsRepository } from './products.repository';
 import { CategoriesService } from '@/modules/categories/categories.service';
+import { SearchService } from '@/modules/search/search.service';
 import {
   Product,
   ProductStatus,
@@ -37,6 +38,7 @@ export class ProductsService implements OnModuleDestroy {
     private readonly productsRepository: ProductsRepository,
     private readonly categoriesService: CategoriesService,
     private readonly configService: ConfigService,
+    private readonly searchService: SearchService,
   ) {
     this.redis = new Redis({
       host: this.configService.get<string>('redis.host'),
@@ -81,10 +83,8 @@ export class ProductsService implements OnModuleDestroy {
   }
 
   async search(term: string, limit: number = 10): Promise<Product[]> {
-    if (!term || term.trim().length < 2) {
-      return [];
-    }
-    return this.productsRepository.search(term.trim(), limit);
+    const result = await this.searchService.searchProducts({ term, limit });
+    return result.items;
   }
 
   async findBySlug(slug: string): Promise<Product> {
@@ -181,6 +181,7 @@ export class ProductsService implements OnModuleDestroy {
 
     const product = await this.productsRepository.create(productData);
     await this.invalidateCache();
+    await this.searchService.onProductSaved(product);
     return product;
   }
 
@@ -265,13 +266,16 @@ export class ProductsService implements OnModuleDestroy {
     }
 
     await this.invalidateCache();
-    return this.findById(id);
+    const fresh = await this.findById(id);
+    await this.searchService.onProductSaved(fresh);
+    return fresh;
   }
 
   async delete(id: string): Promise<void> {
     await this.findById(id);
     await this.productsRepository.delete(id);
     await this.invalidateCache();
+    await this.searchService.onProductDeleted(id);
   }
 
   async bulkDelete(ids: string[]): Promise<void> {

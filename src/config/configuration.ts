@@ -57,6 +57,18 @@ export default () => ({
     limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
   },
 
+  search: {
+    /**
+     * Search driver: 'postgres' (default, ILIKE без зависимостей) | 'meilisearch' (stub).
+     * См. server/src/modules/search/drivers/.
+     */
+    driver: process.env.SEARCH_DRIVER || 'postgres',
+    meilisearch: {
+      host: process.env.MEILISEARCH_HOST || '',
+      apiKey: process.env.MEILISEARCH_API_KEY || '',
+    },
+  },
+
   payments: {
     /**
      * Платёжные провайдеры. `manual` всегда активен. Прочие активируются,

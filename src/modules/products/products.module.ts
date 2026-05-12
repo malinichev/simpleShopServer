@@ -7,12 +7,14 @@ import { ProductsRepository } from './products.repository';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { CategoriesModule } from '@/modules/categories/categories.module';
+import { SearchModule } from '@/modules/search/search.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, ProductVariantEntity]),
     ConfigModule,
     CategoriesModule,
+    SearchModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsRepository, ProductsService],

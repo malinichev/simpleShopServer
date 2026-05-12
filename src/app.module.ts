@@ -15,6 +15,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { SearchModule } from './modules/search/search.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -107,6 +108,7 @@ import {
     PromotionsModule,
     OrdersModule,
     PaymentsModule,
+    SearchModule,
     ReviewsModule,
     WishlistModule,
     MailModule,
