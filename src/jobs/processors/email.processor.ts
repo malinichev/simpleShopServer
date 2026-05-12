@@ -1,40 +1,20 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
-import { createTransport, Transporter } from 'nodemailer';
 import { MailService, EmailJobData } from '@/modules/mail/mail.service';
+import { MAIL_DRIVER, MailDriver } from '@/modules/mail/drivers';
 
 @Processor('email')
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
-  private readonly transporter: Transporter;
 
   constructor(
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
+    @Inject(MAIL_DRIVER) private readonly mailDriver: MailDriver,
   ) {
     super();
-
-    const port = this.configService.get<number>('mail.port');
-    /**
-     * `family: 4` — принудительно IPv4. У mail.ru/yandex SMTP в DNS лежит IPv6,
-     * который часто недоступен с домашних сетей → EHOSTUNREACH. Опция
-     * не торчит в TS-типах nodemailer верхнего уровня, поэтому каст.
-     */
-    const transportOptions: Record<string, unknown> = {
-      host: this.configService.get<string>('mail.host'),
-      port,
-      secure: port === 465,
-      family: 4,
-      auth: {
-        user: this.configService.get<string>('mail.user'),
-        pass: this.configService.get<string>('mail.pass'),
-      },
-    };
-    this.transporter = createTransport(
-      transportOptions as Parameters<typeof createTransport>[0],
-    );
   }
 
   async process(job: Job<EmailJobData>): Promise<void> {
@@ -43,13 +23,9 @@ export class EmailProcessor extends WorkerHost {
 
     try {
       const html = this.mailService.compileTemplate(template, context);
+      const from = this.configService.get<string>('mail.from') || '';
 
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('mail.from'),
-        to,
-        subject,
-        html,
-      });
+      await this.mailDriver.send({ from, to, subject, html });
 
       this.logger.log(`Email job ${job.id} completed: ${template} -> ${to}`);
     } catch (error) {

@@ -65,6 +65,12 @@ import {
           host: configService.get<string>('redis.host'),
           port: configService.get<number>('redis.port'),
           password: configService.get<string>('redis.password'),
+          // Graceful degradation: если Redis unreachable, не зацикливаемся в reconnect.
+          // MailService при detect'е этого сам перейдёт в sync-режим (см. queueEnabled flag).
+          maxRetriesPerRequest: 1,
+          enableOfflineQueue: false,
+          retryStrategy: (times: number) =>
+            times > 3 ? null : Math.min(times * 200, 2000),
         },
       }),
       inject: [ConfigService],

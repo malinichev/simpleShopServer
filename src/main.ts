@@ -1,4 +1,5 @@
 import './bootstrap-env'; // side-effect: грузит .env ДО декораторов модулей (см. bootstrap-env.ts)
+import './sentry.bootstrap'; // side-effect: opt-in Sentry init (см. sentry.bootstrap.ts)
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

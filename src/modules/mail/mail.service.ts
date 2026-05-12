@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import * as Handlebars from 'handlebars';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { MAIL_DRIVER, MailDriver } from './drivers';
 
 export interface WelcomeEmailData {
   firstName: string;
@@ -68,12 +69,23 @@ export class MailService {
   private readonly templates = new Map<string, Handlebars.TemplateDelegate>();
   private readonly templatesDir = join(__dirname, 'templates');
   private readonly brandName: string;
+  private readonly queueEnabled: boolean;
 
   constructor(
     @InjectQueue('email') private readonly emailQueue: Queue,
     private readonly configService: ConfigService,
+    @Inject(MAIL_DRIVER) private readonly mailDriver: MailDriver,
   ) {
     this.brandName = this.configService.get<string>('brandName') || 'My Shop';
+    // Если REDIS_HOST не задан — Redis недоступен, BullMQ работать не будет.
+    // Переключаемся в синхронный режим: MailDriver вызывается напрямую.
+    const redisHost = this.configService.get<string>('redis.host');
+    this.queueEnabled = !!redisHost && redisHost.trim() !== '';
+    if (!this.queueEnabled) {
+      this.logger.warn(
+        'REDIS_HOST не задан → email отправляется синхронно, без очереди и retry. Для prod рекомендуется поднять Redis.',
+      );
+    }
   }
 
   async sendWelcome(to: string, data: WelcomeEmailData): Promise<void> {
@@ -165,6 +177,23 @@ export class MailService {
     template: string,
     context: Record<string, unknown>,
   ): Promise<void> {
+    if (!this.queueEnabled) {
+      // Sync fallback: рендерим и шлём напрямую, без BullMQ/Redis.
+      const html = this.compileTemplate(template, context);
+      const from = this.configService.get<string>('mail.from') || '';
+      try {
+        await this.mailDriver.send({ from, to, subject, html });
+        this.logger.log(`Email sent (sync): ${template} -> ${to}`);
+      } catch (err) {
+        // Без очереди нет retry — логируем и пропускаем.
+        // Не throw'им, чтобы не блокировать основной flow (регистрация, заказ).
+        this.logger.error(
+          `Email failed (sync, no retry): ${template} -> ${to}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      return;
+    }
+
     const job = await this.emailQueue.add(
       'send-email',
       { to, subject, template, context } as EmailJobData,
