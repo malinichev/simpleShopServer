@@ -124,8 +124,13 @@ export class OrdersController {
     description: 'Cart is empty or validation error',
   })
   async create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
-    const order = await this.ordersService.create(user.id, dto);
-    return this.ordersService.toResponseDto(order, user);
+    const { order, paymentRedirectUrl } = await this.ordersService.create(
+      user.id,
+      dto,
+    );
+    return this.ordersService.toResponseDto(order, user, {
+      paymentRedirectUrl,
+    });
   }
 
   @Patch(':id/status')

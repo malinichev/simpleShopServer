@@ -14,6 +14,7 @@ import { UsersModule } from '@/modules/users/users.module';
 import { MarkingModule } from '@/modules/marking/marking.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { MarkingCode } from '@/modules/marking/entities/marking-code.entity';
+import { PaymentsModule } from '@/modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -25,9 +26,10 @@ import { MarkingCode } from '@/modules/marking/entities/marking-code.entity';
     MarkingModule,
     MailModule,
     forwardRef(() => UsersModule),
+    forwardRef(() => PaymentsModule),
   ],
   controllers: [OrdersController],
   providers: [OrdersRepository, OrdersService, OrderMarkingService],
-  exports: [OrdersService, OrderMarkingService],
+  exports: [OrdersService, OrderMarkingService, OrdersRepository],
 })
 export class OrdersModule {}

@@ -63,6 +63,13 @@ export class OrderResponseDto {
   @ApiProperty({ enum: PaymentStatus })
   paymentStatus: PaymentStatus;
 
+  @ApiPropertyOptional({
+    description:
+      'URL редиректа на платёжный шлюз (yookassa/stripe/...). ' +
+      'Приходит только в ответе POST /orders при создании; в GET /orders/:id отсутствует.',
+  })
+  paymentRedirectUrl?: string;
+
   @ApiPropertyOptional()
   promoCode?: string;
 

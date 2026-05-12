@@ -116,6 +116,21 @@ export class OrdersRepository {
     return this.findById(id);
   }
 
+  /**
+   * Точечный update без relations-перезагрузки (для PaymentsService).
+   * Не возвращает обновлённый объект — вызывающий не нуждается в нём.
+   */
+  async updateFields(id: string, data: Partial<Order>): Promise<void> {
+    await this.repository.update(id, data);
+  }
+
+  async findByPaymentProviderTxnId(txnId: string): Promise<Order | null> {
+    return this.repository.findOne({
+      where: { paymentProviderTxnId: txnId },
+      relations: ['items'],
+    });
+  }
+
   async count(): Promise<number> {
     return this.repository.count();
   }

@@ -14,6 +14,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { CartModule } from './modules/cart/cart.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -65,12 +66,14 @@ import {
           host: configService.get<string>('redis.host'),
           port: configService.get<number>('redis.port'),
           password: configService.get<string>('redis.password'),
-          // Graceful degradation: если Redis unreachable, не зацикливаемся в reconnect.
-          // MailService при detect'е этого сам перейдёт в sync-режим (см. queueEnabled flag).
-          maxRetriesPerRequest: 1,
-          enableOfflineQueue: false,
+          // BullMQ требует maxRetriesPerRequest=null (blocking commands BRPOP/XREAD
+          // ломаются на retry-limit'е). Иначе BullMQ override'ит и спамит warning'и.
+          // Graceful degradation сделана выше: при отсутствии REDIS_HOST MailService
+          // сам идёт в sync-fallback (см. queueEnabled flag), очередь не используется.
+          maxRetriesPerRequest: null,
+          // Bounded reconnect — чтобы не зацикливаться в попытках при unreachable Redis.
           retryStrategy: (times: number) =>
-            times > 3 ? null : Math.min(times * 200, 2000),
+            times > 10 ? null : Math.min(times * 200, 2000),
         },
       }),
       inject: [ConfigService],
@@ -103,6 +106,7 @@ import {
     CartModule,
     PromotionsModule,
     OrdersModule,
+    PaymentsModule,
     ReviewsModule,
     WishlistModule,
     MailModule,

@@ -57,6 +57,27 @@ export default () => ({
     limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
   },
 
+  payments: {
+    /**
+     * Платёжные провайдеры. `manual` всегда активен. Прочие активируются,
+     * когда заданы соответствующие credentials (см. payments.module.ts).
+     * На v1.0 — yookassa/stripe/cloudpayments — stub-драйверы; интеграция
+     * дописывается в `server/src/modules/payments/drivers/`.
+     */
+    yookassa: {
+      shopId: process.env.YOOKASSA_SHOP_ID || '',
+      secretKey: process.env.YOOKASSA_SECRET_KEY || '',
+    },
+    stripe: {
+      secretKey: process.env.STRIPE_SECRET_KEY || '',
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    },
+    cloudpayments: {
+      publicId: process.env.CLOUDPAYMENTS_PUBLIC_ID || '',
+      apiSecret: process.env.CLOUDPAYMENTS_API_SECRET || '',
+    },
+  },
+
   oauth: {
     stateSecret: process.env.OAUTH_STATE_SECRET || 'default-oauth-state-secret',
     stateExpiresIn: process.env.OAUTH_STATE_EXPIRES || '5m',

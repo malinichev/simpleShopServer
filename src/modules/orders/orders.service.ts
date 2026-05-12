@@ -17,6 +17,7 @@ import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
 import { MailService } from '@/modules/mail/mail.service';
+import { PaymentsService } from '@/modules/payments/payments.service';
 import { Order, OrderStatus, OrderHistory } from './entities/order.entity';
 import { OrderItemEntity } from './entities/order-item.entity';
 import { MarkingCodeStatus } from '@/modules/marking/entities/marking-code.entity';
@@ -61,9 +62,14 @@ export class OrdersService {
     private readonly configService: ConfigService,
     @InjectRepository(OrderItemEntity)
     private readonly orderItemRepository: Repository<OrderItemEntity>,
+    @Inject(forwardRef(() => PaymentsService))
+    private readonly paymentsService: PaymentsService,
   ) {}
 
-  async create(userId: string, dto: CreateOrderDto): Promise<Order> {
+  async create(
+    userId: string,
+    dto: CreateOrderDto,
+  ): Promise<{ order: Order; paymentRedirectUrl?: string }> {
     // 1. Получить корзину пользователя
     const cart = await this.cartService.getCart(userId);
     if (!cart.items || cart.items.length === 0) {
@@ -212,10 +218,17 @@ export class OrdersService {
       await this.promotionsService.applyUsage(promoCode, userId);
     }
 
-    // 11. Отправить письмо-подтверждение заказа (не блокируем заказ при ошибке SMTP)
+    // 11. Инициализировать оплату через Payment driver (manual → no-op,
+    //     yookassa/stripe/cloudpayments → создаёт платёж и возвращает redirect).
+    const paymentResult = await this.paymentsService.initializeForOrder(
+      order,
+      dto.paymentMethod,
+    );
+
+    // 12. Отправить письмо-подтверждение заказа (не блокируем заказ при ошибке SMTP)
     await this.sendOrderConfirmationEmail(order);
 
-    return order;
+    return { order, paymentRedirectUrl: paymentResult.redirectUrl };
   }
 
   async findAll(query: OrderQueryDto): Promise<PaginatedResult<Order>> {
@@ -432,6 +445,7 @@ export class OrdersService {
       lastName: string;
       phone?: string;
     },
+    extras?: { paymentRedirectUrl?: string },
   ): OrderResponseDto {
     return {
       id: order.id,
@@ -456,6 +470,7 @@ export class OrdersService {
       shippingMethod: order.shippingMethod,
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
+      paymentRedirectUrl: extras?.paymentRedirectUrl,
       promoCode: order.promoCode,
       promoDiscount: order.promoDiscount,
       customerNote: order.customerNote,

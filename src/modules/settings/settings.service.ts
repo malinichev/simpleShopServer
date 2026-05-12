@@ -71,6 +71,16 @@ export class SettingsService {
     if (process.env.VK_CLIENT_ID) enabledOAuthProviders.push('vk');
     if (process.env.YANDEX_CLIENT_ID) enabledOAuthProviders.push('yandex');
 
+    // Активные платёжные провайдеры — публичный доступ нужен фронту, чтобы:
+    //  (a) admin понимал, какие провайдеры можно выбрать в форме payment-method,
+    //  (b) checkout мог нарисовать иконки/disclaimer'ы про провайдер.
+    // `manual` всегда есть.
+    const enabledPaymentProviders: string[] = ['manual'];
+    if (process.env.YOOKASSA_SHOP_ID) enabledPaymentProviders.push('yookassa');
+    if (process.env.STRIPE_SECRET_KEY) enabledPaymentProviders.push('stripe');
+    if (process.env.CLOUDPAYMENTS_PUBLIC_ID)
+      enabledPaymentProviders.push('cloudpayments');
+
     return {
       storeName: s.storeName,
       description: s.description ?? '',
@@ -80,6 +90,7 @@ export class SettingsService {
       currency: s.currency,
       socialLinks: s.socialLinks ?? {},
       enabledOAuthProviders,
+      enabledPaymentProviders,
     };
   }
 
@@ -90,11 +101,14 @@ export class SettingsService {
     });
   }
 
-  async findActivePaymentMethods(): Promise<PaymentMethod[]> {
-    return this.paymentRepository.find({
+  async findActivePaymentMethods(): Promise<Omit<PaymentMethod, 'config'>[]> {
+    // НЕ отдаём `config` публично — там могут быть provider-внутренние подсказки
+    // (receipt-template'ы yookassa и т.п.).
+    const methods = await this.paymentRepository.find({
       where: { isActive: true },
       order: { order: 'ASC' },
     });
+    return methods.map(({ config: _config, ...rest }) => rest);
   }
 
   async updateSettings(dto: UpdateSettingsDto): Promise<Settings> {

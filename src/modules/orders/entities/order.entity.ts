@@ -143,4 +143,24 @@ export class Order extends BaseEntity {
 
   @Column('jsonb', { default: [] })
   history: OrderHistory[];
+
+  /**
+   * ID транзакции у платёжного провайдера (yookassa/stripe/...).
+   * Используется в webhook-обработчике для поиска заказа по callback'у.
+   */
+  @Index()
+  @Column({ nullable: true })
+  paymentProviderTxnId?: string;
+
+  /**
+   * Provider-specific метаданные оплаты: confirmation_url, capture_method,
+   * последний raw-payload webhook'а и т.п.
+   *
+   * Тип `any` сознательный: это произвольный JSONB без фиксированной схемы;
+   * `Record<string, unknown>` ломает TypeORM `_QueryDeepPartialEntity` через
+   * каскад items[] → order → paymentMetadata.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  @Column('jsonb', { default: {} })
+  paymentMetadata: Record<string, any>;
 }
