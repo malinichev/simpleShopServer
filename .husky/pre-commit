@@ -1,0 +1,12 @@
+npx lint-staged
+
+# Optional: scan staged changes for secrets if gitleaks is installed locally.
+# Install via Homebrew: `brew install gitleaks` (macOS) or see https://github.com/gitleaks/gitleaks
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --verbose || {
+    echo ""
+    echo "✖  gitleaks found potential secrets in staged changes."
+    echo "   Remove the secrets and re-stage, or add an allowlist to .gitleaks.toml if false positive."
+    exit 1
+  }
+fi
