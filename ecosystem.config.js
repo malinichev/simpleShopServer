@@ -1,3 +1,6 @@
+// GENERATED from deploy/templates/ecosystem/server.config.js.template
+// Do not edit manually. Run `cd deploy && pnpm run generate` after editing the template or .env.deploy.
+
 module.exports = {
   apps: [
     {
