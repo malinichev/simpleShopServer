@@ -15,12 +15,6 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  // robots.txt — полностью запрещаем индексацию (до глобального префикса, чтобы был доступен по /robots.txt)
-  app.use('/robots.txt', (_: Request, res: Response) => {
-    res.type('text/plain');
-    res.send('User-agent: *\nDisallow: /\n');
-  });
-
   // Глобальный префикс API
   const apiPrefix = configService.get<string>('apiPrefix', 'api');
   app.setGlobalPrefix(apiPrefix);
