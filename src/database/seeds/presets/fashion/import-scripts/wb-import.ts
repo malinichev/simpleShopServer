@@ -26,7 +26,7 @@ if (
 
 // --- Config ---
 
-const BRAND_URL = 'https://www.wildberries.ru/brands/311318479-svoyaesthetica';
+const BRAND_URL = 'https://www.wildberries.ru/brands/311318479-svoybrand';
 const SCROLL_DELAY_MIN = 2000;
 const SCROLL_DELAY_MAX = 4000;
 const PAGE_DELAY_MIN = 2000;
