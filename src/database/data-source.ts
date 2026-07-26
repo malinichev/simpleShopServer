@@ -43,10 +43,14 @@ function buildDbConfig() {
   };
 }
 
+const dbConfig = buildDbConfig();
+const isLocalDb = dbConfig.host === '127.0.0.1' || dbConfig.host === 'localhost';
+
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  ...buildDbConfig(),
-  ssl: isProd ? { rejectUnauthorized: false } : false,
+  ...dbConfig,
+  // SSL только для удалённых БД. Для локального Docker PostgreSQL не нужен.
+  ssl: isProd && !isLocalDb ? { rejectUnauthorized: false } : false,
   entities: [resolve(__dirname, '../**/*.entity.{ts,js}')],
   migrations: [resolve(__dirname, 'migrations/*.{ts,js}')],
   migrationsTableName: 'typeorm_migrations',
