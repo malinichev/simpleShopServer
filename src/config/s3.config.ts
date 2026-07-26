@@ -11,4 +11,5 @@ export default registerAs('s3', () => ({
   secretKey: process.env.S3_SECRET_KEY || 'minioadmin',
   bucket: process.env.S3_BUCKET || 'sports-shop',
   region: process.env.S3_REGION || 'us-east-1',
+  forcePathStyle: process.env.S3_FORCE_PATH_STYLE || 'true',
 }));

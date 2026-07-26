@@ -52,25 +52,32 @@ export class UploadService implements OnModuleInit {
         accessKeyId: this.configService.get<string>('s3.accessKey')!,
         secretAccessKey: this.configService.get<string>('s3.secretKey')!,
       },
-      forcePathStyle: true, // Required for MinIO
+      forcePathStyle: configService.get<string>('s3.forcePathStyle') === 'true',
     });
   }
 
   async onModuleInit(): Promise<void> {
-    try {
-      await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
-      this.logger.log(`Bucket "${this.bucket}" exists`);
-    } catch (error: unknown) {
-      const statusCode = (error as { $metadata?: { httpStatusCode?: number } })
-        ?.$metadata?.httpStatusCode;
-      if (statusCode === 404 || statusCode === 403) {
-        this.logger.warn(`Bucket "${this.bucket}" not found, creating...`);
-        await this.s3.send(new CreateBucketCommand({ Bucket: this.bucket }));
-        this.logger.log(`Bucket "${this.bucket}" created`);
-      } else {
-        this.logger.error(`Failed to check bucket: ${String(error)}`);
+    // Не блокируем запуск сервера — проверка бакета асинхронно
+    setImmediate(async () => {
+      try {
+        await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
+        this.logger.log(`Bucket "${this.bucket}" exists`);
+      } catch (error: unknown) {
+        const statusCode = (error as { $metadata?: { httpStatusCode?: number } })
+          ?.$metadata?.httpStatusCode;
+        if (statusCode === 404 || statusCode === 403) {
+          this.logger.warn(`Bucket "${this.bucket}" not accessible (status ${statusCode}), attempting create...`);
+          try {
+            await this.s3.send(new CreateBucketCommand({ Bucket: this.bucket }));
+            this.logger.log(`Bucket "${this.bucket}" created`);
+          } catch (createError) {
+            this.logger.warn(`Could not create bucket: ${String(createError)}`);
+          }
+        } else {
+          this.logger.warn(`Failed to check bucket (non-blocking): ${String(error)}`);
+        }
       }
-    }
+    });
   }
 
   async uploadImage(

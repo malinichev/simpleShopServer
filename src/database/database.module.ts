@@ -27,9 +27,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           // автоматически при старте приложения — иначе несколько PM2-процессов
           // или хот-restart могут попытаться накатить параллельно.
           migrationsRun: false,
-          // Beget managed-PG использует self-signed CA → rejectUnauthorized=false.
-          // Трафик шифруется (TLS 1.3), но identity chain не верифицируется.
-          ssl: isProd ? { rejectUnauthorized: false } : false,
+          // SSL: включается только для удалённых БД (Beget).
+          // Для локального Docker PostgreSQL SSL не нужен.
+          ssl:
+            isProd && configService.get<string>('database.host') !== '127.0.0.1'
+              ? { rejectUnauthorized: false }
+              : false,
         };
       },
       inject: [ConfigService],
