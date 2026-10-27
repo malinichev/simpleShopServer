@@ -28,6 +28,7 @@ import {
 } from './dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
 
@@ -56,10 +57,7 @@ export class ReviewsController {
   @Get('products/:productId/reviews')
   @ApiOperation({ summary: 'Получить отзывы товара (только одобренные)' })
   @ApiParam({ name: 'productId', description: 'Product ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Paginated list of approved reviews',
-  })
+  @ApiPaginatedResponse(ReviewResponseDto)
   async findByProduct(
     @Param('productId') productId: string,
     @Query() query: ReviewQueryDto,
@@ -93,7 +91,7 @@ export class ReviewsController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Получить все отзывы (admin)' })
-  @ApiResponse({ status: 200, description: 'Paginated list of all reviews' })
+  @ApiPaginatedResponse(ReviewResponseDto)
   async findAll(@Query() query: ReviewQueryDto) {
     return this.reviewsService.findAll(query);
   }

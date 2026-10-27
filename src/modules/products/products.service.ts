@@ -350,6 +350,7 @@ export class ProductsService implements OnModuleDestroy {
       colorHex: product.colorHex,
       modelId: product.modelId,
       gtin: product.gtin,
+      requiresMarking: product.requiresMarking,
       colorSiblings: (product as any).colorSiblings,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
