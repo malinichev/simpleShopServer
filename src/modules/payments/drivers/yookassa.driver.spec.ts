@@ -125,6 +125,25 @@ describe('YooKassaPaymentDriver', () => {
       });
     });
 
+    it('базовый URL API конфигурируется (payments.yookassa.apiUrl / YOOKASSA_API_URL) — эмуляция для e2e', async () => {
+      // Локальный эмулятор YooKassa (e2e) подменяет api.yookassa.ru,
+      // чтобы гонять реальный драйвер без внешних сетей и боевых ключей.
+      const emulator = new YooKassaPaymentDriver(
+        makeConfig({ 'payments.yookassa.apiUrl': 'http://localhost:4010/v3' }),
+      );
+      const { calls } = mockFetch([
+        { ok: true, status: 200, body: yooPaymentResponse('pending') },
+      ]);
+
+      await emulator.initialize({
+        order: makeOrder(),
+        methodConfig: {},
+        returnUrl: 'https://svoybrand.shop/checkout/success',
+      });
+
+      expect(calls[0].url).toBe('http://localhost:4010/v3/payments');
+    });
+
     it('прокидывает ошибку, если YooKassa API отклонил запрос', async () => {
       mockFetch([
         {

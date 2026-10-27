@@ -72,13 +72,16 @@ export default () => ({
   payments: {
     /**
      * Платёжные провайдеры. `manual` всегда активен. Прочие активируются,
-     * когда заданы соответствующие credentials (см. payments.module.ts).
-     * На v1.0 — yookassa/stripe/cloudpayments — stub-драйверы; интеграция
-     * дописывается в `server/src/modules/payments/drivers/`.
+     * когда заданы соответствующие credentials (условная регистрация
+     * driver'ов — `payments/drivers/index.ts`).
+     * `yookassa` — реальная интеграция; `stripe`/`cloudpayments` — stub'ы.
      */
     yookassa: {
       shopId: process.env.YOOKASSA_SHOP_ID || '',
       secretKey: process.env.YOOKASSA_SECRET_KEY || '',
+      // Override боевого api.yookassa.ru — для локальной e2e-эмуляции
+      // (см. e2e/src/mock-yookassa.mjs и e2e/README.md)
+      apiUrl: process.env.YOOKASSA_API_URL || '',
     },
     stripe: {
       secretKey: process.env.STRIPE_SECRET_KEY || '',
