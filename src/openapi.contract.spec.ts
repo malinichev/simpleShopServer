@@ -60,6 +60,18 @@ describe('OpenAPI-контракт (артефакт openapi.json)', () => {
         doc.components.schemas.ProductResponseDto.properties?.variants;
       expect(variants?.items).toEqual({ $ref: schemaRef('ProductVariantDto') });
     });
+
+    it('attributes — $ref ProductAttributesDto (не object)', () => {
+      expect(
+        doc.components.schemas.ProductResponseDto.properties?.attributes,
+      ).toEqual({ $ref: schemaRef('ProductAttributesDto') });
+    });
+
+    it('seo — $ref ProductSeoDto (не object)', () => {
+      expect(doc.components.schemas.ProductResponseDto.properties?.seo).toEqual(
+        { $ref: schemaRef('ProductSeoDto') },
+      );
+    });
   });
 
   describe.each([
