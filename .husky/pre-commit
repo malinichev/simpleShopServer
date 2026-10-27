@@ -1,5 +1,10 @@
 npx lint-staged
 
+# API-контракт: если среди staged есть controllers/dto/entities/swagger-конфиг —
+# перегенерировать openapi.json + типы admin/client и блокировать коммит, пока
+# артефакты не закоммичены в их репозиториях. Подробнее: scripts/check-api-sync.mjs
+node scripts/check-api-sync.mjs
+
 # Optional: scan staged changes for secrets if gitleaks is installed locally.
 # Install via Homebrew: `brew install gitleaks` (macOS) or see https://github.com/gitleaks/gitleaks
 if command -v gitleaks >/dev/null 2>&1; then

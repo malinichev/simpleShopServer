@@ -41,7 +41,7 @@
     "deploy:production": "./node_modules/.bin/pm2 deploy production",
     "deploy:setup": "./node_modules/.bin/pm2 deploy production setup",
     "prepare": "husky 2>/dev/null || true",
-    "openapi:export": "ts-node -T -r tsconfig-paths/register scripts/export-openapi.ts"
+    "openapi:export": "nest build && node dist/scripts/export-openapi.js"
   },
   "lint-staged": {
     "*.ts": [
