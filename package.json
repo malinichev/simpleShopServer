@@ -40,11 +40,16 @@
     "pm2:logs": "pm2 logs sports-shop-api",
     "deploy:production": "./node_modules/.bin/pm2 deploy production",
     "deploy:setup": "./node_modules/.bin/pm2 deploy production setup",
-    "prepare": "husky 2>/dev/null || true"
+    "prepare": "husky 2>/dev/null || true",
+    "openapi:export": "ts-node -T -r tsconfig-paths/register scripts/export-openapi.ts"
   },
   "lint-staged": {
-    "*.ts": ["eslint --fix"],
-    "*.{json,md,yml,yaml}": ["prettier --write"]
+    "*.ts": [
+      "eslint --fix"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
