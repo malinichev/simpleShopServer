@@ -113,10 +113,10 @@ export class ProductResponseDto {
   @ApiPropertyOptional()
   colorHex?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String, nullable: true })
   modelId?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String, nullable: true })
   gtin?: string | null;
 
   // Явный type обязателен: без него design:type массива теряет тип элемента,
