@@ -15,7 +15,9 @@ export class Cart extends BaseEntity {
   @OneToMany(() => CartItemEntity, (item) => item.cart, { cascade: true })
   items: CartItemEntity[];
 
-  @Column({ nullable: true })
+  // Явный type обязателен: с union `string | null` reflect-metadata даёт
+  // Object, и TypeORM не может вывести тип колонки
+  @Column({ type: 'varchar', nullable: true })
   promoCode?: string | null;
 
   @Column('decimal', {
