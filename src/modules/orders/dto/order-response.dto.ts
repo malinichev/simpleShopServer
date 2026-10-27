@@ -20,6 +20,83 @@ class OrderUserBriefDto {
   phone?: string;
 }
 
+/** Снимок позиции заказа (entities/order.entity.ts OrderItem). */
+export class OrderItemDto {
+  @ApiProperty()
+  productId: string;
+
+  @ApiProperty()
+  variantId: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  sku: string;
+
+  @ApiPropertyOptional()
+  image?: string;
+
+  @ApiProperty()
+  size: string;
+
+  @ApiProperty()
+  color: string;
+
+  @ApiProperty()
+  price: number;
+
+  @ApiProperty()
+  quantity: number;
+
+  @ApiProperty()
+  total: number;
+}
+
+export class OrderHistoryItemDto {
+  @ApiProperty({ enum: OrderStatus })
+  status: OrderStatus;
+
+  @ApiPropertyOptional()
+  comment?: string;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiPropertyOptional()
+  createdBy?: string;
+}
+
+/** Адрес доставки в ответе заказа (те же поля, что в ShippingAddressDto запроса). */
+export class OrderShippingAddressDto {
+  @ApiProperty()
+  firstName: string;
+
+  @ApiProperty()
+  lastName: string;
+
+  @ApiProperty()
+  phone: string;
+
+  @ApiPropertyOptional()
+  country?: string;
+
+  @ApiProperty()
+  city: string;
+
+  @ApiProperty()
+  street: string;
+
+  @ApiProperty()
+  building: string;
+
+  @ApiPropertyOptional()
+  apartment?: string;
+
+  @ApiProperty()
+  postalCode: string;
+}
+
 export class OrderResponseDto {
   @ApiProperty()
   id: string;
@@ -33,7 +110,7 @@ export class OrderResponseDto {
   @ApiPropertyOptional({ type: OrderUserBriefDto })
   user?: OrderUserBriefDto;
 
-  @ApiProperty({ type: [Object] })
+  @ApiProperty({ type: [OrderItemDto] })
   items: OrderItem[];
 
   @ApiProperty()
@@ -51,7 +128,7 @@ export class OrderResponseDto {
   @ApiProperty({ enum: OrderStatus })
   status: OrderStatus;
 
-  @ApiProperty({ type: Object })
+  @ApiProperty({ type: OrderShippingAddressDto })
   shippingAddress: Address;
 
   @ApiProperty()
@@ -82,7 +159,7 @@ export class OrderResponseDto {
   @ApiPropertyOptional()
   adminNote?: string;
 
-  @ApiProperty({ type: [Object] })
+  @ApiProperty({ type: [OrderHistoryItemDto] })
   history: OrderHistory[];
 
   @ApiProperty()

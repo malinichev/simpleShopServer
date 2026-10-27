@@ -75,6 +75,32 @@ describe('OpenAPI-контракт (артефакт openapi.json)', () => {
     expect(schema.items).toEqual({ $ref: schemaRef('ColorSiblingDto') });
   });
 
+  describe('OrderResponseDto — вложенные структуры типизированы', () => {
+    it('items — OrderItemDto[] (не object[])', () => {
+      const items =
+        doc.components.schemas.OrderResponseDto.properties?.items;
+      expect(items?.items).toEqual({ $ref: schemaRef('OrderItemDto') });
+    });
+
+    it('history — OrderHistoryItemDto[]', () => {
+      const history =
+        doc.components.schemas.OrderResponseDto.properties?.history;
+      expect(history?.items).toEqual({ $ref: schemaRef('OrderHistoryItemDto') });
+    });
+
+    it('shippingAddress — OrderShippingAddressDto', () => {
+      expect(
+        doc.components.schemas.OrderResponseDto.properties?.shippingAddress,
+      ).toEqual({ $ref: schemaRef('OrderShippingAddressDto') });
+    });
+
+    it('UserResponseDto.addresses — UserAddressDto[]', () => {
+      const addresses =
+        doc.components.schemas.UserResponseDto.properties?.addresses;
+      expect(addresses?.items).toEqual({ $ref: schemaRef('UserAddressDto') });
+    });
+  });
+
   it('GET /auth/me — UserResponseDto', () => {
     expect(okSchema('/auth/me', 'get')).toEqual({
       $ref: schemaRef('UserResponseDto'),

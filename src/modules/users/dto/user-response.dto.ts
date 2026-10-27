@@ -1,6 +1,42 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole, Address } from '../entities/user.entity';
 
+/** Сохранённый адрес в профиле пользователя (entities/user.entity.ts Address). */
+export class UserAddressDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty()
+  firstName: string;
+
+  @ApiProperty()
+  lastName: string;
+
+  @ApiProperty()
+  phone: string;
+
+  @ApiProperty()
+  city: string;
+
+  @ApiProperty()
+  street: string;
+
+  @ApiProperty()
+  building: string;
+
+  @ApiPropertyOptional()
+  apartment?: string;
+
+  @ApiProperty()
+  postalCode: string;
+
+  @ApiProperty()
+  isDefault: boolean;
+}
+
 export class UserResponseDto {
   @ApiProperty()
   id: string;
@@ -23,7 +59,7 @@ export class UserResponseDto {
   @ApiPropertyOptional()
   avatar?: string;
 
-  @ApiProperty({ type: [Object] })
+  @ApiProperty({ type: [UserAddressDto] })
   addresses: Address[];
 
   @ApiProperty()
