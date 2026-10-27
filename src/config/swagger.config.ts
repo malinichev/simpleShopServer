@@ -18,9 +18,7 @@ export function createApiDocument(app: INestApplication) {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        name: 'JWT',
         description: 'Enter JWT token',
-        in: 'header',
       },
       'JWT-auth',
     )
