@@ -88,10 +88,14 @@ export class OrderMarkingService {
       await queryRunner.release();
     }
 
-    // Синхронизировать stock вариантов после резервирования
+    // Синхронизировать stock вариантов после резервирования.
+    // Только для вариантов с кодами маркировки: у немаркированных товаров
+    // syncVariantStock обнулил бы stock (COUNT кодов IN_STOCK = 0).
     const variantIds = [...new Set(items.map((i) => i.variantId))];
     for (const vid of variantIds) {
-      await this.markingService.syncVariantStock(vid);
+      if (await this.markingService.hasCodes(vid)) {
+        await this.markingService.syncVariantStock(vid);
+      }
     }
 
     return result;

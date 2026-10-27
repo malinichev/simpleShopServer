@@ -117,6 +117,16 @@ export class MarkingService {
   }
 
   /**
+   * Есть ли у варианта коды маркировки (любого статуса).
+   * Гарантирует, что syncVariantStock не тронет немаркированные товары:
+   * у них кодов нет, и пересчёт затёр бы stock нулём.
+   */
+  async hasCodes(variantId: string): Promise<boolean> {
+    const count = await this.repository.count({ where: { variantId } });
+    return count > 0;
+  }
+
+  /**
    * Пересчитать stock для ВСЕХ вариантов продукта.
    */
   async syncProductStock(productId: string): Promise<void> {
