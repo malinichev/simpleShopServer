@@ -11,6 +11,7 @@ import {
 } from './oauth.errors';
 import { UsersService } from '@/modules/users/users.service';
 import { UserOAuthIdentityRepository } from '@/modules/users/user-oauth-identity.repository';
+import { OAuthEventsService } from './oauth-events.service';
 import {
   UserOAuthIdentity,
   OAuthProvider,
@@ -107,6 +108,11 @@ describe('OAuthService', () => {
         { provide: UsersService, useValue: usersMock },
         { provide: UserOAuthIdentityRepository, useValue: identityRepoMock },
         { provide: getDataSourceToken(), useValue: dataSource },
+        // События OAuth (welcome-письма и т.п.) — вне зоны спецификации сервиса
+        {
+          provide: OAuthEventsService,
+          useValue: { emit: jest.fn(), on: jest.fn(), off: jest.fn() },
+        },
       ],
     }).compile();
 

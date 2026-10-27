@@ -38,11 +38,11 @@ export type WebhookOutcome =
  *
  * Реализации:
  *  - `manual.driver.ts`        — default. Order создаётся в PENDING, оплата вне системы.
- *  - `yookassa.driver.ts`      — stub. Реальная интеграция дописывается шаблон-юзером.
+ *  - `yookassa.driver.ts`      — реальная интеграция (redirect-оплата + вебхуки).
  *  - `stripe.driver.ts`        — stub.
  *  - `cloudpayments.driver.ts` — stub.
  *
- * Регистрация условная (см. `payments.module.ts`): driver попадает в registry
+ * Регистрация условная (см. `drivers/index.ts`): driver попадает в registry
  * только если заданы соответствующие env-credentials. `manual` всегда есть.
  */
 export interface PaymentDriver {

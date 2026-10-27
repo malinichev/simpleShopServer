@@ -11,7 +11,7 @@ import {
 } from './payment-driver.interface';
 
 /** https://yookassa.ru/developers/api */
-const YOOKASSA_API_BASE = 'https://api.yookassa.ru/v3';
+const DEFAULT_API_BASE = 'https://api.yookassa.ru/v3';
 
 interface YooKassaConfirmation {
   type: string;
@@ -61,8 +61,20 @@ export class YooKassaPaymentDriver implements PaymentDriver {
     return `Basic ${Buffer.from(`${shopId}:${secretKey}`).toString('base64')}`;
   }
 
+  /**
+   * Боевой endpoint — api.yookassa.ru. Переопределяется через
+   * `YOOKASSA_API_URL` — на него указывает локальный эмулятор YooKassa
+   * из e2e-прогона (реальный драйвер против мок-сервера, без внешних сетей).
+   */
+  private apiBase(): string {
+    return (
+      this.configService.get<string>('payments.yookassa.apiUrl') ||
+      DEFAULT_API_BASE
+    );
+  }
+
   private async api<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(`${YOOKASSA_API_BASE}${path}`, {
+    const response = await fetch(`${this.apiBase()}${path}`, {
       ...init,
       headers: {
         Authorization: this.authHeader(),
