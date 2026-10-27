@@ -26,6 +26,11 @@ export interface InitializeOrderPaymentResult {
   providerTxnId?: string;
 }
 
+function providerFromString(ref: string): PaymentProvider {
+  const known = Object.values(PaymentProvider) as string[];
+  return known.includes(ref) ? (ref as PaymentProvider) : PaymentProvider.MANUAL;
+}
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -59,7 +64,9 @@ export class PaymentsService {
       });
     }
 
-    const provider = method?.provider ?? PaymentProvider.MANUAL;
+    // Строка-провайдер ('yookassa') резолвится напрямую; неизвестные legacy-строки
+    // ('card', 'cash' из старого фронта) — безопасный fallback в manual.
+    const provider = method?.provider ?? providerFromString(paymentMethodRef);
     const driver = this.driverByProvider.get(provider);
     if (!driver) {
       throw new BadRequestException(
