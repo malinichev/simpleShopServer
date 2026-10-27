@@ -248,9 +248,11 @@ export class CartService {
   ): Promise<CartResponseDto> {
     const cart = await this.findOrCreateCart(userId, sessionId);
 
+    // null, а не undefined — как в clearCart: TypeORM update игнорирует
+    // undefined-поля, и промокод оставался бы на корзине после «удаления»
     await this.cartRepository.update(cart.id, {
-      promoCode: undefined,
-      promoDiscount: undefined,
+      promoCode: null,
+      promoDiscount: null,
     });
 
     const updatedCart = await this.cartRepository.findById(cart.id);
