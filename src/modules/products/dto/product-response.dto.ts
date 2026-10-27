@@ -6,7 +6,12 @@ import type {
   ProductSEO,
 } from '../entities/product.entity';
 import { ProductStatus } from '../entities/product.entity';
-import { ProductImageDto, ProductVariantDto } from './create-product.dto';
+import {
+  ProductImageDto,
+  ProductVariantDto,
+  ProductAttributesDto,
+  ProductSeoDto,
+} from './create-product.dto';
 
 class CategoryBriefDto {
   @ApiProperty()
@@ -81,7 +86,7 @@ export class ProductResponseDto {
   @ApiProperty({ type: [ProductVariantDto] })
   variants: ProductVariant[];
 
-  @ApiProperty({ type: () => Object })
+  @ApiProperty({ type: ProductAttributesDto })
   attributes: ProductAttributes;
 
   @ApiProperty()
@@ -96,7 +101,7 @@ export class ProductResponseDto {
   @ApiProperty({ enum: ProductStatus })
   status: ProductStatus;
 
-  @ApiProperty({ type: () => Object })
+  @ApiProperty({ type: ProductSeoDto })
   seo: ProductSEO;
 
   @ApiProperty()
