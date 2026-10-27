@@ -6,6 +6,7 @@ import type {
   ProductSEO,
 } from '../entities/product.entity';
 import { ProductStatus } from '../entities/product.entity';
+import { ProductImageDto, ProductVariantDto } from './create-product.dto';
 
 class CategoryBriefDto {
   @ApiProperty()
@@ -74,10 +75,10 @@ export class ProductResponseDto {
   @ApiProperty({ type: [String] })
   tags: string[];
 
-  @ApiProperty({ type: [Object] })
+  @ApiProperty({ type: [ProductImageDto] })
   images: ProductImage[];
 
-  @ApiProperty({ type: [Object] })
+  @ApiProperty({ type: [ProductVariantDto] })
   variants: ProductVariant[];
 
   @ApiProperty({ type: () => Object })

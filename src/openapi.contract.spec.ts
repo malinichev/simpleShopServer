@@ -48,6 +48,18 @@ describe('OpenAPI-контракт (артефакт openapi.json)', () => {
       expect(siblings?.type).toBe('array');
       expect(siblings?.items).toEqual({ $ref: schemaRef('ColorSiblingDto') });
     });
+
+    it('images — ProductImageDto[] (не object[])', () => {
+      const images =
+        doc.components.schemas.ProductResponseDto.properties?.images;
+      expect(images?.items).toEqual({ $ref: schemaRef('ProductImageDto') });
+    });
+
+    it('variants — ProductVariantDto[]', () => {
+      const variants =
+        doc.components.schemas.ProductResponseDto.properties?.variants;
+      expect(variants?.items).toEqual({ $ref: schemaRef('ProductVariantDto') });
+    });
   });
 
   describe.each([
