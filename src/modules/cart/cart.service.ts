@@ -171,9 +171,11 @@ export class CartService {
   ): Promise<void> {
     const cart = await this.findOrCreateCart(userId, sessionId);
     await this.cartRepository.deleteItemsByCartId(cart.id);
+    // null, а не undefined: TypeORM update игнорирует undefined-поля,
+    // и промокод оставался бы на корзине после заказа
     await this.cartRepository.update(cart.id, {
-      promoCode: undefined,
-      promoDiscount: undefined,
+      promoCode: null,
+      promoDiscount: null,
     });
   }
 
@@ -421,7 +423,7 @@ export class CartService {
 
   private calculateTotals(
     items: CartItemResponseDto[],
-    promoDiscount?: number,
+    promoDiscount?: number | null,
   ): CartTotalsDto {
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
     const discount = promoDiscount ? Math.min(promoDiscount, subtotal) : 0;
