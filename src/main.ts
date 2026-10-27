@@ -3,11 +3,12 @@ import './sentry.bootstrap'; // side-effect: opt-in Sentry init (см. sentry.bo
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { createApiDocument } from './config/swagger.config';
 import * as yaml from 'js-yaml'; // или 'yamljs'
 
 async function bootstrap() {
@@ -67,38 +68,7 @@ async function bootstrap() {
 
   if (!isProduction) {
     // Swagger документация (отключена в production)
-    const config = new DocumentBuilder()
-      .setTitle('Sports Shop API')
-      .setDescription(
-        'Backend API для интернет-магазина женской спортивной одежды',
-      )
-      .setVersion('1.0')
-      .addBearerAuth(
-        {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          name: 'JWT',
-          description: 'Enter JWT token',
-          in: 'header',
-        },
-        'JWT-auth',
-      )
-      .addTag('auth', 'Аутентификация и авторизация')
-      .addTag('users', 'Управление пользователями')
-      .addTag('products', 'Товары')
-      .addTag('categories', 'Категории')
-      .addTag('orders', 'Заказы')
-      .addTag('cart', 'Корзина')
-      .addTag('reviews', 'Отзывы')
-      .addTag('promotions', 'Промокоды')
-      .addTag('wishlist', 'Список желаний')
-      .addTag('upload', 'Загрузка файлов')
-      .addTag('analytics', 'Аналитика')
-      .addTag('health', 'Health checks')
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config);
+    const document = createApiDocument(app);
     SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
       swaggerOptions: {
         persistAuthorization: true,
