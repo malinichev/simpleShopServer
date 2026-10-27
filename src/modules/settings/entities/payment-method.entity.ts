@@ -8,9 +8,8 @@ import { BaseEntity } from '@/common/entities/base.entity';
  *  оплата принимается вне системы, статус выставляется admin'ом вручную.
  *
  * Прочие — онлайн-шлюзы. Регистрация driver'ов условная по env (см.
- * `payments.module.ts`); driver'ы `yookassa`/`stripe`/`cloudpayments`
- * на момент v1.0 — stub'ы, шаблон-юзер дописывает интеграцию по своим
- * API-ключам.
+ * `payments/drivers/index.ts`); `yookassa` — реальная интеграция,
+ * `stripe`/`cloudpayments` — stub'ы.
  */
 export enum PaymentProvider {
   MANUAL = 'manual',
