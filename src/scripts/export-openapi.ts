@@ -2,23 +2,28 @@
  * Экспорт OpenAPI 3.0 контракта в корень монорепо (../../openapi.json + .yaml).
  * Фронты (admin/client) генерируют из него типы и хуки — см. ../CLAUDE.md.
  *
+ * Запускается СБОРКОЙ (nest build), не ts-node: только в этом случае работает
+ * @nestjs/swagger CLI-плагин (инференс ApiProperty для полей без явных
+ * декораторов) — экспорт совпадает с тем, что показывает Swagger UI.
+ *
  * Требует поднятой dev-инфраструктуры (PostgreSQL + Redis):
  *   docker compose -f docker-compose.dev.yml up -d postgres redis
  * Запуск: pnpm openapi:export
  */
-import '../src/bootstrap-env'; // side-effect: грузит .env ДО декораторов модулей (как main.ts)
+import '../bootstrap-env'; // side-effect: грузит .env ДО декораторов модулей (как main.ts)
 import { NestFactory } from '@nestjs/core';
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 import * as yaml from 'js-yaml';
-import { AppModule } from '../src/app.module';
-import { createApiDocument } from '../src/config/swagger.config';
+import { AppModule } from '../app.module';
+import { createApiDocument } from '../config/swagger.config';
 
 async function main() {
   const app = await NestFactory.create(AppModule, { logger: false });
   try {
     const document = createApiDocument(app);
-    const monorepoRoot = resolve(__dirname, '..', '..');
+    // dist/scripts/ → 3 уровня вверх = корень монорепо
+    const monorepoRoot = resolve(__dirname, '..', '..', '..');
     const json = JSON.stringify(document, null, 2) + '\n';
     writeFileSync(resolve(monorepoRoot, 'openapi.json'), json);
     writeFileSync(
