@@ -87,11 +87,11 @@ export class CartResponseDto {
   @ApiProperty({ type: [CartItemResponseDto] })
   items: CartItemResponseDto[];
 
-  @ApiPropertyOptional()
-  promoCode?: string;
+  @ApiPropertyOptional({ nullable: true })
+  promoCode?: string | null;
 
-  @ApiPropertyOptional()
-  promoDiscount?: number;
+  @ApiPropertyOptional({ nullable: true })
+  promoDiscount?: number | null;
 
   @ApiProperty({ type: CartTotalsDto })
   totals: CartTotalsDto;

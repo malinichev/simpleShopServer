@@ -16,7 +16,7 @@ export class Cart extends BaseEntity {
   items: CartItemEntity[];
 
   @Column({ nullable: true })
-  promoCode?: string;
+  promoCode?: string | null;
 
   @Column('decimal', {
     precision: 10,
@@ -27,7 +27,7 @@ export class Cart extends BaseEntity {
       from: (v: string | null) => (v === null ? null : parseFloat(v) || 0),
     },
   })
-  promoDiscount?: number;
+  promoDiscount?: number | null;
 
   @Index()
   @Column({ type: 'timestamp' })
