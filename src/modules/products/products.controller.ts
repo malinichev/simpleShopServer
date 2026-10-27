@@ -15,6 +15,7 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiOkResponse,
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
@@ -25,6 +26,7 @@ import {
   UpdateProductDto,
   ProductQueryDto,
   ProductResponseDto,
+  ColorSiblingDto,
   BulkDeleteDto,
   BulkUpdateStatusDto,
   UpdateStockDto,
@@ -33,6 +35,7 @@ import {
 import { Public } from '@/common/decorators/public.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/entities/user.entity';
+import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
 
 @ApiTags('products')
 @Controller('products')
@@ -44,7 +47,7 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Получить список товаров с фильтрацией и пагинацией',
   })
-  @ApiResponse({ status: 200, description: 'Paginated list of products' })
+  @ApiPaginatedResponse(ProductResponseDto)
   async findAll(@Query() query: ProductQueryDto) {
     return this.productsService.findAll(query);
   }
@@ -95,7 +98,7 @@ export class ProductsController {
   @Get(':id/siblings')
   @ApiOperation({ summary: 'Получить цветовые сиблинги товара' })
   @ApiParam({ name: 'id', description: 'Product ID' })
-  @ApiResponse({ status: 200, description: 'Color siblings' })
+  @ApiOkResponse({ type: [ColorSiblingDto] })
   async findColorSiblings(@Param('id') id: string) {
     return this.productsService.findColorSiblings(id);
   }

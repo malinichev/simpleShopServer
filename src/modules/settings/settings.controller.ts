@@ -13,12 +13,14 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiOkResponse,
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
 import { SettingsService } from './settings.service';
 import {
   UpdateSettingsDto,
+  PublicSettingsDto,
   CreateShippingMethodDto,
   UpdateShippingMethodDto,
   CreatePaymentMethodDto,
@@ -40,7 +42,7 @@ export class SettingsController {
   @Public()
   @Get('public')
   @ApiOperation({ summary: 'Получить публичные настройки магазина' })
-  @ApiResponse({ status: 200 })
+  @ApiOkResponse({ type: PublicSettingsDto })
   async getPublicSettings() {
     return this.settingsService.getPublicSettings();
   }

@@ -19,6 +19,7 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiOkResponse,
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
@@ -42,7 +43,11 @@ import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@/modules/users/entities/user.entity';
-import { CreateAddressDto, UpdateAddressDto } from '@/modules/users/dto';
+import {
+  CreateAddressDto,
+  UpdateAddressDto,
+  UserResponseDto,
+} from '@/modules/users/dto';
 import { UsersService } from '@/modules/users/users.service';
 import { MailService } from '@/modules/mail/mail.service';
 import { TokenAudience, UserWithTokenAudience } from '@/common/types';
@@ -214,7 +219,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Получение профиля текущего пользователя' })
-  @ApiResponse({ status: 200, description: 'Профиль пользователя' })
+  @ApiOkResponse({ type: UserResponseDto })
   @ApiResponse({ status: 401, description: 'Не авторизован' })
   async getProfile(@CurrentUser() user: User) {
     return this.authService.getProfile(user.id);

@@ -18,6 +18,28 @@ class CategoryBriefDto {
   slug: string;
 }
 
+// Выше ProductResponseDto: декоратор @ApiPropertyOptional({ type: [ColorSiblingDto] })
+// исполняется при объявлении класса и не может ссылаться на класс, объявленный ниже (TDZ).
+export class ColorSiblingDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  slug: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiPropertyOptional()
+  color?: string;
+
+  @ApiPropertyOptional()
+  colorHex?: string;
+
+  @ApiPropertyOptional()
+  image?: string;
+}
+
 export class ProductResponseDto {
   @ApiProperty()
   id: string;
@@ -91,32 +113,19 @@ export class ProductResponseDto {
   @ApiPropertyOptional()
   gtin?: string | null;
 
-  @ApiPropertyOptional()
+  // Явный type обязателен: без него design:type массива теряет тип элемента,
+  // и свагер фолбэчится на string[].
+  @ApiPropertyOptional({ type: [ColorSiblingDto] })
   colorSiblings?: ColorSiblingDto[];
+
+  @ApiProperty({
+    description: 'Требует кода маркировки Честный ЗНАК при отгрузке',
+  })
+  requiresMarking: boolean;
 
   @ApiProperty()
   createdAt: Date;
 
   @ApiProperty()
   updatedAt: Date;
-}
-
-export class ColorSiblingDto {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  slug: string;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiPropertyOptional()
-  color?: string;
-
-  @ApiPropertyOptional()
-  colorHex?: string;
-
-  @ApiPropertyOptional()
-  image?: string;
 }

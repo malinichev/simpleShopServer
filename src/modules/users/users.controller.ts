@@ -29,11 +29,12 @@ import {
   UserStatsDto,
 } from './dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
 import { UserRole } from './entities/user.entity';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from './entities/user.entity';
 import { OrdersService } from '@/modules/orders/orders.service';
-import { OrderQueryDto } from '@/modules/orders/dto';
+import { OrderQueryDto, OrderResponseDto } from '@/modules/orders/dto';
 
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
@@ -60,7 +61,7 @@ export class UsersController {
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all users with pagination (admin only)' })
-  @ApiResponse({ status: 200, description: 'Paginated list of users' })
+  @ApiPaginatedResponse(UserResponseDto)
   async findAll(@Query() query: UserQueryDto) {
     return this.usersService.findAll(query);
   }
@@ -117,7 +118,7 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user orders (admin only)' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: 'Paginated list of user orders' })
+  @ApiPaginatedResponse(OrderResponseDto)
   @ApiResponse({ status: 404, description: 'User not found' })
   async getUserOrders(@Param('id') id: string, @Query() query: OrderQueryDto) {
     await this.usersService.findByIdOrFail(id);

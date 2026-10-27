@@ -30,6 +30,7 @@ import {
 } from './dto';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
 
 @ApiTags('orders')
@@ -45,7 +46,7 @@ export class OrdersController {
   @Get()
   @ApiOperation({ summary: 'Список заказов (user: свои, admin: все)' })
   @ApiBearerAuth('JWT-auth')
-  @ApiResponse({ status: 200, description: 'Paginated list of orders' })
+  @ApiPaginatedResponse(OrderResponseDto)
   async findAll(@CurrentUser() user: User, @Query() query: OrderQueryDto) {
     const result =
       user.role === UserRole.ADMIN || user.role === UserRole.MANAGER
