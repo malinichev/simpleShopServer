@@ -63,6 +63,20 @@ export class SettingsService {
     return this.settingsRepository.save(defaults);
   }
 
+  /**
+   * Провайдеры, чьи драйверы реально зарегистрированы на этом сервере
+   * (условная регистрация по env — см. payments/drivers/index.ts).
+   * `manual` всегда есть. Источник и для getPublicSettings, и для фильтра
+   * публичного списка способов оплаты.
+   */
+  private getEnabledPaymentProviders(): string[] {
+    const providers: string[] = ['manual'];
+    if (process.env.YOOKASSA_SHOP_ID) providers.push('yookassa');
+    if (process.env.STRIPE_SECRET_KEY) providers.push('stripe');
+    if (process.env.CLOUDPAYMENTS_PUBLIC_ID) providers.push('cloudpayments');
+    return providers;
+  }
+
   async getPublicSettings() {
     const s = await this.getSettings();
     // OAuth-провайдеры включаются по env (см. auth.module.ts conditional registration).
@@ -74,12 +88,7 @@ export class SettingsService {
     // Активные платёжные провайдеры — публичный доступ нужен фронту, чтобы:
     //  (a) admin понимал, какие провайдеры можно выбрать в форме payment-method,
     //  (b) checkout мог нарисовать иконки/disclaimer'ы про провайдер.
-    // `manual` всегда есть.
-    const enabledPaymentProviders: string[] = ['manual'];
-    if (process.env.YOOKASSA_SHOP_ID) enabledPaymentProviders.push('yookassa');
-    if (process.env.STRIPE_SECRET_KEY) enabledPaymentProviders.push('stripe');
-    if (process.env.CLOUDPAYMENTS_PUBLIC_ID)
-      enabledPaymentProviders.push('cloudpayments');
+    const enabledPaymentProviders = this.getEnabledPaymentProviders();
 
     return {
       storeName: s.storeName,
@@ -104,11 +113,18 @@ export class SettingsService {
   async findActivePaymentMethods(): Promise<Omit<PaymentMethod, 'config'>[]> {
     // НЕ отдаём `config` публично — там могут быть provider-внутренние подсказки
     // (receipt-template'ы yookassa и т.п.).
+    //
+    // Фильтруем по зарегистрированным провайдерам: метод онлайн-оплаты без
+    // env-ключей (драйвера нет) показывать покупателю нельзя — заказ по нему
+    // создастся, но оплата не инициализируется.
+    const enabled = new Set(this.getEnabledPaymentProviders());
     const methods = await this.paymentRepository.find({
       where: { isActive: true },
       order: { order: 'ASC' },
     });
-    return methods.map(({ config: _config, ...rest }) => rest);
+    return methods
+      .filter((m) => enabled.has(m.provider))
+      .map(({ config: _config, ...rest }) => rest);
   }
 
   async updateSettings(dto: UpdateSettingsDto): Promise<Settings> {

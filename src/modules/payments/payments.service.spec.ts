@@ -121,6 +121,23 @@ describe('PaymentsService', () => {
       expect(result).toEqual({ status: 'pending' });
       expect(ordersRepository.updateFields).not.toHaveBeenCalled();
     });
+
+    it('незарегистрированный провайдер (env не задан) не роняет созданный заказ', async () => {
+      // Кейс из продактуена: метод yookassa остался в БД (например, после e2e),
+      // а сервер запущен без YOOKASSA_* env → драйвера нет. resolveMethod кидал
+      // BadRequest ВНЕ try/catch → POST /orders падал уже ПОСЛЕ очистки корзины.
+      const { service, paymentMethodRepo, ordersRepository } = makeService();
+      paymentMethodRepo.findOne.mockResolvedValue({
+        id: METHOD_ID,
+        provider: PaymentProvider.STRIPE,
+        config: {},
+      });
+
+      const result = await service.initializeForOrder(makeOrder(), METHOD_ID);
+
+      expect(result).toEqual({ status: 'pending' });
+      expect(ordersRepository.updateFields).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleWebhook', () => {

@@ -194,10 +194,7 @@ export class OrdersService {
       );
     }
 
-    // 8. Очистить корзину
-    await this.cartService.clearCart(userId, undefined);
-
-    // 9. Обновить stock товаров (только для товаров БЕЗ маркировки —
+    // 8. Обновить stock товаров (только для товаров БЕЗ маркировки —
     //    для маркированных stock синхронизируется автоматически через marking codes)
     for (const item of orderItems) {
       const product = await this.productsService.findById(item.productId!);
@@ -213,20 +210,25 @@ export class OrdersService {
       }
     }
 
-    // 10. Зачесть использование промокода
+    // 9. Зачесть использование промокода
     if (promoCode) {
       await this.promotionsService.applyUsage(promoCode, userId);
     }
 
-    // 11. Инициализировать оплату через Payment driver (manual → no-op,
+    // 10. Инициализировать оплату через Payment driver (manual → no-op,
     //     yookassa/stripe/cloudpayments → создаёт платёж и возвращает redirect).
     const paymentResult = await this.paymentsService.initializeForOrder(
       order,
       dto.paymentMethod,
     );
 
-    // 12. Отправить письмо-подтверждение заказа (не блокируем заказ при ошибке SMTP)
+    // 11. Отправить письмо-подтверждение заказа (не блокируем заказ при ошибке SMTP)
     await this.sendOrderConfirmationEmail(order);
+
+    // 12. Очистить корзину ПОСЛЕДНИМ шагом: любой сбой выше оставляет запрос
+    //     ошибочным, и корзина покупателя должна остаться нетронутой
+    //     (иначе «Не удалось оформить заказ» стирает корзину без заказа).
+    await this.cartService.clearCart(userId, undefined);
 
     return { order, paymentRedirectUrl: paymentResult.redirectUrl };
   }
