@@ -84,10 +84,13 @@ export class PaymentsService {
     order: Order,
     paymentMethodRef: string,
   ): Promise<InitializeOrderPaymentResult> {
-    const { method, driver } = await this.resolveMethod(paymentMethodRef);
     const returnUrl = `${this.configService.get<string>('webUrl')}/checkout/success?orderNumber=${encodeURIComponent(order.orderNumber)}`;
 
     try {
+      // resolveMethod внутри try: провайдер может быть не зарегистрирован
+      // (метод остался в БД, а env-ключи не заданы) — это тоже «оплата не
+      // инициализирована», а не причина ронять уже созданный заказ.
+      const { method, driver } = await this.resolveMethod(paymentMethodRef);
       const result = await driver.initialize({
         order,
         methodConfig: method?.config ?? {},
@@ -115,7 +118,7 @@ export class PaymentsService {
       };
     } catch (error) {
       this.logger.error(
-        `Payment initialize failed for order ${order.orderNumber} (${driver.provider}): ${(error as Error).message}`,
+        `Payment initialize failed for order ${order.orderNumber} (${paymentMethodRef}): ${(error as Error).message}`,
       );
       // Заказ создан, но оплата не инициализирована — оставляем PENDING,
       // чтобы admin мог обработать вручную. Не throw'аем — иначе откатится order.
