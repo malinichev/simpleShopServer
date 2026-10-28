@@ -25,6 +25,7 @@ import { PagesModule } from './modules/pages/pages.module';
 import { MarkingModule } from './modules/marking/marking.module';
 import { ImportModule } from './modules/import/import.module';
 import { JobsModule } from './jobs/jobs.module';
+import { BackupModule } from './modules/backup/backup.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {
@@ -118,6 +119,7 @@ import {
     MarkingModule,
     ImportModule,
     JobsModule,
+    BackupModule,
   ],
   controllers: [],
   providers: [

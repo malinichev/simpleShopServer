@@ -71,8 +71,11 @@ export class UsersController {
   @ApiOperation({ summary: 'Create user (admin only)' })
   @ApiResponse({ status: 201, type: UserResponseDto })
   @ApiResponse({ status: 409, description: 'Email already exists' })
-  async create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
-    const user = await this.usersService.create(dto);
+  async create(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() currentUser: User,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.create(dto, currentUser);
     return this.usersService.sanitizeUser(user);
   }
 
@@ -110,8 +113,11 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async remove(@Param('id') id: string): Promise<void> {
-    await this.usersService.delete(id);
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: User,
+  ): Promise<void> {
+    await this.usersService.delete(id, currentUser);
   }
 
   @Get(':id/orders')

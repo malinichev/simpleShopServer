@@ -26,7 +26,21 @@ import { TokenAudience } from '@/common/types';
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(
+    createUserDto: CreateUserDto,
+    currentUser?: User,
+  ): Promise<User> {
+    // Главного администратора может создать только главный администратор
+    // (первый создаётся скриптом deploy/create-admin.sh)
+    if (
+      createUserDto.role === UserRole.SUPER_ADMIN &&
+      currentUser?.role !== UserRole.SUPER_ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Только главный администратор может создать главного администратора',
+      );
+    }
+
     const existingUser = await this.usersRepository.findByEmail(
       createUserDto.email,
     );
@@ -79,10 +93,39 @@ export class UsersService {
   ): Promise<User> {
     const user = await this.findByIdOrFail(userId);
 
+    // Изменять главного администратора может только главный администратор
+    if (
+      user.role === UserRole.SUPER_ADMIN &&
+      currentUser?.role !== UserRole.SUPER_ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Изменять главного администратора может только главный администратор',
+      );
+    }
+
     // Validate role change - only admin can change roles
     if (updateData.role && updateData.role !== user.role) {
-      if (!currentUser || currentUser.role !== UserRole.ADMIN) {
+      if (
+        !currentUser ||
+        (currentUser.role !== UserRole.ADMIN &&
+          currentUser.role !== UserRole.SUPER_ADMIN)
+      ) {
         throw new ForbiddenException('Only admin can change user roles');
+      }
+
+      // Назначить роль главного администратора может только главный администратор
+      if (
+        updateData.role === UserRole.SUPER_ADMIN &&
+        currentUser.role !== UserRole.SUPER_ADMIN
+      ) {
+        throw new ForbiddenException(
+          'Только главный администратор может назначить главного администратора',
+        );
+      }
+
+      // Нельзя понизить последнего главного администратора
+      if (user.role === UserRole.SUPER_ADMIN) {
+        await this.assertNotLastSuperAdmin();
       }
     }
 
@@ -106,12 +149,32 @@ export class UsersService {
     return updatedUser;
   }
 
-  async delete(userId: string): Promise<void> {
+  async delete(userId: string, currentUser?: User): Promise<void> {
     const user = await this.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    if (user.role === UserRole.SUPER_ADMIN) {
+      if (currentUser?.role !== UserRole.SUPER_ADMIN) {
+        throw new ForbiddenException(
+          'Удалять главного администратора может только главный администратор',
+        );
+      }
+      await this.assertNotLastSuperAdmin();
+    }
+
     await this.usersRepository.delete(userId);
+  }
+
+  /** Защита: в системе всегда должен оставаться хотя бы один главный администратор */
+  private async assertNotLastSuperAdmin(): Promise<void> {
+    const byRole = await this.usersRepository.countByRole();
+    if (byRole[UserRole.SUPER_ADMIN] <= 1) {
+      throw new ForbiddenException(
+        'Нельзя удалить или понизить последнего главного администратора',
+      );
+    }
   }
 
   async validatePassword(

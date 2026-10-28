@@ -31,6 +31,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
+import { isAdminLevel } from '@/common/utils/roles';
 
 @ApiTags('reviews')
 @Controller()
@@ -139,7 +140,7 @@ export class ReviewsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<void> {
-    const isAdmin = user.role === UserRole.ADMIN;
+    const isAdmin = isAdminLevel(user.role);
     await this.reviewsService.delete(id, user.id, isAdmin);
   }
 

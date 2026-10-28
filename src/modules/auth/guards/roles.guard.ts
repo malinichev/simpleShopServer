@@ -41,7 +41,11 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Пользователь не авторизован');
     }
 
-    const hasRole = requiredRoles.includes(user.role);
+    const hasRole =
+      requiredRoles.includes(user.role) ||
+      // Главный администратор наследует все права обычного ADMIN
+      (user.role === UserRole.SUPER_ADMIN &&
+        requiredRoles.includes(UserRole.ADMIN));
 
     if (!hasRole) {
       throw new ForbiddenException(
@@ -51,7 +55,10 @@ export class RolesGuard implements CanActivate {
 
     // If endpoint requires ADMIN or MANAGER role, token must have admin-panel audience
     const isAdminEndpoint = requiredRoles.some(
-      (r) => r === UserRole.ADMIN || r === UserRole.MANAGER,
+      (r) =>
+        r === UserRole.ADMIN ||
+        r === UserRole.MANAGER ||
+        r === UserRole.SUPER_ADMIN,
     );
     if (isAdminEndpoint) {
       const tokenAudience = user.__tokenAudience;

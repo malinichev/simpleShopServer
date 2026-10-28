@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, ILike, FindOptionsWhere } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { User, Address } from './entities/user.entity';
+import { User, UserRole, Address } from './entities/user.entity';
 import { CreateUserDto, UpdateUserDto, UserQueryDto } from './dto';
 import {
   PaginatedResult,
@@ -195,6 +195,7 @@ export class UsersRepository {
     customer: number;
     manager: number;
     admin: number;
+    super_admin: number;
   }> {
     const users = await this.repository.find({ select: ['role'] });
 
@@ -203,7 +204,7 @@ export class UsersRepository {
         acc[user.role]++;
         return acc;
       },
-      { customer: 0, manager: 0, admin: 0 },
+      { customer: 0, manager: 0, admin: 0, super_admin: 0 },
     );
   }
 

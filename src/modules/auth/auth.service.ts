@@ -82,7 +82,11 @@ export class AuthService {
     audience: TokenAudience = TokenAudience.WEB,
   ): Promise<AuthResponseDto> {
     if (audience === TokenAudience.ADMIN_PANEL) {
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.MANAGER) {
+      const canUseAdminPanel =
+        user.role === UserRole.ADMIN ||
+        user.role === UserRole.MANAGER ||
+        user.role === UserRole.SUPER_ADMIN;
+      if (!canUseAdminPanel) {
         throw new UnauthorizedException(
           'Недостаточно прав для входа в панель администратора',
         );
@@ -127,7 +131,11 @@ export class AuthService {
 
     // Re-check role for admin audience (in case role was downgraded)
     if (audience === TokenAudience.ADMIN_PANEL) {
-      if (user.role !== UserRole.ADMIN && user.role !== UserRole.MANAGER) {
+      const canUseAdminPanel =
+        user.role === UserRole.ADMIN ||
+        user.role === UserRole.MANAGER ||
+        user.role === UserRole.SUPER_ADMIN;
+      if (!canUseAdminPanel) {
         throw new ForbiddenException(
           'Недостаточно прав для панели администратора',
         );

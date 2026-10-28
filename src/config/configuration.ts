@@ -20,6 +20,12 @@ export default () => ({
     database: process.env.DB_DATABASE || 'sports-shop',
   },
 
+  /** Бэкапы БД: директория относительно cwd сервера и число хранимых файлов */
+  backup: {
+    dir: process.env.BACKUP_DIR || 'backups',
+    retention: parseInt(process.env.BACKUP_RETENTION || '20', 10),
+  },
+
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),

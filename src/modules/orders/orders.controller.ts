@@ -32,6 +32,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
+import { isAdminLevel } from '@/common/utils/roles';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -49,7 +50,9 @@ export class OrdersController {
   @ApiPaginatedResponse(OrderResponseDto)
   async findAll(@CurrentUser() user: User, @Query() query: OrderQueryDto) {
     const result =
-      user.role === UserRole.ADMIN || user.role === UserRole.MANAGER
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.MANAGER ||
+      isAdminLevel(user.role)
         ? await this.ordersService.findAll(query)
         : await this.ordersService.findByUser(user.id, query);
 
@@ -107,6 +110,7 @@ export class OrdersController {
     if (
       user.role !== UserRole.ADMIN &&
       user.role !== UserRole.MANAGER &&
+      !isAdminLevel(user.role) &&
       order.userId !== user.id
     ) {
       throw new ForbiddenException('Нет доступа к этому заказу');
@@ -185,7 +189,7 @@ export class OrdersController {
   @ApiResponse({ status: 403, description: 'Not allowed to cancel this order' })
   @ApiResponse({ status: 404, description: 'Order not found' })
   async cancel(@CurrentUser() user: User, @Param('id') id: string) {
-    const isAdmin = user.role === UserRole.ADMIN;
+    const isAdmin = isAdminLevel(user.role);
     const order = await this.ordersService.cancel(id, user.id, isAdmin);
     const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
