@@ -165,7 +165,13 @@ export class OAuthAuthController {
       });
     } catch (err) {
       const errorCode = this.mapErrorCode(err);
-      res.redirect(this.buildRedirect(errorRedirect, { error: errorCode }));
+      // mode известен из state: ошибку привязки показываем на странице безопасности
+      const errorBase =
+        statePayload.mode === 'link'
+          ? this.configService.get<string>('oauth.linkErrorRedirect') ||
+            errorRedirect
+          : errorRedirect;
+      res.redirect(this.buildRedirect(errorBase, { error: errorCode }));
     }
   }
 
@@ -306,9 +312,16 @@ export class OAuthAuthController {
       );
     } catch (err) {
       const code = this.mapErrorCode(err);
-      res.redirect(
-        this.buildRedirect(redirects.errorRedirect, { error: code }),
-      );
+      /**
+       * Ошибки привязки возвращаем на страницу безопасности, а не на /login:
+       * юзер там авторизован и SecurityClient показывает тост по ?error=.
+       */
+      const errorBase =
+        statePayload.mode === 'link'
+          ? this.configService.get<string>('oauth.linkErrorRedirect') ||
+            redirects.errorRedirect
+          : redirects.errorRedirect;
+      res.redirect(this.buildRedirect(errorBase, { error: code }));
     }
   }
 

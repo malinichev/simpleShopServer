@@ -9,6 +9,7 @@ import { UsersService } from '@/modules/users/users.service';
 import { OAuthService } from './oauth.service';
 import { OAuthStateService } from './oauth-state.service';
 import { VkIdOAuthService } from './vk-id.service';
+import { OAuthAlreadyLinkedException } from './oauth.errors';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
 import { TokenAudience } from '@/common/types';
 
@@ -120,5 +121,117 @@ describe('OAuthAuthController.oauthExchange', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
 
     expect(authService.login).not.toHaveBeenCalled();
+  });
+});
+
+describe('OAuthAuthController.completeOAuthLogin — редиректы ошибок', () => {
+  let controller: OAuthAuthController;
+  let oauthService: jest.Mocked<OAuthService>;
+  let configGet: jest.Mock;
+
+  const LINK_ERROR_REDIRECT = 'https://shop.example/account/security';
+  const LOGIN_ERROR_REDIRECT = 'https://shop.example/login';
+
+  beforeEach(async () => {
+    oauthService = { linkToUser: jest.fn() } as unknown as jest.Mocked<OAuthService>;
+    configGet = jest.fn((key: string) => {
+      if (key === 'oauth.linkErrorRedirect') return LINK_ERROR_REDIRECT;
+      return undefined;
+    });
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [OAuthAuthController],
+      providers: [
+        { provide: AuthService, useValue: {} },
+        { provide: UsersService, useValue: {} },
+        { provide: OAuthService, useValue: oauthService },
+        { provide: OAuthStateService, useValue: {} },
+        { provide: VkIdOAuthService, useValue: {} },
+        { provide: ConfigService, useValue: { get: configGet } },
+      ],
+    }).compile();
+
+    controller = module.get(OAuthAuthController);
+  });
+
+  const mockRedirectResponse = () =>
+    ({ redirect: jest.fn() }) as unknown as Response;
+
+  const profile = {
+    provider: 'yandex',
+    providerId: '1',
+    email: null,
+    emailVerified: false,
+  };
+
+  it('link-mode + already_linked → редирект на linkErrorRedirect с error=already_linked', async () => {
+    oauthService.linkToUser.mockRejectedValue(new OAuthAlreadyLinkedException());
+
+    const res = mockRedirectResponse();
+    await (controller as unknown as {
+      completeOAuthLogin: (
+        res: Response,
+        statePayload: { mode: string; userId?: string; nonce: string },
+        profile: unknown,
+        redirects: { successRedirect: string; errorRedirect: string },
+      ) => Promise<void>;
+    }).completeOAuthLogin(
+      res,
+      { mode: 'link', userId: 'user-42', nonce: 'n' },
+      profile,
+      { successRedirect: 'https://shop.example/auth/callback', errorRedirect: LOGIN_ERROR_REDIRECT },
+    );
+
+    expect(res.redirect).toHaveBeenCalledWith(
+      `${LINK_ERROR_REDIRECT}?error=already_linked`,
+    );
+  });
+
+  it('login-mode ошибка → прежний редирект на /login (не трогаем)', async () => {
+    oauthService.findOrCreateByOAuth =
+      jest.fn().mockRejectedValue(new Error('boom'));
+
+    const res = mockRedirectResponse();
+    await (controller as unknown as {
+      completeOAuthLogin: (
+        res: Response,
+        statePayload: { mode: string; nonce: string },
+        profile: unknown,
+        redirects: { successRedirect: string; errorRedirect: string },
+      ) => Promise<void>;
+    }).completeOAuthLogin(
+      res,
+      { mode: 'login', nonce: 'n' },
+      profile,
+      { successRedirect: 'https://shop.example/auth/callback', errorRedirect: LOGIN_ERROR_REDIRECT },
+    );
+
+    expect(res.redirect).toHaveBeenCalledWith(
+      `${LOGIN_ERROR_REDIRECT}?error=oauth_failed`,
+    );
+  });
+
+  it('link-mode без настроенного linkErrorRedirect → fallback на общий errorRedirect', async () => {
+    configGet.mockReturnValue(undefined);
+    oauthService.linkToUser.mockRejectedValue(new OAuthAlreadyLinkedException());
+
+    const res = mockRedirectResponse();
+    await (controller as unknown as {
+      completeOAuthLogin: (
+        res: Response,
+        statePayload: { mode: string; userId?: string; nonce: string },
+        profile: unknown,
+        redirects: { successRedirect: string; errorRedirect: string },
+      ) => Promise<void>;
+    }).completeOAuthLogin(
+      res,
+      { mode: 'link', userId: 'user-42', nonce: 'n' },
+      profile,
+      { successRedirect: 'https://shop.example/auth/callback', errorRedirect: LOGIN_ERROR_REDIRECT },
+    );
+
+    expect(res.redirect).toHaveBeenCalledWith(
+      `${LOGIN_ERROR_REDIRECT}?error=already_linked`,
+    );
   });
 });

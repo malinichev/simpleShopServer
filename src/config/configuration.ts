@@ -110,6 +110,9 @@ export default () => ({
     linkSuccessRedirect:
       process.env.OAUTH_LINK_SUCCESS_REDIRECT ||
       'http://localhost:3002/account/security',
+    linkErrorRedirect:
+      process.env.OAUTH_LINK_ERROR_REDIRECT ||
+      'http://localhost:3002/account/security',
     vk: {
       clientId: process.env.VK_CLIENT_ID || '',
       clientSecret: process.env.VK_CLIENT_SECRET || '',
