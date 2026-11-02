@@ -8,6 +8,8 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,44 +26,67 @@ import { CategoryResponseDto } from './dto/category-response.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/entities/user.entity';
+import { isAdminViewer, OptionalViewerUser } from '@/common/helpers/admin-viewer.helper';
+import { OptionalJwtAuthGuard } from '@/modules/cart/guards/optional-jwt-auth.guard';
 
 @ApiTags('categories')
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
+  // Публичные эндпоинты: неактивные категории видны только админам из панели
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  @ApiOperation({ summary: 'Получить все категории (плоский список)' })
+  @ApiOperation({
+    summary: 'Получить все категории (плоский список; не-админам — только активные)',
+  })
   @ApiResponse({ status: 200, type: [CategoryResponseDto] })
-  async findAll() {
-    return this.categoriesService.findAll();
+  async findAll(@Req() req: { user?: OptionalViewerUser }) {
+    return this.categoriesService.findAll({
+      includeHidden: isAdminViewer(req.user),
+    });
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('tree')
-  @ApiOperation({ summary: 'Получить дерево категорий' })
+  @ApiOperation({
+    summary: 'Получить дерево категорий (не-админам — только активные)',
+  })
   @ApiResponse({ status: 200, type: [CategoryResponseDto] })
-  async findTree() {
-    return this.categoriesService.findTree();
+  async findTree(@Req() req: { user?: OptionalViewerUser }) {
+    return this.categoriesService.findTree({
+      includeHidden: isAdminViewer(req.user),
+    });
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('slug/:slug')
-  @ApiOperation({ summary: 'Получить категорию по slug' })
+  @ApiOperation({
+    summary: 'Получить категорию по slug (не-админам — только активные)',
+  })
   @ApiParam({ name: 'slug', description: 'Category slug' })
   @ApiResponse({ status: 200, type: CategoryResponseDto })
-  async findBySlug(@Param('slug') slug: string) {
-    return this.categoriesService.findBySlug(slug);
+  async findBySlug(@Param('slug') slug: string, @Req() req: { user?: OptionalViewerUser }) {
+    return this.categoriesService.findBySlug(slug, {
+      includeHidden: isAdminViewer(req.user),
+    });
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  @ApiOperation({ summary: 'Получить категорию по ID' })
+  @ApiOperation({
+    summary: 'Получить категорию по ID (не-админам — только активные)',
+  })
   @ApiParam({ name: 'id', description: 'Category ID' })
   @ApiResponse({ status: 200, type: CategoryResponseDto })
-  async findById(@Param('id') id: string) {
-    return this.categoriesService.findById(id);
+  async findById(@Param('id') id: string, @Req() req: { user?: OptionalViewerUser }) {
+    return this.categoriesService.findById(id, {
+      includeHidden: isAdminViewer(req.user),
+    });
   }
 
   @Post()

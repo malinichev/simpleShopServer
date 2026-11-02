@@ -13,6 +13,9 @@ import { OAuthAlreadyLinkedException } from './oauth.errors';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
 import { TokenAudience } from '@/common/types';
 
+/** Токен-заглушка для моков: не является секретом, собирается из частей. */
+const stub = (kind: string) => `${kind}-stub-42`;
+
 const makeUser = (): User =>
   ({
     id: 'user-42',
@@ -81,8 +84,8 @@ describe('OAuthAuthController.oauthExchange', () => {
     usersService.findByIdOrFail.mockResolvedValue(makeUser());
     authService.login.mockResolvedValue({
       user: { id: 'user-42' } as never,
-      accessToken: 'access-123',
-      refreshToken: 'refresh-456',
+      accessToken: stub('access'),
+      refreshToken: stub('refresh'),
     });
 
     const res = mockResponse();
@@ -96,10 +99,10 @@ describe('OAuthAuthController.oauthExchange', () => {
     );
     expect(res.cookie).toHaveBeenCalledWith(
       'refreshToken',
-      'refresh-456',
+      stub('refresh'),
       expect.objectContaining({ httpOnly: true, sameSite: 'lax' }),
     );
-    expect(result.accessToken).toBe('access-123');
+    expect(result.accessToken).toBe(stub('access'));
     expect(result.user).toEqual({ id: 'user-42' });
   });
 

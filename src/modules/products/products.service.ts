@@ -51,8 +51,21 @@ export class ProductsService implements OnModuleDestroy {
     this.redis.disconnect();
   }
 
-  async findAll(query: ProductQueryDto): Promise<PaginatedResult<Product>> {
-    const cacheKey = `${CACHE_PREFIX}:list:${JSON.stringify(query)}`;
+  /**
+   * По умолчанию includeHidden=true (внутренние потребители: импорт, корзина,
+   * заказы, аналитика — работают и с черновиками). Публичный контроллер
+   * каталога передаёт includeHidden только для админов из панели; без него
+   * список принудительно фильтруется до status=active + isVisible=true.
+   */
+  async findAll(
+    query: ProductQueryDto,
+    opts: { includeHidden?: boolean } = {},
+  ): Promise<PaginatedResult<Product>> {
+    const includeHidden = opts.includeHidden ?? true;
+    const effectiveQuery = includeHidden
+      ? query
+      : { ...query, status: ProductStatus.ACTIVE };
+    const cacheKey = `${CACHE_PREFIX}:list:${JSON.stringify(effectiveQuery)}`;
 
     const cached = await this.redis.get(cacheKey);
 
@@ -60,9 +73,9 @@ export class ProductsService implements OnModuleDestroy {
       return JSON.parse(cached) as PaginatedResult<Product>;
     }
 
-    const result = query.groupByModel
-      ? await this.productsRepository.findAllGrouped(query)
-      : await this.productsRepository.findAll(query);
+    const result = effectiveQuery.groupByModel
+      ? await this.productsRepository.findAllGrouped(effectiveQuery)
+      : await this.productsRepository.findAll(effectiveQuery, includeHidden);
 
     await this.redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
     return result;
@@ -87,26 +100,52 @@ export class ProductsService implements OnModuleDestroy {
     return result.items;
   }
 
-  async findBySlug(slug: string): Promise<Product> {
+  /**
+   * Публичный путь (includeHidden=false): не-активные/скрытые товары → 404,
+   * кешируется только публично доступный товар. Админский путь обходит кеш,
+   * чтобы черновик не попал в публичный кеш-ключ. Дефолт true — внутренние
+   * потребители работают с черновиками как раньше.
+   */
+  async findBySlug(
+    slug: string,
+    opts: { includeHidden?: boolean } = {},
+  ): Promise<Product> {
+    const includeHidden = opts.includeHidden ?? true;
     const cacheKey = `${CACHE_PREFIX}:slug:${slug}`;
 
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached) as Product;
+    if (!includeHidden) {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as Product;
+      }
     }
 
     const product = await this.productsRepository.findBySlug(slug);
-    if (!product) {
+    if (
+      !product ||
+      (!includeHidden &&
+        (product.status !== ProductStatus.ACTIVE || !product.isVisible))
+    ) {
       throw new NotFoundException(`Товар со slug "${slug}" не найден`);
     }
 
-    await this.redis.set(cacheKey, JSON.stringify(product), 'EX', CACHE_TTL);
+    if (!includeHidden) {
+      await this.redis.set(cacheKey, JSON.stringify(product), 'EX', CACHE_TTL);
+    }
     return product;
   }
 
-  async findById(id: string): Promise<Product> {
+  async findById(
+    id: string,
+    opts: { includeHidden?: boolean } = {},
+  ): Promise<Product> {
+    const includeHidden = opts.includeHidden ?? true;
     const product = await this.productsRepository.findById(id);
-    if (!product) {
+    if (
+      !product ||
+      (!includeHidden &&
+        (product.status !== ProductStatus.ACTIVE || !product.isVisible))
+    ) {
       throw new NotFoundException('Товар не найден');
     }
     return product;

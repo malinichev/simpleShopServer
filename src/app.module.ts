@@ -28,6 +28,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
 import {
   configuration,
   appConfig,
@@ -81,7 +82,7 @@ import {
       inject: [ConfigService],
     }),
 
-    // Rate limiting
+    // Rate limiting: guard регистрируется ниже (APP_GUARD, первым), в dev/e2e отключён
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
@@ -90,6 +91,7 @@ import {
             limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
           },
         ],
+        skipIf: () => process.env.NODE_ENV !== 'production',
       }),
     }),
 
@@ -135,6 +137,12 @@ import {
         });
       },
       inject: [ConfigService],
+    },
+    // Rate limiting: первым, до авторизации (внешний трафик — по реальному IP
+    // из XFF; локальные SSR-фетчи Next exempt — см. AppThrottlerGuard)
+    {
+      provide: APP_GUARD,
+      useClass: AppThrottlerGuard,
     },
     // Глобальный guard для JWT аутентификации
     {

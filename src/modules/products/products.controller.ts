@@ -10,6 +10,8 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -36,20 +38,28 @@ import { Public } from '@/common/decorators/public.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/entities/user.entity';
 import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
+import { isAdminViewer, OptionalViewerUser } from '@/common/helpers/admin-viewer.helper';
+import { OptionalJwtAuthGuard } from '@/modules/cart/guards/optional-jwt-auth.guard';
 
 @ApiTags('products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  // Публичные каталог-эндпоинты: черновики/скрытые товары видны только
+  // админам из панели (OptionalJwtAuthGuard заполняет req.user, если токен есть).
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
   @ApiOperation({
-    summary: 'Получить список товаров с фильтрацией и пагинацией',
+    summary:
+      'Получить список товаров с фильтрацией и пагинацией (не-админам — только active и видимые)',
   })
   @ApiPaginatedResponse(ProductResponseDto)
-  async findAll(@Query() query: ProductQueryDto) {
-    return this.productsService.findAll(query);
+  async findAll(@Query() query: ProductQueryDto, @Req() req: { user?: OptionalViewerUser }) {
+    return this.productsService.findAll(query, {
+      includeHidden: isAdminViewer(req.user),
+    });
   }
 
   @Public()
@@ -75,23 +85,33 @@ export class ProductsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('slug/:slug')
-  @ApiOperation({ summary: 'Получить товар по slug' })
+  @ApiOperation({
+    summary: 'Получить товар по slug (не-админам — только active и видимые)',
+  })
   @ApiParam({ name: 'slug', description: 'Product slug' })
   @ApiResponse({ status: 200, type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  async findBySlug(@Param('slug') slug: string) {
-    return this.productsService.findBySlug(slug);
+  async findBySlug(@Param('slug') slug: string, @Req() req: { user?: OptionalViewerUser }) {
+    return this.productsService.findBySlug(slug, {
+      includeHidden: isAdminViewer(req.user),
+    });
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  @ApiOperation({ summary: 'Получить товар по ID' })
+  @ApiOperation({
+    summary: 'Получить товар по ID (не-админам — только active и видимые)',
+  })
   @ApiParam({ name: 'id', description: 'Product ID' })
   @ApiResponse({ status: 200, type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  async findById(@Param('id') id: string) {
-    return this.productsService.findById(id);
+  async findById(@Param('id') id: string, @Req() req: { user?: OptionalViewerUser }) {
+    return this.productsService.findById(id, {
+      includeHidden: isAdminViewer(req.user),
+    });
   }
 
   @Public()

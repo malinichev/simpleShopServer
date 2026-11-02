@@ -51,13 +51,24 @@ const FILE_MAPPING: Record<string, { slug: string; color: string; n: number }> =
   'set-layered-black-3.png':      { slug: 'set-layered', color: 'black', n: 3 },
 };
 
-// Конфиги S3
+// Конфиги S3. Креды НЕ хранятся в коде (были закоммичены прод-ключи SprintHost —
+// извлекли в env; старые ключи считаются скомпрометированными, ротировать в панели).
+// Локальный MinIO: переменные из docker-compose.dev.yml (MINIO_ROOT_USER/PASSWORD).
+// Прод: S3_ACCESS_KEY / S3_SECRET_KEY (блок PROD используется только при их наличии).
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Не задана переменная окружения ${name} (см. комментарий к конфигам S3 в этом скрипте)`);
+  }
+  return value;
+}
+
 const LOCAL_S3 = {
   endpoint: 'http://localhost:9000',
   region: 'us-east-1',
   bucket: 'sports-shop',
-  accessKey: 'minioadmin',
-  secretKey: 'minioadmin',
+  get accessKey(): string { return requireEnv('MINIO_ROOT_USER'); },
+  get secretKey(): string { return requireEnv('MINIO_ROOT_PASSWORD'); },
   publicUrl: 'http://localhost:9000/sports-shop',
 };
 
@@ -65,8 +76,8 @@ const PROD_S3 = {
   endpoint: 'https://s3.spb.sprinthost.ru',
   region: 'spb',
   bucket: 's3-952264',
-  accessKey: 'TE5Y2D110Y5GBF53WZZZ',
-  secretKey: 'uhlpAIQzVczvjmjBLTrdRHPiugMOYO7cjOa3G754',
+  get accessKey(): string { return requireEnv('S3_ACCESS_KEY'); },
+  get secretKey(): string { return requireEnv('S3_SECRET_KEY'); },
   publicUrl: 'https://s3-952264.s3.spb.sprinthost.ru',
 };
 

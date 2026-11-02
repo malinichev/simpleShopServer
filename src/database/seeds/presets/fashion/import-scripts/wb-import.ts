@@ -475,7 +475,7 @@ async function main(): Promise<void> {
       const catSlug =
         slugify(group.name, { lower: true, strict: true }) ||
         `cat-${subjectId}`;
-      const existing = await categoryRepo.findOne({ where: { slug: catSlug } });
+      const existing = await categoryRepo.findOneBy({ slug: catSlug });
       if (existing) {
         categoryMap.set(subjectId, (existing as any).id);
         continue;

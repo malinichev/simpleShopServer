@@ -39,7 +39,20 @@ export class CategoriesService implements OnModuleDestroy {
     this.redis.disconnect();
   }
 
-  async findAll(): Promise<Category[]> {
+  /**
+   * Дефолт includeHidden=true — внутренние потребители (импорт, create/update
+   * при валидации parentId) работают со всеми категориями. Публичный путь
+   * (includeHidden=false) кеширует и отдаёт только активные; админский путь
+   * обходит кеш, чтобы неактивные не попали в публичный кеш.
+   */
+  async findAll(opts: { includeHidden?: boolean } = {}): Promise<Category[]> {
+    const includeHidden = opts.includeHidden ?? true;
+    if (includeHidden) {
+      return this.repository.find({
+        order: { order: 'ASC', createdAt: 'DESC' },
+      });
+    }
+
     const cached = await this.redis.get(CACHE_KEY_LIST);
     if (cached) {
       return JSON.parse(cached) as Category[];
@@ -47,6 +60,7 @@ export class CategoriesService implements OnModuleDestroy {
 
     const categories = await this.repository.find({
       order: { order: 'ASC', createdAt: 'DESC' },
+      where: { isActive: true },
     });
 
     await this.redis.set(
@@ -58,7 +72,15 @@ export class CategoriesService implements OnModuleDestroy {
     return categories;
   }
 
-  async findTree(): Promise<Category[]> {
+  async findTree(opts: { includeHidden?: boolean } = {}): Promise<Category[]> {
+    const includeHidden = opts.includeHidden ?? true;
+    if (includeHidden) {
+      const all = await this.repository.find({
+        order: { order: 'ASC', createdAt: 'DESC' },
+      });
+      return this.buildTree(all);
+    }
+
     const cached = await this.redis.get(CACHE_KEY_TREE);
     if (cached) {
       return JSON.parse(cached) as Category[];
@@ -66,6 +88,7 @@ export class CategoriesService implements OnModuleDestroy {
 
     const categories = await this.repository.find({
       order: { order: 'ASC', createdAt: 'DESC' },
+      where: { isActive: true },
     });
 
     const tree = this.buildTree(categories);
@@ -74,19 +97,27 @@ export class CategoriesService implements OnModuleDestroy {
     return tree;
   }
 
-  async findBySlug(slug: string): Promise<Category> {
+  async findBySlug(
+    slug: string,
+    opts: { includeHidden?: boolean } = {},
+  ): Promise<Category> {
+    const includeHidden = opts.includeHidden ?? true;
     const category = await this.repository.findOne({ where: { slug } });
-    if (!category) {
+    if (!category || (!includeHidden && !category.isActive)) {
       throw new NotFoundException(`Категория со slug "${slug}" не найдена`);
     }
     return category;
   }
 
-  async findById(id: string): Promise<Category> {
+  async findById(
+    id: string,
+    opts: { includeHidden?: boolean } = {},
+  ): Promise<Category> {
+    const includeHidden = opts.includeHidden ?? true;
     const category = await this.repository.findOne({
       where: { id },
     });
-    if (!category) {
+    if (!category || (!includeHidden && !category.isActive)) {
       throw new NotFoundException('Категория не найдена');
     }
     return category;

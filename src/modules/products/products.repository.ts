@@ -36,7 +36,15 @@ export class ProductsRepository {
     private readonly variantRepository: Repository<ProductVariantEntity>,
   ) {}
 
-  async findAll(query: ProductQueryDto): Promise<PaginatedResult<Product>> {
+  /**
+   * @param includeHidden по умолчанию true (внутренние потребители). При false
+   * фильтр status=active + isVisible=true применяется принудительно (даже если
+   * query.status передан) — публичный список не отдаёт черновики.
+   */
+  async findAll(
+    query: ProductQueryDto,
+    includeHidden = true,
+  ): Promise<PaginatedResult<Product>> {
     const page = query.page || DEFAULT_PAGE;
     const limit = query.limit || DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
@@ -45,8 +53,15 @@ export class ProductsRepository {
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.variants', 'variant');
 
-    if (query.status) {
-      qb.andWhere('product.status = :status', { status: query.status });
+    if (includeHidden) {
+      if (query.status) {
+        qb.andWhere('product.status = :status', { status: query.status });
+      }
+    } else {
+      qb.andWhere('product.status = :status', {
+        status: ProductStatus.ACTIVE,
+      });
+      qb.andWhere('product.isVisible = :isVisible', { isVisible: true });
     }
 
     if (query.category) {

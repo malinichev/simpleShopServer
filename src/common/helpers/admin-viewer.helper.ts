@@ -1,0 +1,26 @@
+import { UserRole } from '@/common/decorators/roles.decorator';
+import { TokenAudience, UserWithTokenAudience } from '@/common/types';
+
+/** Пользователь из OptionalJwtAuthGuard (null/undefined для анонима). */
+export type OptionalViewerUser =
+  | ({ role: UserRole } & UserWithTokenAudience)
+  | null
+  | undefined;
+
+/**
+ * true, если запрос пришёл из админ-панели с валидным JWT
+ * (role ADMIN/MANAGER/SUPER_ADMIN + audience admin_panel) — зеркалит логику RolesGuard.
+ * Публичные каталог-эндпоинты показывают черновики/скрытое ТОЛЬКО таким запросам.
+ */
+export function isAdminViewer(user: OptionalViewerUser): boolean {
+  if (!user) return false;
+  const adminRoles: UserRole[] = [
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+  ];
+  return (
+    adminRoles.includes(user.role) &&
+    user.__tokenAudience === TokenAudience.ADMIN_PANEL
+  );
+}

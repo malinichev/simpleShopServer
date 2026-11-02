@@ -8,7 +8,8 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
-import { createApiDocument } from './config/swagger.config';
+import { createApiDocument, createPublicApiDocument } from './config/swagger.config';
+import { AGENT_LLMS_TXT } from './config/agent-discovery';
 import * as yaml from 'js-yaml'; // или 'yamljs'
 
 async function bootstrap() {
@@ -32,6 +33,12 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+  // За nginx: реальный IP клиента — в X-Forwarded-For (нужен ThrottlerGuard'у)
+  (app.getHttpAdapter().getInstance() as { set: (k: string, v: unknown) => void }).set(
+    'trust proxy',
+    1,
+  );
 
   // Security
   const isProduction = process.env.NODE_ENV === 'production';
@@ -66,8 +73,29 @@ async function bootstrap() {
     }),
   );
 
+  // Публичные файлы для ИИ-агентов: OpenAPI-спека (JSON) и llms.txt.
+  // Middleware живёт ВНЕ guard'ов — доступно без авторизации в любом окружении.
+  // Спека — createPublicApiDocument: пути без префикса /api (база в servers[]).
+  let openApiDocument: ReturnType<typeof createPublicApiDocument> | null = null;
+  const getOpenApiDocument = () => {
+    openApiDocument ??= createPublicApiDocument(app);
+    return openApiDocument;
+  };
+
+  app.use(`/${apiPrefix}/openapi.json`, (_: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(JSON.stringify(getOpenApiDocument()));
+  });
+
+  app.use(`/${apiPrefix}/llms.txt`, (_: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(AGENT_LLMS_TXT);
+  });
+
   if (!isProduction) {
-    // Swagger документация (отключена в production)
+    // Swagger UI (отключён в production; nginx дополнительно блокирует /api/docs)
     const document = createApiDocument(app);
     SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
       swaggerOptions: {
