@@ -1,5 +1,10 @@
-/** Скачать картинку по URL (наш S3 или CDN поставщика). */
+/**
+ * Скачать картинку по URL (наш S3 или CDN поставщика).
+ * Перед запросом URL валидируется (SSRF): только http/https,
+ * в проде запрещены loopback/приватные хосты (см. assertFetchableUrl).
+ */
 export async function fetchImage(url: string): Promise<Buffer> {
+  assertFetchableUrl(url);
   const response = await fetch(url, {
     headers: { 'User-Agent': 'svoybrand-image-regen/1.0' },
     signal: AbortSignal.timeout(30000),
@@ -10,6 +15,61 @@ export async function fetchImage(url: string): Promise<Buffer> {
     );
   }
   return Buffer.from(await response.arrayBuffer());
+}
+
+/**
+ * Разрешён ли URL для серверной загрузки картинки: схема строго http/https;
+ * loopback/приватные хосты — только вне прода (в dev нужны локальные фото
+ * каталога :3002, S3 :9000 и e2e-мок :4011; в проде картинки живут на
+ * публичных S3/CDN).
+ */
+export function assertFetchableUrl(rawUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Некорректный URL фото');
+  }
+  const scheme = parsed.protocol.toLowerCase();
+  if (scheme !== 'http:' && scheme !== 'https:') {
+    throw new Error('Протокол URL фото должен быть http/https');
+  }
+  if (process.env.NODE_ENV === 'production') {
+    const host = parsed.hostname.toLowerCase();
+    if (isLoopbackOrPrivateHost(host)) {
+      throw new Error('В проде запрещены loopback/приватные адреса в URL фото');
+    }
+  }
+}
+
+function isLoopbackOrPrivateHost(host: string): boolean {
+  const bare = host.replace(/^\[/, '').replace(/\]$/, '');
+  if (
+    bare === 'localhost' ||
+    bare.endsWith('.localhost') ||
+    bare.endsWith('.local') ||
+    bare.endsWith('.internal')
+  ) {
+    return true;
+  }
+  const parts = bare.split('.');
+  if (parts.length === 4 && parts.every((p) => /^\d{1,3}$/.test(p))) {
+    const a = Number(parts[0]);
+    const b = Number(parts[1]);
+    return (
+      a === 0 ||
+      a === 127 ||
+      a === 10 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+  // IPv6 loopback / ULA / link-local
+  if (bare.includes(':')) {
+    return bare === '::1' || bare.startsWith('fc') || bare.startsWith('fd') || bare.startsWith('fe80');
+  }
+  return false;
 }
 
 /** Тип картинки по магическим байтам (как UploadService.validateMagicBytes). */
