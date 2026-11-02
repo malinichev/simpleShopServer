@@ -3,7 +3,9 @@ import {
   IsEmail,
   IsOptional,
   IsBoolean,
+  IsArray,
   ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -62,6 +64,35 @@ export class NotificationSettingsDto {
   refundRequest?: boolean;
 }
 
+export class AiPromptPresetDto {
+  @ApiPropertyOptional({ example: 'tea-before-sleep' })
+  @IsString()
+  id: string;
+
+  @ApiPropertyOptional({ example: 'Чай перед сном' })
+  @IsString()
+  title: string;
+
+  @ApiPropertyOptional({
+    example: 'Evening wind-down: the model sits in a cozy bedroom…',
+  })
+  @IsString()
+  prompt: string;
+}
+
+export class AiImagePromptsDto {
+  @ApiPropertyOptional({ description: 'Базовый промпт стиля магазина' })
+  @IsString()
+  basePrompt: string;
+
+  @ApiPropertyOptional({ type: [AiPromptPresetDto], maxItems: 12 })
+  @IsArray()
+  @ArrayMaxSize(12)
+  @ValidateNested({ each: true })
+  @Type(() => AiPromptPresetDto)
+  presets: AiPromptPresetDto[];
+}
+
 export class UpdateSettingsDto {
   @ApiPropertyOptional({ example: 'My Shop' })
   @IsOptional()
@@ -114,4 +145,12 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsEmail()
   notificationEmail?: string;
+
+  @ApiPropertyOptional({
+    description: 'Промпты ИИ-генерации фото: базовый стиль + пресеты сцен',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AiImagePromptsDto)
+  aiImagePrompts?: AiImagePromptsDto;
 }

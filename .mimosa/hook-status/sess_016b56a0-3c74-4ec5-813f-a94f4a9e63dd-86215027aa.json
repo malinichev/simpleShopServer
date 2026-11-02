@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-11-02T15:39:40.008Z",
+  "sessionId": "sess_016b56a0-3c74-4ec5-813f-a94f4a9e63dd",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "/Users/malini4/WebstormProjects/siteWithAdmin/client/src/shared/config/routes.ts",
+  "outcome": "inconclusive",
+  "coverage": "partial",
+  "findingCount": 0,
+  "durationMs": 8,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

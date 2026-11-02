@@ -1,0 +1,21 @@
+import { registerAs } from '@nestjs/config';
+
+/**
+ * ИИ-генерация фото товара (модуль image-regen).
+ *
+ * Драйверы:
+ *  - `stub`  — локальная заглушка (sharp-плашшка), без внешних вызовов;
+ *              безопасный дефолт, весь флоу работает без ключа.
+ *  - `openai` — OpenAI-совместимый Images API (`POST /images/edits`),
+ *              используется для RouterAI (api.routerai.ru). Боевой endpoint
+ *              переопределяется через AI_API_BASE_URL — на него же указывает
+ *              локальный эмулятор из e2e-прогона (паттерн YooKassa-драйвера).
+ */
+export default registerAs('ai', () => ({
+  imageDriver: process.env.AI_IMAGE_DRIVER || 'stub',
+  apiBaseUrl: process.env.AI_API_BASE_URL || 'https://routerai.ru/api/v1',
+  apiKey: process.env.AI_API_KEY || '',
+  imageModel: process.env.AI_IMAGE_MODEL || 'gpt-image-1',
+  imageSize: process.env.AI_IMAGE_SIZE || '1024x1536',
+  timeoutMs: parseInt(process.env.AI_IMAGE_TIMEOUT_MS || '180000', 10),
+}));

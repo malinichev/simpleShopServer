@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Settings, NotificationSettings } from './entities/settings.entity';
+import {
+  Settings,
+  NotificationSettings,
+  DEFAULT_AI_IMAGE_PROMPTS,
+} from './entities/settings.entity';
 import { ShippingMethod } from './entities/shipping-method.entity';
 import { PaymentMethod } from './entities/payment-method.entity';
 import {
@@ -46,6 +50,8 @@ export class SettingsService {
       settings.notifications =
         settings.notifications ?? this.defaultNotifications;
       settings.notificationEmail = settings.notificationEmail ?? '';
+      settings.aiImagePrompts =
+        settings.aiImagePrompts ?? DEFAULT_AI_IMAGE_PROMPTS;
       return settings;
     }
 
@@ -58,6 +64,7 @@ export class SettingsService {
       language: 'ru',
       notifications: this.defaultNotifications,
       notificationEmail: '',
+      aiImagePrompts: DEFAULT_AI_IMAGE_PROMPTS,
     });
 
     return this.settingsRepository.save(defaults);
