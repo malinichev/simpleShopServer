@@ -106,7 +106,10 @@ export class SettingsService {
   async findActiveShippingMethods(): Promise<ShippingMethod[]> {
     return this.shippingRepository.find({
       where: { isActive: true },
-      order: { order: 'ASC' },
+      // createdAt вторичным ключом: при равном `order` (дефолт 0 у всех)
+      // порядок в Postgres не детерминирован — список «пляшет» между
+      // запусками, а клиент выбирает methods[0] дефолтом на чекауте
+      order: { order: 'ASC', createdAt: 'ASC' },
     });
   }
 
@@ -120,7 +123,9 @@ export class SettingsService {
     const enabled = new Set(this.getEnabledPaymentProviders());
     const methods = await this.paymentRepository.find({
       where: { isActive: true },
-      order: { order: 'ASC' },
+      // createdAt вторичным ключом — как в findActiveShippingMethods:
+      // детерминированный порядок при равном `order`
+      order: { order: 'ASC', createdAt: 'ASC' },
     });
     return methods
       .filter((m) => enabled.has(m.provider))
