@@ -137,17 +137,26 @@ export class RouterAiImageDriver implements ImageGenDriver {
       180000;
 
     const systemPrompt =
-      'You are the art director of SVOY BRAND, a women\'s homewear and sportswear e-commerce store. ' +
-      'Analyze the garment in the attached product photo(s) and suggest photoshoot scenes ' +
-      'that fit BOTH the garment and the store concept below.\n\n' +
-      `STORE PHOTO CONCEPT:\n"""${input.concept || 'Warm cozy at-home lifestyle photography.'}"""\n\n` +
+      'You are the art director of SVOY BRAND, a women\'s homewear, loungewear and sportswear e-commerce store. ' +
+      'Analyze the garment in the attached product photo(s) and propose photoshoot scenes that make shoppers ' +
+      'want to BUY this exact item — the shopper should look at the photo and picture herself in it.\n\n' +
+      `STORE PHOTO LOOK & FEEL (the visual style every scene must follow):\n"""${input.concept || 'Warm natural lifestyle photography, editorial quality.'}"""\n\n` +
+      'Step 1 — identify the garment: type, category (sleepwear / loungewear / activewear / homewear), ' +
+      'color, pattern, fabric mood, cut details, and who buys it.\n' +
+      'Step 2 — pick its REAL usage scenarios: the actual moments and places the buyer wears it ' +
+      '(morning routine, work-from-home, lounge & rest, sleep, yoga or home workout, walk outside, travel, spa, ' +
+      'self-care — whatever truly fits THIS garment; do not default to one type of scene).\n' +
+      'Step 3 — propose exactly 3 scenes, each in a DIFFERENT scenario and setting, chosen to sell this item ' +
+      'to women 25–40; vary time of day, activity and interior/place across scenes; each scene highlights ' +
+      'what makes the garment desirable (comfort, fit, fabric, look).\n\n' +
       'Respond with ONLY valid JSON (no markdown fences, no extra text) with this exact shape:\n' +
       '{"garmentType":"<RU: что за вещь, кратко>","color":"<RU: цвет/принт>","styleMood":"<RU: настроение вещи>",' +
-      '"modelNote":"<RU: кого показать в кадре — типаж/возраст/настроение, согласовано с вещью>",' +
+      '"modelNote":"<RU: кого показать в кадре — типаж/возраст/настроение, согласовано с вещью и сценарием>",' +
       '"notes":"<RU: детали, которые важно сохранить при генерации: крой/принт/ткань>",' +
-      '"scenes":[{"title":"<RU: название сцены>","prompt":"<EN: detailed scene prompt — action, place, light, mood, garment is the hero>"}]}\n' +
-      'Rules: exactly 2-3 scenes; scene prompts in English, 1-2 sentences each, consistent with the store concept; ' +
-      'never suggest text, logos or watermarks on photos; preserve the garment exactly as photographed.';
+      '"scenes":[{"title":"<RU: название сценария>","prompt":"<EN: detailed scene prompt — who, action, place, light, mood; the garment is the hero; a realistic natural moment, not posed stock>"}]}\n' +
+      'Rules: scene prompts in English, 1-2 sentences; every scene follows the store look & feel above ' +
+      '(light, palette, editorial quality); scenes must be distinctly different from each other; ' +
+      'never suggest text, logos or watermarks; preserve the garment exactly as photographed.';
 
     const content: Array<Record<string, unknown>> = [{ type: 'text', text: 'Проанализируй фото и предложи сцены.' }];
     for (const img of input.images) {
@@ -172,7 +181,7 @@ export class RouterAiImageDriver implements ImageGenDriver {
             { role: 'system', content: systemPrompt },
             { role: 'user', content },
           ],
-          max_tokens: 1200,
+          max_tokens: 1600,
         }),
         signal: AbortSignal.timeout(timeoutMs),
       });
