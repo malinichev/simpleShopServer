@@ -14,11 +14,13 @@ import {
   ImageRegenJob,
   ImageRegenJobStatus,
 } from './entities/image-regen-job.entity';
-import { StartImageRegenDto } from './dto';
+import { StartImageRegenDto, AnalyzeImagesDto } from './dto';
 import {
   IMAGE_GEN_DRIVER,
   ImageGenDriver,
+  GarmentAnalysis,
 } from './drivers/image-gen-driver.interface';
+import { fetchImage, sniffMimeType } from './image-regen.utils';
 import { ProductsService } from '@/modules/products/products.service';
 import { SettingsService } from '@/modules/settings/settings.service';
 
@@ -56,6 +58,41 @@ export class ImageRegenService {
     return [basePrompt.trim(), userPrompt.trim(), REGEN_TECH_SUFFIX]
       .filter(Boolean)
       .join('\n\n');
+  }
+
+  /**
+   * Vision-анализ выбранных фото ПЕРЕД генерацией: что за вещь и какие
+   * сцены/модель/интерьер подойдут под концепцию магазина (basePrompt из
+   * настроек). Админ видит карточку анализа и готовый промпт сцены,
+   * правит при желании — и только потом запускает генерацию.
+   */
+  async analyze(dto: AnalyzeImagesDto): Promise<GarmentAnalysis> {
+    if (!this.driver) {
+      throw new BadRequestException(
+        'ИИ-генерация не настроена на сервере (задайте AI_IMAGE_DRIVER и AI_API_KEY)',
+      );
+    }
+
+    const product = await this.productsService.findById(dto.productId);
+    const byId = new Map((product.images || []).map((img) => [img.id, img]));
+    const unknown = dto.imageIds.filter((id) => !byId.has(id));
+    if (unknown.length > 0) {
+      throw new BadRequestException(
+        `Фото не принадлежат товару: ${unknown.join(', ')}`,
+      );
+    }
+
+    const settings = await this.settingsService.getSettings();
+    const concept = settings.aiImagePrompts?.basePrompt || '';
+
+    const images = await Promise.all(
+      dto.imageIds.map(async (id) => {
+        const buffer = await fetchImage(byId.get(id)!.url);
+        return { buffer, mimeType: sniffMimeType(buffer) };
+      }),
+    );
+
+    return this.driver.analyzeGarment({ images, concept });
   }
 
   async start(dto: StartImageRegenDto, userId: string): Promise<ImageRegenJob> {

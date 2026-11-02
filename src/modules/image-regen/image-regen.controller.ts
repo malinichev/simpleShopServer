@@ -13,7 +13,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { Roles, UserRole } from '@/common/decorators/roles.decorator';
 import { ImageRegenService } from './image-regen.service';
-import { StartImageRegenDto } from './dto';
+import { StartImageRegenDto, AnalyzeImagesDto } from './dto';
 
 @ApiTags('image-regen')
 @Controller('image-regen')
@@ -29,6 +29,16 @@ export class ImageRegenController {
   @ApiResponse({ status: 200 })
   async getConfig() {
     return this.imageRegenService.getConfig();
+  }
+
+  @Post('analyze')
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @ApiOperation({
+    summary: 'Vision-анализ выбранных фото: что за вещь + подходящие сцены под концепцию магазина',
+  })
+  @ApiResponse({ status: 201 })
+  async analyze(@Body() dto: AnalyzeImagesDto) {
+    return this.imageRegenService.analyze(dto);
   }
 
   @Post('jobs')

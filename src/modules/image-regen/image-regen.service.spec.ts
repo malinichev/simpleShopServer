@@ -6,13 +6,29 @@ import {
   ImageRegenJob,
   ImageRegenJobStatus,
 } from './entities/image-regen-job.entity';
-import type { ImageGenDriver } from './drivers/image-gen-driver.interface';
+import type {
+  ImageGenDriver,
+  GarmentAnalysis,
+} from './drivers/image-gen-driver.interface';
 import type { ProductsService } from '@/modules/products/products.service';
 import type { SettingsService } from '@/modules/settings/settings.service';
 import type { ConfigService } from '@nestjs/config';
 
+const SAMPLE_ANALYSIS: GarmentAnalysis = {
+  garmentType: 'Женская пижама в горошек',
+  color: 'розовый с белым горошком',
+  styleMood: 'нежное игривое домашнее',
+  modelNote: 'девушка 25–30, мягкая естественная внешность',
+  notes: 'шорты на поясе-резинке, принт в горошек сохранять точно',
+  scenes: [{ title: 'Чай перед сном', prompt: 'cozy bedtime tea scene' }],
+};
+
 function makeDriver(): ImageGenDriver {
-  return { driverName: 'routerai', editImage: jest.fn() };
+  return {
+    driverName: 'routerai',
+    editImage: jest.fn(),
+    analyzeGarment: jest.fn(async () => SAMPLE_ANALYSIS),
+  };
 }
 
 function makeService(driver: ImageGenDriver | null = makeDriver()) {
@@ -151,5 +167,52 @@ describe('ImageRegenService.getConfig', () => {
     const config = await service.getConfig();
     expect(config.enabled).toBe(false);
     expect(config.driver).toBeNull();
+  });
+});
+
+describe('ImageRegenService.analyze — vision-анализ перед генерацией', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('скачивает выбранные фото и передаёт драйверу с концепцией из настроек', async () => {
+    const fetchMock = jest.fn(async () => new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4, 5, 6, 7, 8]), { status: 200 }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const driver = makeDriver();
+    const { service } = makeService(driver);
+    const analysis = await service.analyze({
+      productId: 'p1',
+      imageIds: ['img-1'],
+    });
+
+    expect(analysis).toEqual(SAMPLE_ANALYSIS);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://s3/products/a.webp',
+      expect.anything(),
+    );
+    expect(driver.analyzeGarment).toHaveBeenCalledWith(
+      expect.objectContaining({ concept: 'BASE STYLE TEXT' }),
+    );
+    const input = (driver.analyzeGarment as jest.Mock).mock.calls[0][0] as {
+      images: Array<{ mimeType: string }>;
+    };
+    expect(input.images[0].mimeType).toBe('image/png');
+  });
+
+  it('rejects: фото не из товара', async () => {
+    const { service } = makeService();
+    await expect(
+      service.analyze({ productId: 'p1', imageIds: ['alien'] }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects: драйвер не настроен', async () => {
+    const { service } = makeService(null);
+    await expect(
+      service.analyze({ productId: 'p1', imageIds: ['img-1'] }),
+    ).rejects.toThrow('ИИ-генерация не настроена');
   });
 });

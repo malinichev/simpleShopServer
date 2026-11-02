@@ -19,6 +19,8 @@ export default registerAs('ai', () => ({
   // рабочие альтернативы для /images/edits: google/gemini-2.5-flash-image,
   // bytedance-seed/seedream-5-0-flash (дешевле), openai/gpt-image-2
   imageModel: process.env.AI_IMAGE_MODEL || 'openai/gpt-image-2',
+  // Дешёвая vision-модель для предгенерационного анализа фото (chat/completions)
+  visionModel: process.env.AI_VISION_MODEL || 'google/gemini-2.5-flash',
   imageSize: process.env.AI_IMAGE_SIZE || '1024x1536',
   timeoutMs: parseInt(process.env.AI_IMAGE_TIMEOUT_MS || '180000', 10),
 }));

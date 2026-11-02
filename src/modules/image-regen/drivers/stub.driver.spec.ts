@@ -35,3 +35,16 @@ describe('StubImageDriver.editImage', () => {
     expect(a.buffer.equals(b.buffer)).toBe(false);
   });
 });
+
+describe('StubImageDriver.analyzeGarment', () => {
+  it('возвращает детерминированный анализ с двумя сценами', async () => {
+    const driver = new StubImageDriver();
+    const analysis = await driver.analyzeGarment({
+      images: [{ buffer: Buffer.from('x'), mimeType: 'image/png' }],
+      concept: 'BASE',
+    });
+    expect(analysis.scenes.length).toBeGreaterThanOrEqual(2);
+    expect(analysis.garmentType).toContain('stub');
+    expect(analysis.scenes[0].prompt).toBeTruthy();
+  });
+});

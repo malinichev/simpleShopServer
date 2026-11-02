@@ -4,17 +4,42 @@ import {
   ImageEditInput,
   GeneratedImage,
   ImageGenDriver,
+  AnalyzeGarmentInput,
+  GarmentAnalysis,
 } from './image-gen-driver.interface';
 
 /**
  * Локальная заглушка ИИ-генерации: рисует sharp'ом вертикальную плашку
  * с градиентом (цвет — хэш промпта) и его текстом. Внешних вызовов нет —
- * полный флоу модуля (job → S3 → карточка 3:4) работает без ключа.
+ * полный флоу модуля (анализ → job → S3 → карточка 3:4) работает без ключа.
  * Активируется AI_IMAGE_DRIVER=stub (безопасный дефолт).
  */
 @Injectable()
 export class StubImageDriver implements ImageGenDriver {
   readonly driverName = 'stub';
+
+  /** Детерминированный «анализ»: помечен как stub, сцены — примеры концепции. */
+  async analyzeGarment(input: AnalyzeGarmentInput): Promise<GarmentAnalysis> {
+    return {
+      garmentType: `Домашняя одежда (stub-анализ, фото: ${input.images.length})`,
+      color: 'цвет по фото не распознан — заглушка',
+      styleMood: 'уютное домашнее настроение',
+      modelNote: 'девушка 25–35, спокойная естественная внешность',
+      notes: 'Stub-драйвер: подключите AI_IMAGE_DRIVER=openai для реального анализа фото',
+      scenes: [
+        {
+          title: 'Чай перед сном (stub)',
+          prompt:
+            'The model sits in a cozy bedroom holding a cup of herbal tea, warm lamp light, calm bedtime mood.',
+        },
+        {
+          title: 'Утро дома (stub)',
+          prompt:
+            'Fresh morning at home: the model stretches near a window with sheer curtains, sunlight on wooden floor.',
+        },
+      ],
+    };
+  }
 
   async editImage(input: ImageEditInput): Promise<GeneratedImage[]> {
     const n = Math.max(1, Math.min(2, input.n));

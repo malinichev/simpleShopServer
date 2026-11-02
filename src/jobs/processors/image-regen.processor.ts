@@ -13,6 +13,10 @@ import {
   IMAGE_GEN_DRIVER,
   ImageGenDriver,
 } from '@/modules/image-regen/drivers/image-gen-driver.interface';
+import {
+  fetchImage,
+  sniffMimeType,
+} from '@/modules/image-regen/image-regen.utils';
 import { UploadService } from '@/modules/upload/upload.service';
 
 export interface ImageRegenJobData {
@@ -73,10 +77,10 @@ export class ImageRegenProcessor extends WorkerHost {
 
     for (const item of items) {
       try {
-        const sourceBuffer = await this.fetchImage(item.sourceUrl);
+        const sourceBuffer = await fetchImage(item.sourceUrl);
         const generated = await this.driver.editImage({
           image: sourceBuffer,
-          mimeType: this.sniffMimeType(sourceBuffer),
+          mimeType: sniffMimeType(sourceBuffer),
           prompt: regenJob.composedPrompt,
           n,
         });
@@ -142,20 +146,6 @@ export class ImageRegenProcessor extends WorkerHost {
     });
   }
 
-  /** Скачивание исходного фото по URL (наш S3 или CDN поставщика). */
-  private async fetchImage(url: string): Promise<Buffer> {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'svoybrand-image-regen/1.0' },
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!response.ok) {
-      throw new Error(
-        `Не удалось скачать исходное фото (${response.status}): ${url}`,
-      );
-    }
-    return Buffer.from(await response.arrayBuffer());
-  }
-
   /** Кроп под карточку 3:4 + thumb (канон scripts/process-and-upload.ts). */
   private async processGenerated(
     buffer: Buffer,
@@ -172,29 +162,5 @@ export class ImageRegenProcessor extends WorkerHost {
       .webp({ quality: WEBP_QUALITY })
       .toBuffer();
     return { card, thumb };
-  }
-
-  /** Определение типа по магическим байтам (как UploadService.validateMagicBytes). */
-  private sniffMimeType(buffer: Buffer): string {
-    const isJpeg =
-      buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
-    const isPng =
-      buffer[0] === 0x89 &&
-      buffer[1] === 0x50 &&
-      buffer[2] === 0x4e &&
-      buffer[3] === 0x47;
-    const isWebp =
-      buffer[0] === 0x52 &&
-      buffer[1] === 0x49 &&
-      buffer[2] === 0x46 &&
-      buffer[3] === 0x46 &&
-      buffer[8] === 0x57 &&
-      buffer[9] === 0x45 &&
-      buffer[10] === 0x42 &&
-      buffer[11] === 0x50;
-    if (isJpeg) return 'image/jpeg';
-    if (isPng) return 'image/png';
-    if (isWebp) return 'image/webp';
-    return 'image/png';
   }
 }
