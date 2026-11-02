@@ -112,6 +112,27 @@ describe('RouterAiImageDriver.editImage', () => {
     ).rejects.toThrow('RouterAI API /images/edits → 402: insufficient credits');
   });
 
+  it('ошибка провайдера с HTTP 200 (конверт OpenRouter) → Error с описанием', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: { message: "The model 'gpt-image-1' does not exist.", code: 400 },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const driver = new RouterAiImageDriver(makeConfig());
+    await expect(
+      driver.editImage({
+        image: Buffer.from('x'),
+        mimeType: 'image/png',
+        prompt: 'p',
+        n: 1,
+      }),
+    ).rejects.toThrow("RouterAI API /images/edits → 200: The model 'gpt-image-1' does not exist.");
+  });
+
   it('пустой data[] → понятная ошибка вместо тихого пустого результата', async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ data: [] }), { status: 200 }),

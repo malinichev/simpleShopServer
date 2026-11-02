@@ -95,14 +95,15 @@ describe('ImageRegenProcessor.process', () => {
 
     // 2 фото × (карточка + thumb)
     expect(uploadService.uploadBuffer).toHaveBeenCalledTimes(4);
+    // Порядок аргументов uploadBuffer(buffer, key, contentType)
     const cardCall = uploadService.uploadBuffer.mock.calls.find(
-      ([key]) => !key.includes('_thumb'),
+      ([, key]) => !key.includes('_thumb'),
     )!;
-    expect(cardCall[0]).toMatch(/^products\/[0-9a-f-]+\.webp$/);
+    expect(cardCall[1]).toMatch(/^products\/[0-9a-f-]+\.webp$/);
     expect(cardCall[2]).toBe('image/webp');
 
     // Формат: кроп 3:4 1200×1600 webp
-    const meta = await sharp(cardCall[1]).metadata();
+    const meta = await sharp(cardCall[0]).metadata();
     expect(meta.format).toBe('webp');
     expect(meta.width).toBe(1200);
     expect(meta.height).toBe(1600);

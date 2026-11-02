@@ -71,10 +71,13 @@ export class RouterAiImageDriver implements ImageGenDriver {
     }
 
     const body: unknown = await response.json().catch(() => null);
-    if (!response.ok) {
+    // OpenRouter-совместимые шлюзы (в т.ч. RouterAI) возвращают ошибки
+    // и с HTTP 200 — в теле {error:{message}}. Проверяем оба случая.
+    const providerError =
+      (body as { error?: { message?: string } } | null)?.error?.message;
+    if (!response.ok || providerError) {
       const description =
-        (body as { error?: { message?: string } } | null)?.error?.message ??
-        JSON.stringify(body);
+        providerError ?? JSON.stringify(body) ?? response.status.toString();
       this.logger.warn(
         `Image edit failed: HTTP ${response.status}: ${description}`,
       );

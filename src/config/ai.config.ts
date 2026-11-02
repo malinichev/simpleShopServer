@@ -15,7 +15,10 @@ export default registerAs('ai', () => ({
   imageDriver: process.env.AI_IMAGE_DRIVER || 'stub',
   apiBaseUrl: process.env.AI_API_BASE_URL || 'https://routerai.ru/api/v1',
   apiKey: process.env.AI_API_KEY || '',
-  imageModel: process.env.AI_IMAGE_MODEL || 'gpt-image-1',
+  // gpt-image-1 у апстрима RouterAI недоступен (проверено 2026-11-02);
+  // рабочие альтернативы для /images/edits: google/gemini-2.5-flash-image,
+  // bytedance-seed/seedream-5-0-flash (дешевле), openai/gpt-image-2
+  imageModel: process.env.AI_IMAGE_MODEL || 'openai/gpt-image-2',
   imageSize: process.env.AI_IMAGE_SIZE || '1024x1536',
   timeoutMs: parseInt(process.env.AI_IMAGE_TIMEOUT_MS || '180000', 10),
 }));
