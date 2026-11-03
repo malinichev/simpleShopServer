@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as http from 'node:http';
+import * as https from 'node:https';
 import { assertFetchableApiUrl } from './stock-sync.utils';
 
 /** Одна строка ответа /item/ — один размер (см. docs/research/sima-sync README). */
@@ -18,6 +20,11 @@ export type SimaItemResult =
 const REQUEST_TIMEOUT_MS = 15_000;
 const RETRY_ATTEMPTS = 2;
 const RETRY_DELAYS_MS = [1_000, 3_000];
+// WAF Сималенда с датацентровых IP режет запросы по TLS-фингерпринту undici
+// (глобальный fetch) и не-браузерным UA — оба дают мгновенный 403. node:https
+// с браузерным UA проходит (проверено на прод-VPS 2026-11-03).
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
 /**
  * Тонкий клиент API Сималенда v3 (только то, что нужно синку остатков).
@@ -73,6 +80,47 @@ export class SimaLandClient {
     return [];
   }
 
+  /**
+   * Транспорт: node:http(s).request — НЕ глобальный fetch: undici-ClientHello
+   * WAF Сималенда режет 403 с датацентровых IP (см. USER_AGENT).
+   * Схему выбираем по URL (https — прод, http — e2e-мок :4012).
+   */
+  private requestJson(
+    url: string,
+  ): Promise<{ status: number; json: unknown | null }> {
+    return new Promise((resolve, reject) => {
+      const transport = url.startsWith('https:') ? https : http;
+      const req = transport.request(
+        url,
+        {
+          headers: {
+            'X-Api-Key': this.apiKey,
+            Accept: 'application/json',
+            'User-Agent': USER_AGENT,
+          },
+          timeout: REQUEST_TIMEOUT_MS,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk: Buffer) => chunks.push(chunk));
+          res.on('end', () => {
+            const text = Buffer.concat(chunks).toString('utf8');
+            let json: unknown | null = null;
+            try {
+              json = JSON.parse(text);
+            } catch {
+              json = null; // HTML-заглушка WAF и прочий не-JSON
+            }
+            resolve({ status: res.statusCode ?? 0, json });
+          });
+        },
+      );
+      req.on('timeout', () => req.destroy(new Error('timeout')));
+      req.on('error', (error: Error) => reject(error));
+      req.end();
+    });
+  }
+
   private async fetchJson(url: string): Promise<{
     notFound?: boolean;
     json: unknown;
@@ -86,19 +134,9 @@ export class SimaLandClient {
       if (attempt > 0) {
         await sleep(RETRY_DELAYS_MS[attempt - 1] ?? 3_000);
       }
-      let response: Response;
+      let response: { status: number; json: unknown | null };
       try {
-        response = await fetch(url, {
-          headers: {
-            'X-Api-Key': this.apiKey,
-            Accept: 'application/json',
-            // WAF Сималенда отдаёт 403 на дефолтные UA (curl/undici) с
-            // датацентровых IP (прод-VPS); браузерный UA проходит.
-            'User-Agent':
-              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
-          },
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        });
+        response = await this.requestJson(url);
       } catch (error: unknown) {
         lastError = new Error(
           `сеть/таймаут: ${(error as Error).message ?? String(error)}`,
@@ -109,9 +147,8 @@ export class SimaLandClient {
         // Нормальный исход: размер снят с продажи. Не ретраим.
         return { notFound: true, json: null };
       }
-      if (response.ok) {
-        const json: unknown = await response.json().catch(() => null);
-        return { json };
+      if (response.status >= 200 && response.status < 300) {
+        return { json: response.json };
       }
       const retryable = response.status === 429 || response.status >= 500;
       lastError = new Error(`HTTP ${response.status}`);
