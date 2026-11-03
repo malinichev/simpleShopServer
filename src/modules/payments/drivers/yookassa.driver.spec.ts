@@ -37,11 +37,14 @@ function makeOrder(partial: Partial<Order> = {}): Order {
 
 type FetchCall = { url: string | URL; init?: RequestInit };
 
-function mockFetch(responses: Array<{ ok: boolean; status: number; body: unknown }>) {
+function mockFetch(
+  responses: Array<{ ok: boolean; status: number; body: unknown }>,
+) {
   const calls: FetchCall[] = [];
   const impl = jest.fn(async (url: string | URL, init?: RequestInit) => {
     calls.push({ url: String(url), init });
-    const response = responses[Math.min(calls.length - 1, responses.length - 1)];
+    const response =
+      responses[Math.min(calls.length - 1, responses.length - 1)];
     return {
       ok: response.ok,
       status: response.status,
@@ -57,7 +60,10 @@ const CONFIRMATION_URL =
   'https://yoomoney.ru/checkout/payments/v2/contract?orderId=2b0e86a0-000f-5000-9000-105e8ff2e2b6';
 
 /** Ответ POST /v3/payments (см. https://yookassa.ru/developers/api#create_payment) */
-function yooPaymentResponse(status: string, extra: Record<string, unknown> = {}) {
+function yooPaymentResponse(
+  status: string,
+  extra: Record<string, unknown> = {},
+) {
   return {
     id: PAYMENT_ID,
     status,
@@ -86,7 +92,8 @@ describe('YooKassaPaymentDriver', () => {
       const result = await driver.initialize({
         order: makeOrder(),
         methodConfig: {},
-        returnUrl: 'https://svoybrand.shop/checkout/success?orderNumber=SV-2026-0001',
+        returnUrl:
+          'https://svoybrand.shop/checkout/success?orderNumber=SV-2026-0001',
       });
 
       // Один HTTP-вызов: создание платежа
@@ -94,7 +101,9 @@ describe('YooKassaPaymentDriver', () => {
       const [call] = calls;
       expect(call.url).toBe(`${API_BASE}/payments`);
 
-      const init = call.init as RequestInit & { headers: Record<string, string> };
+      const init = call.init as RequestInit & {
+        headers: Record<string, string>;
+      };
       expect(init.method).toBe('POST');
       // Basic-авторизация shopId:secretKey
       expect(init.headers.Authorization).toBe(
@@ -110,7 +119,8 @@ describe('YooKassaPaymentDriver', () => {
       expect(body.capture).toBe(true);
       expect(body.confirmation).toEqual({
         type: 'redirect',
-        return_url: 'https://svoybrand.shop/checkout/success?orderNumber=SV-2026-0001',
+        return_url:
+          'https://svoybrand.shop/checkout/success?orderNumber=SV-2026-0001',
       });
       expect(body.metadata).toEqual({
         orderId: '0d0d9a2e-f6ad-4b8c-9e91-36cf99a3dd60',
@@ -188,7 +198,9 @@ describe('YooKassaPaymentDriver', () => {
       expect(calls).toHaveLength(1);
       expect(calls[0].url).toBe(`${API_BASE}/payments/${PAYMENT_ID}`);
       expect(calls[0].init?.method).toBe('GET');
-      const init = calls[0].init as RequestInit & { headers: Record<string, string> };
+      const init = calls[0].init as RequestInit & {
+        headers: Record<string, string>;
+      };
       expect(init.headers.Authorization).toContain('Basic ');
 
       expect(outcome).toEqual({

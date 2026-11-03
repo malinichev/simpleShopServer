@@ -1,19 +1,25 @@
 import './bootstrap-env'; // side-effect: грузит .env ДО декораторов модулей (см. bootstrap-env.ts)
-import './sentry.bootstrap'; // side-effect: opt-in Sentry init (см. sentry.bootstrap.ts)
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from 'nestjs-pino';
 import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
-import { createApiDocument, createPublicApiDocument } from './config/swagger.config';
+import {
+  createApiDocument,
+  createPublicApiDocument,
+} from './config/swagger.config';
 import { AGENT_LLMS_TXT } from './config/agent-discovery';
 import * as yaml from 'js-yaml'; // или 'yamljs'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Логгер приложения: pino + request-id (см. common/logger/app-logger.module.ts)
+  app.useLogger(app.get(Logger));
 
   const configService = app.get(ConfigService);
 
@@ -35,10 +41,11 @@ async function bootstrap() {
   });
 
   // За nginx: реальный IP клиента — в X-Forwarded-For (нужен ThrottlerGuard'у)
-  (app.getHttpAdapter().getInstance() as { set: (k: string, v: unknown) => void }).set(
-    'trust proxy',
-    1,
-  );
+  (
+    app.getHttpAdapter().getInstance() as {
+      set: (k: string, v: unknown) => void;
+    }
+  ).set('trust proxy', 1);
 
   // Security
   const isProduction = process.env.NODE_ENV === 'production';
@@ -119,15 +126,16 @@ async function bootstrap() {
       : '0.0.0.0';
   await app.listen(port, host);
 
-  console.log(
+  const logger = app.get(Logger);
+  logger.log(
     `🚀 Application is running on: http://localhost:${port}/${apiPrefix}`,
   );
 
   if (process.env.NODE_ENV !== 'production') {
-    console.log(
+    logger.log(
       `📚 Swagger documentation: http://localhost:${port}/${apiPrefix}/docs`,
     );
-    console.log(
+    logger.log(
       `📚 Swagger yaml file: http://localhost:${port}/${apiPrefix}/openapi.yaml`,
     );
   }

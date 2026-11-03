@@ -9,3 +9,5 @@ export { default as aiConfig } from './ai.config';
 export { default as simaLandConfig } from './sima-land.config';
 export { default as throttleConfig } from './throttle.config';
 export { default as ddosConfig } from './ddos.config';
+export { default as loggingConfig } from './logging.config';
+export { default as maxBotConfig } from './max-bot.config';

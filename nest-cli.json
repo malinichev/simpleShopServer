@@ -8,6 +8,10 @@
       {
         "include": "modules/mail/templates/**/*.hbs",
         "watchAssets": true
+      },
+      {
+        "include": "common/logger/certs/*.pem",
+        "watchAssets": true
       }
     ],
     "plugins": [
