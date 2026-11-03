@@ -85,9 +85,7 @@ export class SimaLandClient {
    * WAF Сималенда режет 403 с датацентровых IP (см. USER_AGENT).
    * Схему выбираем по URL (https — прод, http — e2e-мок :4012).
    */
-  private requestJson(
-    url: string,
-  ): Promise<{ status: number; json: unknown }> {
+  private requestJson(url: string): Promise<{ status: number; json: unknown }> {
     return new Promise((resolve, reject) => {
       const transport = url.startsWith('https:') ? https : http;
       const req = transport.request(
