@@ -89,7 +89,14 @@ export class SimaLandClient {
       let response: Response;
       try {
         response = await fetch(url, {
-          headers: { 'X-Api-Key': this.apiKey, Accept: 'application/json' },
+          headers: {
+            'X-Api-Key': this.apiKey,
+            Accept: 'application/json',
+            // WAF Сималенда отдаёт 403 на дефолтные UA (curl/undici) с
+            // датацентровых IP (прод-VPS); браузерный UA проходит.
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+          },
           signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
       } catch (error: unknown) {
