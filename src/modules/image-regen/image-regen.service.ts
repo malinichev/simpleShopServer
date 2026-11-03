@@ -37,6 +37,9 @@ import { SettingsService } from '@/modules/settings/settings.service';
 export const REGEN_TECH_SUFFIX =
   'Output: vertical 3:4 portrait lifestyle product photo, garment is the hero of the shot. ' +
   'Preserve the exact garment from the reference image — do not alter its colors, pattern, print, cut, length, fit or sizing look. ' +
+  'Preserve the model POSE and the CAMERA viewpoint of the reference photo: if the reference shows the model from the side, ' +
+  'from the back or front-facing, the new photo must keep the same viewpoint and shooting direction — ' +
+  'do NOT rotate the model toward the camera or change the camera angle. ' +
   'Remove ONLY brand artifacts from the photo: brand logos and brand names on the garment or props, ' +
   'website URLs and watermarks — reconstruct clean fabric or pattern where logos were, ' +
   'without changing the garment itself. ' +

@@ -37,7 +37,9 @@ export interface AiImagePrompts {
 export const DEFAULT_AI_IMAGE_PROMPTS: AiImagePrompts = {
   basePrompt:
     'Professional e-commerce lifestyle photography for SVOY BRAND, a women\'s homewear, loungewear and sportswear label. ' +
-    'Natural-looking female model in her late 20s to mid 30s, soft natural beauty, genuine relaxed emotion. ' +
+    'Natural-looking female model in her late 20s to mid 30s, soft natural beauty, genuine relaxed emotion, ' +
+    'confident femininity and a subtle tasteful sensuality — attractive, gently alluring, never vulgar. ' +
+    'Flattering pose that shows the feminine silhouette and makes the garment desirable. ' +
     'Soft warm natural light, warm light palette, editorial fashion quality, clean uncluttered composition. ' +
     'The garment is the hero of the shot: sharp focus, fabric, cut and colors exactly as in the reference photo. ' +
     'The setting and activity show a real-life scenario in which the buyer would actually use this garment.',

@@ -100,6 +100,12 @@ describe('ImageRegenService.composePrompt', () => {
     // и формат карточки остаётся
     expect(REGEN_TECH_SUFFIX).toContain('3:4');
   });
+
+  it('тех-суффикс: поза и ракурс камеры исходника сохраняются (ракурс не доворачивается к камере)', () => {
+    expect(REGEN_TECH_SUFFIX).toContain('Preserve the model POSE and the CAMERA viewpoint');
+    expect(REGEN_TECH_SUFFIX).toContain('from the side');
+    expect(REGEN_TECH_SUFFIX).toContain('do NOT rotate the model toward the camera');
+  });
 });
 
 describe('ImageRegenService.start', () => {
