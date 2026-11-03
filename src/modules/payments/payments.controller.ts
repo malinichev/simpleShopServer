@@ -11,6 +11,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { Public } from '@/common/decorators/public.decorator';
+import { requestContext } from '@/common/utils/request-context';
 import { PaymentsService } from './payments.service';
 
 @ApiTags('payments')
@@ -40,13 +41,15 @@ export class PaymentsController {
     // bodyParser.raw({ type: 'application/json' }) на /api/payments/stripe/webhook,
     // либо @RawBody() декоратор. В шаблоне раскомментируй когда добавляешь Stripe.
     const rawBody: Buffer | string =
-      (req as Request & { rawBody?: Buffer }).rawBody ?? JSON.stringify(req.body);
+      (req as Request & { rawBody?: Buffer }).rawBody ??
+      JSON.stringify(req.body);
 
     return this.paymentsService.handleWebhook(
       provider,
       rawBody,
       req.headers,
       query,
+      requestContext(req),
     );
   }
 }

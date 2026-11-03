@@ -19,6 +19,11 @@ import {
 } from '@/modules/settings/entities/payment-method.entity';
 import { Order, PaymentStatus } from '@/modules/orders/entities/order.entity';
 import { OrdersRepository } from '@/modules/orders/orders.repository';
+import { AuditService } from '@/modules/audit/audit.service';
+import {
+  AuditActorType,
+  AuditContext,
+} from '@/modules/audit/entities/audit-log.entity';
 
 export interface InitializeOrderPaymentResult {
   status: 'pending' | 'paid' | 'redirect_required';
@@ -28,7 +33,9 @@ export interface InitializeOrderPaymentResult {
 
 function providerFromString(ref: string): PaymentProvider {
   const known = Object.values(PaymentProvider) as string[];
-  return known.includes(ref) ? (ref as PaymentProvider) : PaymentProvider.MANUAL;
+  return known.includes(ref)
+    ? (ref as PaymentProvider)
+    : PaymentProvider.MANUAL;
 }
 
 @Injectable()
@@ -43,6 +50,7 @@ export class PaymentsService {
     @Inject(forwardRef(() => OrdersRepository))
     private readonly ordersRepository: OrdersRepository,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {
     this.driverByProvider = new Map(drivers.map((d) => [d.provider, d]));
   }
@@ -132,6 +140,7 @@ export class PaymentsService {
     rawBody: Buffer | string,
     headers: Record<string, string | string[] | undefined>,
     query: Record<string, unknown>,
+    context?: AuditContext,
   ): Promise<{ ok: boolean; orderId?: string }> {
     const driver = this.driverByProvider.get(provider as PaymentProvider);
     if (!driver) {
@@ -151,6 +160,14 @@ export class PaymentsService {
       this.logger.warn(
         `Webhook ${provider}: no order found for txnId=${outcome.providerTxnId}`,
       );
+      await this.auditService.log({
+        actorType: AuditActorType.SYSTEM,
+        action: 'payment.webhook_orphan',
+        entity: 'payment',
+        entityId: String(outcome.providerTxnId),
+        after: { provider, kind: outcome.kind },
+        context,
+      });
       return { ok: true };
     }
 
@@ -175,6 +192,27 @@ export class PaymentsService {
         paymentStatus: PaymentStatus.REFUNDED,
       });
     }
+
+    // Аудит смены платёжного статуса: до → после (кто менял — провайдер)
+    await this.auditService.log({
+      actorType: AuditActorType.SYSTEM,
+      action: 'payment.status_changed',
+      entity: 'order',
+      entityId: order.id,
+      before: { paymentStatus: order.paymentStatus },
+      after: {
+        paymentStatus:
+          outcome.kind === 'paid'
+            ? PaymentStatus.PAID
+            : outcome.kind === 'failed'
+              ? PaymentStatus.FAILED
+              : PaymentStatus.REFUNDED,
+        provider,
+        txnId: outcome.providerTxnId,
+        ...(outcome.kind === 'failed' ? { reason: outcome.reason } : {}),
+      },
+      context,
+    });
 
     return { ok: true, orderId: order.id };
   }

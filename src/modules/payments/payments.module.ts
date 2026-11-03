@@ -5,10 +5,7 @@ import { PaymentMethod } from '@/modules/settings/entities/payment-method.entity
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
-import {
-  PAYMENT_DRIVERS,
-  createPaymentDrivers,
-} from './drivers';
+import { PAYMENT_DRIVERS, createPaymentDrivers } from './drivers';
 
 @Module({
   imports: [

@@ -4,8 +4,12 @@ import {
   PaymentMethod,
   PaymentProvider,
 } from '@/modules/settings/entities/payment-method.entity';
-import type { Order, PaymentStatus } from '@/modules/orders/entities/order.entity';
+import type {
+  Order,
+  PaymentStatus,
+} from '@/modules/orders/entities/order.entity';
 import type { OrdersRepository } from '@/modules/orders/orders.repository';
+import type { AuditService } from '@/modules/audit/audit.service';
 import type { PaymentDriver } from './drivers/payment-driver.interface';
 import { PaymentsService } from './payments.service';
 
@@ -57,9 +61,16 @@ function makeService() {
     paymentMethodRepo as unknown as Repository<PaymentMethod>,
     ordersRepository as unknown as OrdersRepository,
     configService,
+    { log: jest.fn().mockResolvedValue(undefined) } as unknown as AuditService,
   );
 
-  return { service, manual, yookassa, paymentMethodRepo, ordersRepository };
+  return {
+    service,
+    manual,
+    yookassa,
+    paymentMethodRepo,
+    ordersRepository,
+  };
 }
 
 describe('PaymentsService', () => {
@@ -79,10 +90,7 @@ describe('PaymentsService', () => {
         metadata: { orderId: ORDER_ID, paymentId: TXN_ID },
       });
 
-      const result = await service.initializeForOrder(
-        makeOrder(),
-        METHOD_ID,
-      );
+      const result = await service.initializeForOrder(makeOrder(), METHOD_ID);
 
       expect(yookassa.initialize).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -238,9 +246,9 @@ describe('PaymentsService', () => {
     it('незарегистрированный провайдер → NotFoundException', async () => {
       const { service } = makeService();
 
-      await expect(service.handleWebhook('stripe', '{}', {}, {})).rejects.toThrow(
-        /Unknown payment provider/,
-      );
+      await expect(
+        service.handleWebhook('stripe', '{}', {}, {}),
+      ).rejects.toThrow(/Unknown payment provider/);
     });
   });
 });

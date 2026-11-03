@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   Query,
+  Req,
   Inject,
   forwardRef,
   ParseUUIDPipe,
@@ -33,6 +34,8 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
 import { User, UserRole } from '@/modules/users/entities/user.entity';
 import { isAdminLevel } from '@/common/utils/roles';
+import { requestContext } from '@/common/utils/request-context';
+import type { Request } from 'express';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -128,10 +131,15 @@ export class OrdersController {
     status: 400,
     description: 'Cart is empty or validation error',
   })
-  async create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
+  async create(
+    @CurrentUser() user: User,
+    @Body() dto: CreateOrderDto,
+    @Req() req: Request,
+  ) {
     const { order, paymentRedirectUrl } = await this.ordersService.create(
       user.id,
       dto,
+      requestContext(req),
     );
     return this.ordersService.toResponseDto(order, user, {
       paymentRedirectUrl,
@@ -150,12 +158,14 @@ export class OrdersController {
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
+    @Req() req: Request,
   ) {
     const order = await this.ordersService.updateStatus(
       id,
       dto.status,
       user.id,
       dto.comment,
+      requestContext(req),
     );
     const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
@@ -168,10 +178,17 @@ export class OrdersController {
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
+  async update(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: UpdateOrderDto,
+    @Req() req: Request,
+  ) {
     const order = await this.ordersService.updateAdminNote(
       id,
       dto.adminNote ?? '',
+      user.id,
+      requestContext(req),
     );
     const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
@@ -188,9 +205,18 @@ export class OrdersController {
   })
   @ApiResponse({ status: 403, description: 'Not allowed to cancel this order' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async cancel(@CurrentUser() user: User, @Param('id') id: string) {
+  async cancel(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     const isAdmin = isAdminLevel(user.role);
-    const order = await this.ordersService.cancel(id, user.id, isAdmin);
+    const order = await this.ordersService.cancel(
+      id,
+      user.id,
+      isAdmin,
+      requestContext(req),
+    );
     const orderUser = await this.usersService.findById(order.userId);
     return this.ordersService.toResponseDto(order, orderUser ?? undefined);
   }

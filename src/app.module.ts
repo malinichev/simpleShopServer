@@ -28,6 +28,9 @@ import { StockSyncModule } from './modules/stock-sync/stock-sync.module';
 import { ImageRegenModule } from './modules/image-regen/image-regen.module';
 import { JobsModule } from './jobs/jobs.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { ClientErrorsModule } from './modules/client-errors/client-errors.module';
+import { AppLoggerModule } from './common/logger/app-logger.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
@@ -43,6 +46,8 @@ import {
   simaLandConfig,
   throttleConfig,
   ddosConfig,
+  loggingConfig,
+  maxBotConfig,
 } from './config';
 
 @Module({
@@ -62,6 +67,8 @@ import {
         simaLandConfig,
         throttleConfig,
         ddosConfig,
+        loggingConfig,
+        maxBotConfig,
       ],
 
       envFilePath: ['.env.development', '.env.production', '.env'],
@@ -103,6 +110,11 @@ import {
 
     // База данных
     DatabaseModule,
+
+    // Логирование (pino + request-id) и аудит действий
+    AppLoggerModule,
+    AuditModule,
+    ClientErrorsModule,
 
     // Health checks
     HealthModule,

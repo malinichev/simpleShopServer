@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Repository } from 'typeorm';
 import { OrdersService } from './orders.service';
 import { OrdersRepository } from './orders.repository';
-import { OrderMarkingService } from '@/modules/marking/order-marking.service';
+import { OrderMarkingService } from './order-marking.service';
 import { CartService } from '@/modules/cart/cart.service';
 import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
@@ -10,6 +10,7 @@ import { UsersService } from '@/modules/users/users.service';
 import { MailService } from '@/modules/mail/mail.service';
 import { StockSyncService } from '@/modules/stock-sync/stock-sync.service';
 import { PaymentsService } from '@/modules/payments/payments.service';
+import type { AuditService } from '@/modules/audit/audit.service';
 import { OrderItemEntity } from './entities/order-item.entity';
 
 /**
@@ -26,12 +27,16 @@ const VARIANT_ID = 'v1';
 function makeDeps() {
   return {
     ordersRepository: {
-      create: jest.fn().mockImplementation((data) => ({ id: 'order-1', ...data })),
+      create: jest
+        .fn()
+        .mockImplementation((data) => ({ id: 'order-1', ...data })),
       getLastOrderNumber: jest.fn().mockResolvedValue('SP-2026-000042'),
       updateFields: jest.fn(),
     } as unknown as OrdersRepository,
     orderMarkingService: {
-      reserveCodesForOrder: jest.fn().mockResolvedValue({ items: [], fullyAssigned: true }),
+      reserveCodesForOrder: jest
+        .fn()
+        .mockResolvedValue({ items: [], fullyAssigned: true }),
     } as unknown as OrderMarkingService,
     cartService: {
       getCart: jest.fn().mockResolvedValue({
@@ -63,16 +68,27 @@ function makeDeps() {
       applyUsage: jest.fn().mockResolvedValue(undefined),
     } as unknown as PromotionsService,
     usersService: {
-      findById: jest.fn().mockResolvedValue({ id: USER_ID, email: 'e2e@shop.local' }),
+      findById: jest
+        .fn()
+        .mockResolvedValue({ id: USER_ID, email: 'e2e@shop.local' }),
       findByIdOrFail: jest.fn(),
     } as unknown as UsersService,
-    mailService: { sendOrderConfirmationEmail: jest.fn().mockResolvedValue(undefined) } as unknown as MailService,
+    mailService: {
+      sendOrderConfirmationEmail: jest.fn().mockResolvedValue(undefined),
+    } as unknown as MailService,
     stockSyncService: {
       // Реал-тайм проверка поставщика (fail-open) — в юнитах не участвует
       refreshStockForOrder: jest.fn().mockResolvedValue(0),
     } as unknown as StockSyncService,
-    configService: { get: jest.fn().mockReturnValue('http://localhost:3002') } as unknown as ConfigService,
-    orderItemRepository: { save: jest.fn() } as unknown as Repository<OrderItemEntity>,
+    configService: {
+      get: jest.fn().mockReturnValue('http://localhost:3002'),
+    } as unknown as ConfigService,
+    auditService: {
+      log: jest.fn().mockResolvedValue(undefined),
+    } as unknown as AuditService,
+    orderItemRepository: {
+      save: jest.fn(),
+    } as unknown as Repository<OrderItemEntity>,
     paymentsService: {
       initializeForOrder: jest.fn().mockResolvedValue({ status: 'pending' }),
     } as unknown as PaymentsService,
@@ -90,11 +106,16 @@ function makeService(deps: ReturnType<typeof makeDeps>) {
     deps.mailService,
     deps.stockSyncService,
     deps.configService,
+    deps.auditService,
     deps.orderItemRepository,
     deps.paymentsService,
   );
   // Logger молчит в тестах
-  (service as unknown as { logger: { log: jest.Mock; warn: jest.Mock; error: jest.Mock } }).logger = {
+  (
+    service as unknown as {
+      logger: { log: jest.Mock; warn: jest.Mock; error: jest.Mock };
+    }
+  ).logger = {
     log: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),

@@ -22,6 +22,11 @@ import { StockSyncService } from '@/modules/stock-sync/stock-sync.service';
 import { Order, OrderStatus, OrderHistory } from './entities/order.entity';
 import { OrderItemEntity } from './entities/order-item.entity';
 import { MarkingCodeStatus } from '@/modules/marking/entities/marking-code.entity';
+import { AuditService } from '@/modules/audit/audit.service';
+import {
+  AuditActorType,
+  AuditContext,
+} from '@/modules/audit/entities/audit-log.entity';
 import {
   CreateOrderDto,
   OrderQueryDto,
@@ -62,6 +67,7 @@ export class OrdersService {
     private readonly mailService: MailService,
     private readonly stockSyncService: StockSyncService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
     @InjectRepository(OrderItemEntity)
     private readonly orderItemRepository: Repository<OrderItemEntity>,
     @Inject(forwardRef(() => PaymentsService))
@@ -71,6 +77,7 @@ export class OrdersService {
   async create(
     userId: string,
     dto: CreateOrderDto,
+    context?: AuditContext,
   ): Promise<{ order: Order; paymentRedirectUrl?: string }> {
     // 1. Получить корзину пользователя
     const cart = await this.cartService.getCart(userId);
@@ -200,7 +207,7 @@ export class OrdersService {
       }
     } catch (error) {
       this.logger.warn(
-        `Marking reservation failed for order ${order.id}: ${error.message}`,
+        `Marking reservation failed for order ${order.id}: ${(error as Error).message}`,
       );
     }
 
@@ -231,6 +238,33 @@ export class OrdersService {
       order,
       dto.paymentMethod,
     );
+
+    // 10.5 Аудит + алерт о новом заказе (alert:true → сообщение в MAX)
+    this.logger.log(
+      {
+        alert: true,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        total: order.total,
+        userId,
+      },
+      `🛒 Новый заказ ${order.orderNumber} на ${order.total}₽`,
+    );
+    await this.auditService.log({
+      actorType: AuditActorType.USER,
+      actorId: userId,
+      action: 'order.created',
+      entity: 'order',
+      entityId: order.id,
+      after: {
+        orderNumber: order.orderNumber,
+        status: order.status,
+        paymentMethod: order.paymentMethod,
+        total: order.total,
+        items: order.items.length,
+      },
+      context,
+    });
 
     // 11. Отправить письмо-подтверждение заказа (не блокируем заказ при ошибке SMTP)
     await this.sendOrderConfirmationEmail(order);
@@ -270,12 +304,27 @@ export class OrdersService {
     return this.ordersRepository.findByUser(userId, query);
   }
 
-  async updateAdminNote(id: string, adminNote: string): Promise<Order> {
-    await this.findById(id); // throws NotFoundException if not found
+  async updateAdminNote(
+    id: string,
+    adminNote: string,
+    adminId?: string,
+    context?: AuditContext,
+  ): Promise<Order> {
+    const order = await this.findById(id); // throws NotFoundException if not found
     const updated = await this.ordersRepository.update(id, { adminNote });
     if (!updated) {
       throw new NotFoundException('Заказ не найден');
     }
+    await this.auditService.log({
+      actorType: adminId ? AuditActorType.ADMIN : AuditActorType.SYSTEM,
+      actorId: adminId,
+      action: 'order.admin_note_changed',
+      entity: 'order',
+      entityId: id,
+      before: { adminNote: order.adminNote ?? null },
+      after: { adminNote },
+      context,
+    });
     return updated;
   }
 
@@ -284,6 +333,7 @@ export class OrdersService {
     status: OrderStatus,
     adminId?: string,
     comment?: string,
+    context?: AuditContext,
   ): Promise<Order> {
     const order = await this.findById(id);
 
@@ -307,6 +357,17 @@ export class OrdersService {
       throw new NotFoundException('Заказ не найден');
     }
 
+    await this.auditService.log({
+      actorType: adminId ? AuditActorType.ADMIN : AuditActorType.SYSTEM,
+      actorId: adminId,
+      action: 'order.status_changed',
+      entity: 'order',
+      entityId: id,
+      before: { status: order.status },
+      after: { status, comment },
+      context,
+    });
+
     // Синхронизация кодов маркировки (Честный знак)
     try {
       if (status === OrderStatus.PROCESSING) {
@@ -324,7 +385,7 @@ export class OrdersService {
       }
     } catch (error) {
       this.logger.warn(
-        `Marking transition failed for order ${id}: ${error.message}`,
+        `Marking transition failed for order ${id}: ${(error as Error).message}`,
       );
     }
 
@@ -334,7 +395,12 @@ export class OrdersService {
     return updated;
   }
 
-  async cancel(id: string, userId: string, isAdmin: boolean): Promise<Order> {
+  async cancel(
+    id: string,
+    userId: string,
+    isAdmin: boolean,
+    context?: AuditContext,
+  ): Promise<Order> {
     const order = await this.findById(id);
 
     if (!isAdmin && order.userId !== userId) {
@@ -378,7 +444,7 @@ export class OrdersService {
       );
     } catch (error) {
       this.logger.warn(
-        `Marking release failed for order ${id}: ${error.message}`,
+        `Marking release failed for order ${id}: ${(error as Error).message}`,
       );
     }
 
@@ -399,6 +465,17 @@ export class OrdersService {
     if (!updated) {
       throw new NotFoundException('Заказ не найден');
     }
+
+    await this.auditService.log({
+      actorType: isAdmin ? AuditActorType.ADMIN : AuditActorType.USER,
+      actorId: userId,
+      action: 'order.cancelled',
+      entity: 'order',
+      entityId: id,
+      before: { status: order.status },
+      after: { status: OrderStatus.CANCELLED },
+      context,
+    });
 
     // Уведомить покупателя об отмене
     await this.sendOrderStatusEmail(
