@@ -19,9 +19,10 @@ export type SimaItemResult =
 
 const REQUEST_TIMEOUT_MS = 15_000;
 const RETRY_ATTEMPTS = 2;
-// Ретраи с длинным backoff: 403 у Сималенда — это ещё и WAF-бан по частоте
-// (после плотной серии запросов IP временно режется), а не только «навсегда нет».
+// 403 у Сималенда — WAF-бан по частоте: после плотной серии IP режется на
+// десятки секунд. Ретраим 403 с длинной паузой, прочее — короткий backoff.
 const RETRY_DELAYS_MS = [3_000, 10_000];
+const WAF_BAN_PAUSE_MS = 45_000;
 // WAF Сималенда с датацентровых IP режет запросы по TLS-фингерпринту undici
 // (глобальный fetch) и не-браузерным UA — оба дают мгновенный 403. node:https
 // с браузерным UA проходит (проверено на прод-VPS 2026-11-03).
@@ -130,9 +131,14 @@ export class SimaLandClient {
     }
 
     let lastError: Error | null = null;
+    let lastWasForbidden = false;
     for (let attempt = 0; attempt <= RETRY_ATTEMPTS; attempt++) {
       if (attempt > 0) {
-        await sleep(RETRY_DELAYS_MS[attempt - 1] ?? 3_000);
+        await sleep(
+          lastWasForbidden
+            ? WAF_BAN_PAUSE_MS
+            : (RETRY_DELAYS_MS[attempt - 1] ?? 3_000),
+        );
       }
       let response: { status: number; json: unknown };
       try {
@@ -154,6 +160,7 @@ export class SimaLandClient {
         response.status === 403 || // WAF-бан по частоте — подождать и повторить
         response.status === 429 ||
         response.status >= 500;
+      lastWasForbidden = response.status === 403;
       lastError = new Error(`HTTP ${response.status}`);
       if (!retryable) {
         throw new Error(`Sima-land API ${url} → HTTP ${response.status}`);
