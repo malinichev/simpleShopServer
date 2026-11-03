@@ -48,8 +48,11 @@ export const REGEN_TECH_SUFFIX =
   'without changing the garment itself. ' +
   'KEEP and reproduce in the new photo every other piece of text that already exists in the reference — ' +
   'product descriptions and marketing captions, size markings, measurements, care or info labels, text prints — ' +
-  'exactly as in the reference: same wording, same language, similar style and placement; ' +
-  'do not alter, translate, shorten or remove it. ' +
+  'exactly as in the reference: same wording, same language, similar style and placement. ' +
+  'Captions must sit fully INSIDE the frame with a comfortable margin — at least 10% of frame height ' +
+  'away from the top and bottom edges and 5% from the side edges — never flush against the frame edge: ' +
+  'the photo is center-cropped to 3:4, so anything hugging an edge gets cut. ' +
+  'Do not alter, translate, shorten or remove the text. ' +
   'Do NOT add any new text, logos, watermarks or price tags that are not in the reference photo.';
 
 export const MAX_IMAGES_PER_JOB = 10;

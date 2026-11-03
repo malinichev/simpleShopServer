@@ -96,6 +96,10 @@ describe('ImageRegenService.composePrompt', () => {
     expect(REGEN_TECH_SUFFIX).toContain('KEEP and reproduce');
     expect(REGEN_TECH_SUFFIX).toContain('product descriptions and marketing captions');
     expect(REGEN_TECH_SUFFIX).toContain('same wording, same language');
+    // подписи — с комфортным отступом от краёв (safe area под кроп 3:4)
+    expect(REGEN_TECH_SUFFIX).toContain('fully INSIDE the frame with a comfortable margin');
+    expect(REGEN_TECH_SUFFIX).toContain('at least 10% of frame height');
+    expect(REGEN_TECH_SUFFIX).toContain('never flush against the frame edge');
     // нового текста не добавлять
     expect(REGEN_TECH_SUFFIX).toContain('Do NOT add any new text');
     // и формат карточки остаётся

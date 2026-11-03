@@ -152,9 +152,15 @@ export class ImageRegenProcessor extends WorkerHost {
     buffer: Buffer,
   ): Promise<{ card: Buffer; thumb: Buffer }> {
     const base = sharp(buffer).flatten({ background: '#ffffff' });
+    // Генерация приходит 2:3 (1024×1536), карточка 3:4 — кроп неизбежен.
+    // position: attention — резать по «неинтересным» краям, сохраняя
+    // салиентные области (лицо/вещь/подписи), а не слепой центральный кроп.
     const card = await base
       .clone()
-      .resize(CARD_WIDTH, CARD_HEIGHT, { fit: 'cover' })
+      .resize(CARD_WIDTH, CARD_HEIGHT, {
+        fit: 'cover',
+        position: sharp.strategy.attention,
+      })
       .webp({ quality: WEBP_QUALITY })
       .toBuffer();
     const thumb = await sharp(buffer)
