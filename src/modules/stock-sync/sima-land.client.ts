@@ -87,7 +87,7 @@ export class SimaLandClient {
    */
   private requestJson(
     url: string,
-  ): Promise<{ status: number; json: unknown | null }> {
+  ): Promise<{ status: number; json: unknown }> {
     return new Promise((resolve, reject) => {
       const transport = url.startsWith('https:') ? https : http;
       const req = transport.request(
@@ -105,7 +105,7 @@ export class SimaLandClient {
           res.on('data', (chunk: Buffer) => chunks.push(chunk));
           res.on('end', () => {
             const text = Buffer.concat(chunks).toString('utf8');
-            let json: unknown | null = null;
+            let json: unknown = null;
             try {
               json = JSON.parse(text);
             } catch {
@@ -134,7 +134,7 @@ export class SimaLandClient {
       if (attempt > 0) {
         await sleep(RETRY_DELAYS_MS[attempt - 1] ?? 3_000);
       }
-      let response: { status: number; json: unknown | null };
+      let response: { status: number; json: unknown };
       try {
         response = await this.requestJson(url);
       } catch (error: unknown) {
