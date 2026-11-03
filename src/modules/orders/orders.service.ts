@@ -18,6 +18,7 @@ import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
 import { MailService } from '@/modules/mail/mail.service';
 import { PaymentsService } from '@/modules/payments/payments.service';
+import { StockSyncService } from '@/modules/stock-sync/stock-sync.service';
 import { Order, OrderStatus, OrderHistory } from './entities/order.entity';
 import { OrderItemEntity } from './entities/order-item.entity';
 import { MarkingCodeStatus } from '@/modules/marking/entities/marking-code.entity';
@@ -59,6 +60,7 @@ export class OrdersService {
     @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
     private readonly mailService: MailService,
+    private readonly stockSyncService: StockSyncService,
     private readonly configService: ConfigService,
     @InjectRepository(OrderItemEntity)
     private readonly orderItemRepository: Repository<OrderItemEntity>,
@@ -80,6 +82,14 @@ export class OrdersService {
     const shippingAddress = await this.resolveShippingAddress(userId, dto);
 
     // 3. Проверить наличие товаров и собрать items
+    // 3a. SL-варианты: свежий остаток у поставщика в моменте (fail-open).
+    // Полный синк идёт кроном раз в 2 часа; точечная проверка при заказе
+    // закрывает окно, где витрина показывает уже закончившийся размер.
+    // При нехватке сток сразу обновится в БД → витрина моментально правится.
+    await this.stockSyncService
+      .refreshStockForOrder(cart.items.map((item) => item.variantId))
+      .catch(() => undefined); // fail-open: поставщик не блокирует оформление
+
     const orderItems: Partial<OrderItemEntity>[] = [];
     for (const cartItem of cart.items) {
       const product = await this.productsService.findById(cartItem.product.id);

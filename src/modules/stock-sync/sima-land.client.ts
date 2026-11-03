@@ -18,6 +18,8 @@ export type SimaItemResult =
   | { found: false; reason: 'not_found' };
 
 const REQUEST_TIMEOUT_MS = 15_000;
+/** Точечная проверка при checkout: быстро ответили или сразу fail-open. */
+const FAST_CHECK_TIMEOUT_MS = 5_000;
 const RETRY_ATTEMPTS = 2;
 // 403 у Сималенда — WAF-бан по частоте: после плотной серии IP режется на
 // десятки секунд. Ретраим 403 с длинной паузой, прочее — короткий backoff.
@@ -58,10 +60,17 @@ export class SimaLandClient {
   /**
    * Остаток конкретного размера по sid. 404 → { found: false } (товар пропал
    * у поставщика — валидный результат синка, не ошибка).
+   *
+   * `fastCheck`: режим для точечных проверок при checkout — 1 попытка и
+   * короткий таймаут, без 403-пауз (WAF-ретраи в 45 с тут недопустимы:
+   * покупатель не должен ждать).
    */
-  async getItemBySid(sid: number): Promise<SimaItemResult> {
+  async getItemBySid(
+    sid: number,
+    opts: { fastCheck?: boolean } = {},
+  ): Promise<SimaItemResult> {
     const url = `${this.base}item/?sid=${sid}`;
-    const body = await this.fetchJson(url);
+    const body = await this.fetchJson(url, opts);
     if (body.notFound) {
       return { found: false, reason: 'not_found' };
     }
@@ -88,7 +97,10 @@ export class SimaLandClient {
    * WAF Сималенда режет 403 с датацентровых IP (см. USER_AGENT).
    * Схему выбираем по URL (https — прод, http — e2e-мок :4012).
    */
-  private requestJson(url: string): Promise<{ status: number; json: unknown }> {
+  private requestJson(
+    url: string,
+    timeoutMs: number,
+  ): Promise<{ status: number; json: unknown }> {
     return new Promise((resolve, reject) => {
       const transport = url.startsWith('https:') ? https : http;
       const req = transport.request(
@@ -99,7 +111,7 @@ export class SimaLandClient {
             Accept: 'application/json',
             'User-Agent': USER_AGENT,
           },
-          timeout: REQUEST_TIMEOUT_MS,
+          timeout: timeoutMs,
         },
         (res) => {
           const chunks: Buffer[] = [];
@@ -122,7 +134,10 @@ export class SimaLandClient {
     });
   }
 
-  private async fetchJson(url: string): Promise<{
+  private async fetchJson(
+    url: string,
+    opts: { fastCheck?: boolean } = {},
+  ): Promise<{
     notFound?: boolean;
     json: unknown;
   }> {
@@ -130,9 +145,13 @@ export class SimaLandClient {
       throw new Error('KEY_SIMA_LAND не задан — синк остатков не настроен');
     }
 
+    const attempts = opts.fastCheck ? 0 : RETRY_ATTEMPTS;
+    const timeoutMs = opts.fastCheck
+      ? FAST_CHECK_TIMEOUT_MS
+      : REQUEST_TIMEOUT_MS;
     let lastError: Error | null = null;
     let lastWasForbidden = false;
-    for (let attempt = 0; attempt <= RETRY_ATTEMPTS; attempt++) {
+    for (let attempt = 0; attempt <= attempts; attempt++) {
       if (attempt > 0) {
         await sleep(
           lastWasForbidden
@@ -142,7 +161,7 @@ export class SimaLandClient {
       }
       let response: { status: number; json: unknown };
       try {
-        response = await this.requestJson(url);
+        response = await this.requestJson(url, timeoutMs);
       } catch (error: unknown) {
         lastError = new Error(
           `сеть/таймаут: ${(error as Error).message ?? String(error)}`,

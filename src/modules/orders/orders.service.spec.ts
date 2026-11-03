@@ -8,6 +8,7 @@ import { ProductsService } from '@/modules/products/products.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
 import { MailService } from '@/modules/mail/mail.service';
+import { StockSyncService } from '@/modules/stock-sync/stock-sync.service';
 import { PaymentsService } from '@/modules/payments/payments.service';
 import { OrderItemEntity } from './entities/order-item.entity';
 
@@ -66,6 +67,10 @@ function makeDeps() {
       findByIdOrFail: jest.fn(),
     } as unknown as UsersService,
     mailService: { sendOrderConfirmationEmail: jest.fn().mockResolvedValue(undefined) } as unknown as MailService,
+    stockSyncService: {
+      // Реал-тайм проверка поставщика (fail-open) — в юнитах не участвует
+      refreshStockForOrder: jest.fn().mockResolvedValue(0),
+    } as unknown as StockSyncService,
     configService: { get: jest.fn().mockReturnValue('http://localhost:3002') } as unknown as ConfigService,
     orderItemRepository: { save: jest.fn() } as unknown as Repository<OrderItemEntity>,
     paymentsService: {
@@ -83,6 +88,7 @@ function makeService(deps: ReturnType<typeof makeDeps>) {
     deps.promotionsService,
     deps.usersService,
     deps.mailService,
+    deps.stockSyncService,
     deps.configService,
     deps.orderItemRepository,
     deps.paymentsService,

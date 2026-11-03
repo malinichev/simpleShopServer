@@ -15,6 +15,7 @@ import { MarkingModule } from '@/modules/marking/marking.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { MarkingCode } from '@/modules/marking/entities/marking-code.entity';
 import { PaymentsModule } from '@/modules/payments/payments.module';
+import { StockSyncModule } from '@/modules/stock-sync/stock-sync.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PaymentsModule } from '@/modules/payments/payments.module';
     TypeOrmModule.forFeature([Order, OrderItemEntity, MarkingCode]),
     CartModule,
     ProductsModule,
+    StockSyncModule,
     PromotionsModule,
     MarkingModule,
     MailModule,

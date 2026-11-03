@@ -135,6 +135,73 @@ export class StockSyncService {
     }
   }
 
+  /**
+   * Точечное обновление остатков перед оформлением заказа (fail-open):
+   * для SL-вариантов корзины спрашиваем поставщика в моменте (fastCheck:
+   * 1 попытка, 5 с) и при расхождении сразу пишем актуальный сток в БД —
+   * checkout дальше проверяет наличие по свежим данным, а витрина
+   * моментально теряет «призрачные» единицы. Любая ошибка поставщика
+   * (WAF/таймаут/нет ключа) НЕ блокирует заказ — работаем по нашим данным.
+   * Возвращает число обновлённых вариантов.
+   */
+  async refreshStockForOrder(variantIds: string[]): Promise<number> {
+    if (!this.simaClient.isConfigured() || variantIds.length === 0) {
+      return 0;
+    }
+    try {
+      // SL-варианты корзины: SKU и текущий сток берём из БД
+      const current = await this.dataSource.query<SyncVariantRow[]>(
+        `SELECT id, sku, stock, "productId" FROM product_variants
+         WHERE id = ANY($1::uuid[]) AND sku ~ '^SL-[0-9]+$'`,
+        [variantIds],
+      );
+      if (current.length === 0) return 0;
+
+      // Продажи с прошлого прогона (вычет — иначе точечная проверка
+      // «воскресит» проданное в окне между полными синками).
+      const soldSince = await this.loadSoldSince(current);
+
+      let updated = 0;
+      for (const variant of current) {
+        const sid = parseSimaSid(variant.sku);
+        if (sid === null) continue;
+        try {
+          const result = await this.simaClient.getItemBySid(sid, {
+            fastCheck: true,
+          });
+          const target = result.found
+            ? computeTargetStock(
+                {
+                  balance: Number(result.item.balance) || 0,
+                  minQty: Number(result.item.min_qty) || 1,
+                  disabled: Boolean(result.item.is_disabled),
+                },
+                soldSince.get(variant.id) ?? 0,
+              )
+            : 0; // 404 — снят с продажи
+          if (target !== variant.stock) {
+            await this.productsRepository.updateVariantStock(
+              variant.id,
+              target,
+            );
+            updated++;
+          }
+        } catch {
+          // Один вариант не проверился — не повод рушить checkout.
+        }
+      }
+      if (updated > 0) {
+        await this.productsService.invalidateCache();
+      }
+      return updated;
+    } catch (error) {
+      this.logger.warn(
+        `Точечная проверка остатков пропущена (fail-open): ${(error as Error).message}`,
+      );
+      return 0;
+    }
+  }
+
   async findLatestRuns(limit = 10): Promise<StockSyncRun[]> {
     const repo = this.dataSource.getRepository(StockSyncRun);
     return repo.find({ order: { startedAt: 'DESC' }, take: limit });
