@@ -81,7 +81,8 @@ export class ImageRegenProcessor extends WorkerHost {
         const generated = await this.driver.editImage({
           image: sourceBuffer,
           mimeType: sniffMimeType(sourceBuffer),
-          prompt: regenJob.composedPrompt,
+          // у каждого фото свой субъект/ракурс → свой полный промпт
+          prompt: item.composedPrompt || regenJob.composedPrompt,
           n,
         });
 

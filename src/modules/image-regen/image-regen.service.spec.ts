@@ -139,9 +139,22 @@ describe('ImageRegenService.start', () => {
       }),
     );
     expect(job.items).toEqual([
-      { sourceImageId: 'img-1', sourceUrl: 'http://s3/products/a.webp', variants: [] },
-      { sourceImageId: 'img-2', sourceUrl: 'http://s3/products/b.webp', variants: [] },
+      {
+        sourceImageId: 'img-1',
+        sourceUrl: 'http://s3/products/a.webp',
+        prompt: 'Девушка пьёт чай перед сном',
+        composedPrompt: job.items[0].composedPrompt,
+        variants: [],
+      },
+      {
+        sourceImageId: 'img-2',
+        sourceUrl: 'http://s3/products/b.webp',
+        prompt: 'Девушка пьёт чай перед сном',
+        composedPrompt: job.items[1].composedPrompt,
+        variants: [],
+      },
     ]);
+    expect(job.items[0].composedPrompt).toContain('Девушка пьёт чай перед сном');
     expect(job.composedPrompt).toContain('BASE STYLE TEXT');
     expect(job.composedPrompt).toContain('Девушка пьёт чай перед сном');
     expect(job.composedPrompt).toContain('Remove ONLY brand artifacts');
@@ -168,6 +181,53 @@ describe('ImageRegenService.start', () => {
     await expect(
       service.start({ productId: 'p1', imageIds: ['img-1'], prompt: 'сцена' }, 'u'),
     ).rejects.toThrow('ИИ-генерация не настроена');
+  });
+
+  it('персональные промпты: у каждого фото своя сцена и свой composedPrompt', async () => {
+    const { service, repository } = makeService();
+
+    await service.start(
+      {
+        productId: 'p1',
+        imageIds: ['img-1', 'img-2'],
+        prompt: 'общая сцена по умолчанию',
+        imagePrompts: {
+          'img-1': 'первое фото: девушка пьёт чай',
+        },
+      },
+      'u',
+    );
+
+    const created = repository.create.mock.calls[0][0] as {
+      items: Array<{ sourceImageId: string; prompt: string; composedPrompt: string }>;
+    };
+    expect(created.items[0]).toMatchObject({
+      sourceImageId: 'img-1',
+      prompt: 'первое фото: девушка пьёт чай',
+    });
+    expect(created.items[0].composedPrompt).toContain('первое фото');
+    expect(created.items[0].composedPrompt).toContain('BASE STYLE TEXT');
+    // фото без персонального промпта → общий
+    expect(created.items[1]).toMatchObject({
+      sourceImageId: 'img-2',
+      prompt: 'общая сцена по умолчанию',
+    });
+  });
+
+  it('персональные промпты: rejects на чужой imageId и короткий промпт', async () => {
+    const { service } = makeService();
+    await expect(
+      service.start(
+        { productId: 'p1', imageIds: ['img-1'], prompt: 'общая сцена', imagePrompts: { alien: 'сцена для чужого фото' } },
+        'u',
+      ),
+    ).rejects.toThrow('чужих фото');
+    await expect(
+      service.start(
+        { productId: 'p1', imageIds: ['img-1'], prompt: 'общая сцена', imagePrompts: { 'img-1': 'коротко' } },
+        'u',
+      ),
+    ).rejects.toThrow('10–4000');
   });
 
   it('stub-драйвер записывается в model как driverName', async () => {

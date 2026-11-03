@@ -18,6 +18,10 @@ export interface RegenVariant {
 export interface RegenItem {
   sourceImageId: string;
   sourceUrl: string;
+  /** Персональная сцена этого фото (у каждого фото свой субъект/ракурс). */
+  prompt?: string;
+  /** Полный промпт этого фото: базовый стиль + сцена + тех-суффикс. */
+  composedPrompt?: string;
   variants: RegenVariant[];
   error?: string;
 }

@@ -128,6 +128,24 @@ export class ImageRegenService {
       );
     }
 
+    // Персональные промпты: у каждого фото свой субъект/ракурс/сцена
+    const perPhoto = dto.imagePrompts ?? {};
+    const foreignPromptIds = Object.keys(perPhoto).filter(
+      (id) => !byId.has(id),
+    );
+    if (foreignPromptIds.length > 0) {
+      throw new BadRequestException(
+        `Персональные промпты для чужих фото: ${foreignPromptIds.join(', ')}`,
+      );
+    }
+    for (const [id, p] of Object.entries(perPhoto)) {
+      if (typeof p !== 'string' || p.trim().length < 10 || p.length > 4000) {
+        throw new BadRequestException(
+          `Персональный промпт фото ${id}: длина 10–4000 символов`,
+        );
+      }
+    }
+
     const settings = await this.settingsService.getSettings();
     const basePrompt = settings.aiImagePrompts?.basePrompt || '';
     const composedPrompt = this.composePrompt(basePrompt, dto.prompt);
@@ -142,11 +160,16 @@ export class ImageRegenService {
       prompt: dto.prompt,
       composedPrompt,
       model,
-      items: dto.imageIds.map((id) => ({
-        sourceImageId: id,
-        sourceUrl: byId.get(id)!.url,
-        variants: [],
-      })),
+      items: dto.imageIds.map((id) => {
+        const scene = (perPhoto[id] ?? dto.prompt).trim();
+        return {
+          sourceImageId: id,
+          sourceUrl: byId.get(id)!.url,
+          prompt: scene,
+          composedPrompt: this.composePrompt(basePrompt, scene),
+          variants: [],
+        };
+      }),
       totalImages: dto.imageIds.length,
       createdBy: userId,
     });

@@ -167,4 +167,26 @@ describe('ImageRegenProcessor.process', () => {
       errors: [{ message: 'ИИ-драйвер не настроен на сервере' }],
     });
   });
+
+  it('у каждого фото свой промпт: драйвер получает item.composedPrompt, а не job-овый', async () => {
+    const restoreFetch = mockSourceFetch(false);
+    const driverPerItem: ImageGenDriver = {
+      driverName: 'stub',
+      editImage: jest.fn(async () => [{ buffer: await pngBuffer() }]),
+    };
+    const { processor, jobRow } = makeProcessor(driverPerItem);
+
+    jobRow.items[0].composedPrompt = 'BASE\n\nСЦЕНА ФОТО-1\n\nTECH';
+
+    await processor.process({
+      data: { jobId: 'job-1', variantsPerImage: 1 },
+    } as Job<{ jobId: string; variantsPerImage: number }>);
+
+    const calls = (driverPerItem.editImage as jest.Mock).mock.calls;
+    expect(calls[0][0].prompt).toContain('СЦЕНА ФОТО-1');
+    // у второго фото персонального нет → общий job-овый
+    expect(calls[1][0].prompt).toBe(jobRow.composedPrompt);
+
+    restoreFetch();
+  });
 });

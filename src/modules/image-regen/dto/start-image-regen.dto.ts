@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsIn,
   IsNotEmpty,
+  IsObject,
   ArrayMinSize,
   ArrayMaxSize,
   MinLength,
@@ -32,12 +33,21 @@ export class StartImageRegenDto {
   @ApiProperty({
     minLength: 10,
     maxLength: 4000,
-    description: 'Промпт сцены (что должно быть на фото)',
+    description: 'Промпт сцены по умолчанию (для фото без персонального промпта)',
   })
   @IsString()
   @MinLength(10)
   @MaxLength(4000)
   prompt: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Персональный промпт сцены для каждого фото: imageId → промпт (у фото свой субъект/ракурс/сцена). ' +
+      'Ключи должны быть из imageIds; фото без записи используют общий prompt',
+  })
+  @IsOptional()
+  @IsObject()
+  imagePrompts?: Record<string, string>;
 
   @ApiPropertyOptional({
     enum: [1, 2],
