@@ -18,8 +18,13 @@ import {
 
 /** Ключ pg advisory lock: не даёт пересечься cron-прогону и кнопке в админке. */
 const ADVISORY_LOCK_KEY = 8137202601;
-/** Параллельных запросов к API поставщика. */
-const API_CONCURRENCY = 5;
+/**
+ * Плавность запросов к API: WAF Сималенда банит по частоте (плотная серия
+ * с ДЦ-IP → 403 на всё). Параллелизм 2 + минимум 300 мс между стартами =
+ * ~6 rps, 605 вариантов ≈ 3–4 мин — спокойно для часового cron'а.
+ */
+const API_CONCURRENCY = 2;
+const MIN_REQUEST_INTERVAL_MS = 300;
 /** Как часто писать прогресс прогона в БД (для поллинга админки). */
 const PROGRESS_FLUSH_EVERY = 25;
 
@@ -216,11 +221,19 @@ export class StockSyncService {
       let processed = 0;
       let flushedAt = 0;
       const changedSkus = new Set<string>();
+      // Гейт частоты: не пускаем следующий запрос раньше MIN_REQUEST_INTERVAL_MS.
+      let nextRequestAt = 0;
+      const throttle = async () => {
+        const wait = nextRequestAt - Date.now();
+        if (wait > 0) await sleep(wait);
+        nextRequestAt = Date.now() + MIN_REQUEST_INTERVAL_MS;
+      };
 
       const processVariant = async (variant: SyncVariantRow) => {
         const sid = parseSimaSid(variant.sku);
         if (sid === null) return; // защита: SQL уже фильтрует
         try {
+          await throttle();
           const result = await this.simaClient.getItemBySid(sid);
           const sold = soldSince.get(variant.id) ?? 0;
           const target = result.found
@@ -410,6 +423,10 @@ export class StockSyncService {
 interface QueryCarrier {
   query<T = unknown>(sql: string, params?: unknown[]): Promise<T>;
   release(): Promise<void>;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** Простейший ограниченный параллелизм (без внешних зависимостей). */
