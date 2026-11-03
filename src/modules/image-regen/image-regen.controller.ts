@@ -32,7 +32,7 @@ export class ImageRegenController {
   }
 
   @Post('analyze')
-  @Throttle({ default: { ttl: 60000, limit: 20 } })
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @ApiOperation({
     summary: 'Vision-анализ выбранных фото: что за вещь + подходящие сцены под концепцию магазина',
   })
@@ -42,7 +42,7 @@ export class ImageRegenController {
   }
 
   @Post('jobs')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @ApiOperation({ summary: 'Запустить регенерацию выбранных фото товара' })
   @ApiResponse({ status: 201 })
   async start(
