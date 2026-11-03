@@ -17,6 +17,65 @@ export interface NotificationSettings {
   refundRequest: boolean;
 }
 
+/** Пресет сцены для диалога ИИ-генерации фото (чипы в админке). */
+export interface AiPromptPreset {
+  id: string;
+  title: string;
+  prompt: string;
+}
+
+/** Базовый промпт стиля + пресеты сцен (docs/PRODUCT_PHOTO_STYLE.md). */
+export interface AiImagePrompts {
+  basePrompt: string;
+  presets: AiPromptPreset[];
+}
+
+/**
+ * Дефолтные промпты — [BASE STYLE] секция гайда PRODUCT_PHOTO_STYLE.md.
+ * Редактируются в настройках админки; миграция сеет это же значение.
+ */
+export const DEFAULT_AI_IMAGE_PROMPTS: AiImagePrompts = {
+  basePrompt:
+    'Professional e-commerce lifestyle photography for SVOY BRAND, a women\'s homewear, loungewear and sportswear label. ' +
+    'The model matches the reference photo — a natural-looking woman or man in their late 20s to mid 30s, ' +
+    'or the same body-part framing as the reference — with soft natural look, genuine relaxed emotion ' +
+    'and a confident, subtly sensual presence: attractive, gently alluring, never vulgar. ' +
+    'Flattering pose that shows the silhouette and makes the garment desirable. ' +
+    'Soft warm natural light, warm light palette, editorial fashion quality, clean uncluttered composition. ' +
+    'The garment is the hero of the shot: sharp focus, fabric, cut and colors exactly as in the reference photo. ' +
+    'The setting and activity show a real-life scenario in which the buyer would actually use this garment.',
+  presets: [
+    {
+      id: 'tea-before-sleep',
+      title: 'Чай перед сном',
+      prompt:
+        'Evening wind-down: the model sits in a cozy bedroom holding a cup of herbal tea, warm lamp light, ' +
+        'soft blanket nearby, calm bedtime mood.',
+    },
+    {
+      id: 'morning-home',
+      title: 'Утро дома',
+      prompt:
+        'Fresh morning at home: the model stretches near a window with sheer curtains, sunlight on wooden floor, ' +
+        'light and airy start-of-the-day mood.',
+    },
+    {
+      id: 'yoga-home',
+      title: 'Йога дома',
+      prompt:
+        'Home yoga session: the model does a gentle stretch on a mat in a bright living room, calm and focused, ' +
+        'minimal props, breathing-room composition.',
+    },
+    {
+      id: 'bath-spa',
+      title: 'Ванная / спа',
+      prompt:
+        'Spa mood: the model by a mirror in a light bathroom, soft towels and skincare on the shelf, ' +
+        'fresh clean atmosphere, steam-warm light.',
+    },
+  ],
+};
+
 @Entity('settings')
 export class Settings extends BaseEntity {
   @Column({ default: '' })
@@ -58,4 +117,7 @@ export class Settings extends BaseEntity {
 
   @Column({ default: '' })
   notificationEmail: string;
+
+  @Column('jsonb', { default: DEFAULT_AI_IMAGE_PROMPTS })
+  aiImagePrompts: AiImagePrompts;
 }

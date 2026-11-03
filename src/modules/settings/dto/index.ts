@@ -1,6 +1,8 @@
 export {
   UpdateSettingsDto,
   NotificationSettingsDto,
+  AiImagePromptsDto,
+  AiPromptPresetDto,
 } from './update-settings.dto';
 export { PublicSettingsDto } from './public-settings.dto';
 export { CreateShippingMethodDto } from './create-shipping-method.dto';

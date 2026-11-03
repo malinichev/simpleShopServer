@@ -24,6 +24,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { PagesModule } from './modules/pages/pages.module';
 import { MarkingModule } from './modules/marking/marking.module';
 import { ImportModule } from './modules/import/import.module';
+import { ImageRegenModule } from './modules/image-regen/image-regen.module';
 import { JobsModule } from './jobs/jobs.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -37,6 +38,7 @@ import {
   redisConfig,
   s3Config,
   mailConfig,
+  aiConfig,
   throttleConfig,
   ddosConfig,
 } from './config';
@@ -54,6 +56,7 @@ import {
         redisConfig,
         s3Config,
         mailConfig,
+        aiConfig,
         throttleConfig,
         ddosConfig,
       ],
@@ -120,6 +123,7 @@ import {
     PagesModule,
     MarkingModule,
     ImportModule,
+    ImageRegenModule,
     JobsModule,
     BackupModule,
   ],

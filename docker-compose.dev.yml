@@ -41,32 +41,31 @@ services:
     networks:
       - sports-shop-network
 
-  minio:
-    image: minio/minio
-    container_name: sports-shop-minio
+  # Локальный S3. MinIO закрыл бесплатную раздачу (dl.min.io → 410,
+  # docker minio/minio → pull только по авторизации), поэтому дев-стек
+  # переведён на SeaweedFS (Apache-2.0, S3-совместимый, анонимный режим —
+  # dev-креды S3_ACCESS_KEY/S3_SECRET_KEY подходят любые).
+  s3:
+    image: chrislusf/seaweedfs:latest
+    container_name: sports-shop-s3
     restart: unless-stopped
     ports:
-      - '9000:9000'
-      - '9001:9001'
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      - '9000:8333'
+      - '9333:9333'
     volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+      - s3_data:/data
+    command: 'server -s3 -dir /data -master.port 9333 -volume.port 8080 -s3.port 8333'
     networks:
       - sports-shop-network
 
   createbuckets:
-    image: minio/mc
+    image: chrislusf/seaweedfs:latest
     depends_on:
-      - minio
+      - s3
     entrypoint: >
       /bin/sh -c "
-      sleep 5;
-      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb myminio/sports-shop --ignore-existing;
-      /usr/bin/mc anonymous set public myminio/sports-shop;
+      sleep 8;
+      echo 's3.bucket.create -name sports-shop' | weed shell -master s3:9333;
       exit 0;
       "
     networks:
@@ -75,7 +74,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  minio_data:
+  s3_data:
   pgadmin_data:
 
 networks:

@@ -59,3 +59,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Бэкапы БД (содержат хэши паролей — не коммитить)
 backups/
+
+# Mimosa hook service state
+.mimosa/

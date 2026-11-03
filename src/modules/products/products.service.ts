@@ -6,8 +6,8 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import slugify from 'slugify';
 import { v4 as uuidv4 } from 'uuid';
+import { makeSlug } from './slug.utils';
 import Redis from 'ioredis';
 import { ProductsRepository } from './products.repository';
 import { CategoriesService } from '@/modules/categories/categories.service';
@@ -414,7 +414,8 @@ export class ProductsService implements OnModuleDestroy {
   }
 
   private generateSlug(name: string): string {
-    const base = slugify(name, { lower: true, strict: true });
+    // транслитерация RU→lat: slugify кириллицу выкидывает («Комбинезон» → '')
+    const base = makeSlug(name);
     const suffix = uuidv4().slice(0, 6);
     return `${base}-${suffix}`;
   }

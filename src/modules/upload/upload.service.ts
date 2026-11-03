@@ -53,6 +53,12 @@ export class UploadService implements OnModuleInit {
         secretAccessKey: this.configService.get<string>('s3.secretKey')!,
       },
       forcePathStyle: configService.get<string>('s3.forcePathStyle') === 'true',
+      // AWS SDK v3 >= 3.729 шлёт flexible checksums (aws-chunked + x-amz-checksum-*)
+      // по умолчанию — часть S3-совместимых провайдеров и локальные серверы
+      // (s3rver/старые MinIO) это не поддерживают и ломают PutObject.
+      // WHEN_REQUIRED — прежнее поведение: чексамма только когда задана явно.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
 
