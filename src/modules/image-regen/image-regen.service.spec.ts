@@ -16,6 +16,7 @@ import type { ConfigService } from '@nestjs/config';
 
 const SAMPLE_ANALYSIS: GarmentAnalysis = {
   garmentType: 'Женская пижама в горошек',
+  subject: 'женщина',
   color: 'розовый с белым горошком',
   styleMood: 'нежное игривое домашнее',
   modelNote: 'девушка 25–30, мягкая естественная внешность',
@@ -105,6 +106,13 @@ describe('ImageRegenService.composePrompt', () => {
     expect(REGEN_TECH_SUFFIX).toContain('Preserve the model POSE and the CAMERA viewpoint');
     expect(REGEN_TECH_SUFFIX).toContain('from the side');
     expect(REGEN_TECH_SUFFIX).toContain('do NOT rotate the model toward the camera');
+  });
+
+  it('тех-суффикс: субъект исходника сохраняется (пол не меняется, кадрировка части тела та же)', () => {
+    expect(REGEN_TECH_SUFFIX).toContain('Preserve the SUBJECT of the reference photo');
+    expect(REGEN_TECH_SUFFIX).toContain('a woman stays a woman, a man stays a man');
+    expect(REGEN_TECH_SUFFIX).toContain('body-part-only framing');
+    expect(REGEN_TECH_SUFFIX).toContain('do NOT swap gender');
   });
 });
 

@@ -22,6 +22,7 @@ export class StubImageDriver implements ImageGenDriver {
   async analyzeGarment(input: AnalyzeGarmentInput): Promise<GarmentAnalysis> {
     return {
       garmentType: `Домашняя одежда (stub-анализ, фото: ${input.images.length})`,
+      subject: 'не определяется (stub)',
       color: 'цвет по фото не распознан — заглушка',
       styleMood: 'уютное домашнее настроение',
       modelNote: 'девушка 25–35, спокойная естественная внешность',

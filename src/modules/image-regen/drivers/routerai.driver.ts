@@ -143,6 +143,13 @@ export class RouterAiImageDriver implements ImageGenDriver {
       `STORE PHOTO LOOK & FEEL (the visual style every scene must follow):\n"""${input.concept || 'Warm natural lifestyle photography, editorial quality.'}"""\n\n` +
       'Step 1 — identify the garment: type, category (sleepwear / loungewear / activewear / homewear), ' +
       'color, pattern, fabric mood, cut details, and who buys it.\n' +
+      'Step 1b — identify the SUBJECT of the reference photo(s): a woman, a man, a body part only ' +
+      '(torso / legs / hands / close-up detail without a face), or the garment with no person at all. ' +
+      'Report it in subject. The generated photo MUST feature the SAME subject: if the reference shows a man — ' +
+      'suggest scenes with an attractive male model; if only a body part — keep that framing in the scenes ' +
+      '(close-up of the same body part, no invented full model or face); if no person (flat lay / packshot) — ' +
+      'you may suggest scenes with a woman model (the store\'s core audience) or an upgraded styled flat-lay, ' +
+      'whichever sells this garment better.\n' +
       'Step 2 — classify ALL text found in the photo(s) into two groups:\n' +
       '  (a) BRAND ARTIFACTS — brand logos, brand names, website URLs, watermarks — report in brandArtifacts with location; ' +
       'they will be REMOVED by generation.\n' +
@@ -157,8 +164,8 @@ export class RouterAiImageDriver implements ImageGenDriver {
       'to women 25–40; vary time of day, activity and interior/place across scenes; each scene highlights ' +
       'what makes the garment desirable (comfort, fit, fabric, look).\n\n' +
       'Respond with ONLY valid JSON (no markdown fences, no extra text) with this exact shape:\n' +
-      '{"garmentType":"<RU: что за вещь, кратко>","color":"<RU: цвет/принт>","styleMood":"<RU: настроение вещи>",' +
-      '"modelNote":"<RU: кого показать в кадре — типаж/возраст/настроение; уверенная женственность и ненавязчивая чувственность, согласовано с вещью и сценарием>",' +
+      '{"garmentType":"<RU: что за вещь, кратко>","subject":"<RU: кто в кадре исходника: женщина / мужчина / часть тела (какая) / вещь без человека>","color":"<RU: цвет/принт>","styleMood":"<RU: настроение вещи>",' +
+      '"modelNote":"<RU: кого показать в кадре — типаж/возраст/настроение, ТО ЖЕ что в исходнике (мужчина→мужчина, часть тела→та же кадрировка); привлекательная подача и ненавязчивая чувственность, согласовано с вещью и сценарием>",' +
       '"notes":"<RU: детали, которые важно сохранить при генерации: крой/принт/ткань/посадка>",' +
       '"brandArtifacts":"<RU: найденные логотипы/названия брендов/сайты/водяные знаки и ГДЕ именно; пустая строка если чисто>",' +
       '"infoText":"<RU: прочий текст на фото — описания/подписи/размеры/инфо-надписи, с точными формулировками; генерация сохранит их; пустая строка если нет>",' +
@@ -258,6 +265,7 @@ export class RouterAiImageDriver implements ImageGenDriver {
       if (parsedScenes.length === 0) return null;
       return {
         garmentType: String(raw.garmentType ?? ''),
+        subject: String(raw.subject ?? ''),
         color: String(raw.color ?? ''),
         styleMood: String(raw.styleMood ?? ''),
         modelNote: String(raw.modelNote ?? ''),

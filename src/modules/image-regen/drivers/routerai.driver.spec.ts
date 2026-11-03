@@ -182,6 +182,7 @@ describe('RouterAiImageDriver.analyzeGarment — vision-анализ фото', 
       chatResponse(
         JSON.stringify({
           garmentType: 'Пижама',
+          subject: 'женщина',
           color: 'розовый',
           styleMood: 'уютное',
           modelNote: 'девушка 25–30',
@@ -210,6 +211,7 @@ describe('RouterAiImageDriver.analyzeGarment — vision-анализ фото', 
     expect(userContent[1].image_url.url).toContain('data:image/webp;base64,');
 
     expect(analysis.garmentType).toBe('Пижама');
+    expect(analysis.subject).toBe('женщина');
     expect(analysis.brandArtifacts).toContain('логотип на груди');
     expect(analysis.infoText).toContain('ЭФФЕКТ ВТОРОЙ КОЖИ');
     expect(analysis.scenes[0].prompt).toBe('tea scene');

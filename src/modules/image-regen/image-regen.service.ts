@@ -37,6 +37,9 @@ import { SettingsService } from '@/modules/settings/settings.service';
 export const REGEN_TECH_SUFFIX =
   'Output: vertical 3:4 portrait lifestyle product photo, garment is the hero of the shot. ' +
   'Preserve the exact garment from the reference image — do not alter its colors, pattern, print, cut, length, fit or sizing look. ' +
+  'Preserve the SUBJECT of the reference photo: a woman stays a woman, a man stays a man, ' +
+  'and a body-part-only framing (torso / legs / close-up detail) keeps the same framing — ' +
+  'do NOT swap gender or invent a full model where the reference shows only a body part. ' +
   'Preserve the model POSE and the CAMERA viewpoint of the reference photo: if the reference shows the model from the side, ' +
   'from the back or front-facing, the new photo must keep the same viewpoint and shooting direction — ' +
   'do NOT rotate the model toward the camera or change the camera angle. ' +
