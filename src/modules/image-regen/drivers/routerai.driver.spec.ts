@@ -187,6 +187,7 @@ describe('RouterAiImageDriver.analyzeGarment — vision-анализ фото', 
           modelNote: 'девушка 25–30',
           notes: 'принт сохранить',
           brandArtifacts: 'вышитый логотип на груди, водяной знак сайта внизу',
+          infoText: 'подпись «ЭФФЕКТ ВТОРОЙ КОЖИ» в центре слева',
           scenes: [{ title: 'Чай', prompt: 'tea scene' }],
         }),
       ),
@@ -210,6 +211,7 @@ describe('RouterAiImageDriver.analyzeGarment — vision-анализ фото', 
 
     expect(analysis.garmentType).toBe('Пижама');
     expect(analysis.brandArtifacts).toContain('логотип на груди');
+    expect(analysis.infoText).toContain('ЭФФЕКТ ВТОРОЙ КОЖИ');
     expect(analysis.scenes[0].prompt).toBe('tea scene');
   });
 

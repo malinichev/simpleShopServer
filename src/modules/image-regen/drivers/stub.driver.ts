@@ -27,6 +27,7 @@ export class StubImageDriver implements ImageGenDriver {
       modelNote: 'девушка 25–35, спокойная естественная внешность',
       notes: 'Stub-драйвер: подключите AI_IMAGE_DRIVER=openai для реального анализа фото',
       brandArtifacts: '',
+      infoText: '',
       scenes: [
         {
           title: 'Чай перед сном (stub)',

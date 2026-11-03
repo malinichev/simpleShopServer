@@ -27,21 +27,24 @@ import { SettingsService } from '@/modules/settings/settings.service';
 /**
  * Тех-суффикс, который сервер добавляет к каждому промпту: формат карточки
  * магазина (3:4), сохранение вещи как есть (включая посадку/длину — размерный
- * образ), АКТИВНОЕ удаление брендовых артефактов исходника (логотипы, названия
- * брендов, сайты/водяные знаки) — при этом ЛЮБОЙ другой текст, уже имеющийся
- * на фото (размерные метки, инфо-надписи, принты), сохраняется как есть,
- * а нового текста не добавляется.
+ * образ), АКТИВНОЕ удаление ТОЛЬКО брендовых артефактов исходника (логотипы,
+ * названия брендов, сайты/водяные знаки). Любой ДРУГОЙ текст, уже имеющийся
+ * на фото — описания товара (маркетинговые подписи), размерные метки, инфо-
+ * надписи, принты — воспроизводится в новом фото теми же словами и языком;
+ * нового текста не добавляется.
  * См. docs/PRODUCT_PHOTO_STYLE.md.
  */
 export const REGEN_TECH_SUFFIX =
   'Output: vertical 3:4 portrait lifestyle product photo, garment is the hero of the shot. ' +
   'Preserve the exact garment from the reference image — do not alter its colors, pattern, print, cut, length, fit or sizing look. ' +
-  'Remove ALL brand artifacts from the photo: brand logos and brand names on the garment or props, ' +
-  'website URLs and watermarks anywhere in the scene — reconstruct clean fabric or pattern where logos were, ' +
+  'Remove ONLY brand artifacts from the photo: brand logos and brand names on the garment or props, ' +
+  'website URLs and watermarks — reconstruct clean fabric or pattern where logos were, ' +
   'without changing the garment itself. ' +
-  'KEEP any other text or information that already exists on the garment or its tags in the reference ' +
-  '(size markings, care or info labels, decorative text prints) exactly as it is — do not alter, translate or remove it; ' +
-  'but do NOT add any new text, logos, watermarks or price tags that are not in the reference photo.';
+  'KEEP and reproduce in the new photo every other piece of text that already exists in the reference — ' +
+  'product descriptions and marketing captions, size markings, measurements, care or info labels, text prints — ' +
+  'exactly as in the reference: same wording, same language, similar style and placement; ' +
+  'do not alter, translate, shorten or remove it. ' +
+  'Do NOT add any new text, logos, watermarks or price tags that are not in the reference photo.';
 
 export const MAX_IMAGES_PER_JOB = 10;
 

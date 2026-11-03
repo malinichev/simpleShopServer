@@ -20,6 +20,8 @@ const SAMPLE_ANALYSIS: GarmentAnalysis = {
   styleMood: 'нежное игривое домашнее',
   modelNote: 'девушка 25–30, мягкая естественная внешность',
   notes: 'шорты на поясе-резинке, принт в горошек сохранять точно',
+  brandArtifacts: 'логотип на бирке',
+  infoText: 'подпись «мягкая ткань» внизу',
   scenes: [{ title: 'Чай перед сном', prompt: 'cozy bedtime tea scene' }],
 };
 
@@ -83,17 +85,18 @@ describe('ImageRegenService.composePrompt', () => {
     expect(composed).toBe(`SCENE\n\n${REGEN_TECH_SUFFIX}`);
   });
 
-  it('тех-суффикс: брендовые артефакты удалить, существующий текст сохранить, нового не добавлять', () => {
-    expect(REGEN_TECH_SUFFIX).toContain('Remove ALL brand artifacts');
+  it('тех-суффикс: ТОЛЬКО брендовое удалить, прочий существующий текст (в т.ч. описания товара) воспроизвести, нового не добавлять', () => {
+    expect(REGEN_TECH_SUFFIX).toContain('Remove ONLY brand artifacts');
     expect(REGEN_TECH_SUFFIX).toContain('website URLs and watermarks');
     expect(REGEN_TECH_SUFFIX).toContain('reconstruct clean fabric');
     // вещь не меняется: размерный образ/посадка/длина
     expect(REGEN_TECH_SUFFIX).toContain('length, fit or sizing look');
-    // прочий существующий текст (размеры/инфо/принты) — сохранить как есть
-    expect(REGEN_TECH_SUFFIX).toContain('KEEP any other text');
-    expect(REGEN_TECH_SUFFIX).toContain('size markings');
+    // прочий существующий текст — включая описания/маркетинговые подписи — воспроизвести как есть
+    expect(REGEN_TECH_SUFFIX).toContain('KEEP and reproduce');
+    expect(REGEN_TECH_SUFFIX).toContain('product descriptions and marketing captions');
+    expect(REGEN_TECH_SUFFIX).toContain('same wording, same language');
     // нового текста не добавлять
-    expect(REGEN_TECH_SUFFIX).toContain('do NOT add any new text');
+    expect(REGEN_TECH_SUFFIX).toContain('Do NOT add any new text');
     // и формат карточки остаётся
     expect(REGEN_TECH_SUFFIX).toContain('3:4');
   });
@@ -127,8 +130,8 @@ describe('ImageRegenService.start', () => {
     ]);
     expect(job.composedPrompt).toContain('BASE STYLE TEXT');
     expect(job.composedPrompt).toContain('Девушка пьёт чай перед сном');
-    expect(job.composedPrompt).toContain('Remove ALL brand artifacts');
-    expect(job.composedPrompt).toContain('KEEP any other text');
+    expect(job.composedPrompt).toContain('Remove ONLY brand artifacts');
+    expect(job.composedPrompt).toContain('KEEP and reproduce');
     expect(regenQueue.add).toHaveBeenCalledWith(
       'process-image-regen',
       { jobId: 'job-1', variantsPerImage: 1 },
