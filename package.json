@@ -25,6 +25,7 @@
     "migration:revert": "pnpm typeorm migration:revert",
     "migration:show": "pnpm typeorm migration:show",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
+    "stock-sync": "ts-node -r tsconfig-paths/register src/scripts/stock-sync.ts",
     "wb-import": "ts-node -r tsconfig-paths/register src/database/seeds/wb-import.ts",
     "wb-html-import": "ts-node -r tsconfig-paths/register src/database/seeds/wb-html-import.ts",
     "wb-html-import:prod": "ts-node -r tsconfig-paths/register src/database/seeds/wb-html-import.ts --prod",

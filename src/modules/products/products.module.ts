@@ -18,6 +18,6 @@ import { SearchModule } from '@/modules/search/search.module';
   ],
   controllers: [ProductsController],
   providers: [ProductsRepository, ProductsService],
-  exports: [ProductsService],
+  exports: [ProductsService, ProductsRepository],
 })
 export class ProductsModule {}

@@ -431,7 +431,8 @@ export class ProductsService implements OnModuleDestroy {
     return this.productsRepository.count();
   }
 
-  private async invalidateCache(): Promise<void> {
+  /** Публичный для батч-операций (stock-sync): они апдейтят варианты напрямую и флешат кэш один раз. */
+  async invalidateCache(): Promise<void> {
     const keys = await this.redis.keys(`${CACHE_PREFIX}:*`);
     if (keys.length > 0) {
       await this.redis.del(...keys);

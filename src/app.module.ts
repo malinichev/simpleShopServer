@@ -24,6 +24,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { PagesModule } from './modules/pages/pages.module';
 import { MarkingModule } from './modules/marking/marking.module';
 import { ImportModule } from './modules/import/import.module';
+import { StockSyncModule } from './modules/stock-sync/stock-sync.module';
 import { ImageRegenModule } from './modules/image-regen/image-regen.module';
 import { JobsModule } from './jobs/jobs.module';
 import { BackupModule } from './modules/backup/backup.module';
@@ -39,6 +40,7 @@ import {
   s3Config,
   mailConfig,
   aiConfig,
+  simaLandConfig,
   throttleConfig,
   ddosConfig,
 } from './config';
@@ -57,6 +59,7 @@ import {
         s3Config,
         mailConfig,
         aiConfig,
+        simaLandConfig,
         throttleConfig,
         ddosConfig,
       ],
@@ -123,6 +126,7 @@ import {
     PagesModule,
     MarkingModule,
     ImportModule,
+    StockSyncModule,
     ImageRegenModule,
     JobsModule,
     BackupModule,
