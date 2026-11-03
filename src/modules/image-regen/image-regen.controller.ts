@@ -9,7 +9,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { Roles, UserRole } from '@/common/decorators/roles.decorator';
 import { ImageRegenService } from './image-regen.service';
@@ -23,6 +23,9 @@ export class ImageRegenController {
   constructor(private readonly imageRegenService: ImageRegenService) {}
 
   @Get('config')
+  // Читается при каждом открытии диалога; GET-поллинг за админ-авторизацией —
+  // без персонального лимита (иначе глобальный троттлер ловит bulk-сессии)
+  @SkipThrottle()
   @ApiOperation({
     summary: 'Конфигурация ИИ-генерации (драйвер, модель, пресеты промптов)',
   })
@@ -32,7 +35,10 @@ export class ImageRegenController {
   }
 
   @Post('analyze')
-  @Throttle({ default: { ttl: 60000, limit: 60 } })
+  // Bulk: товаров много, у каждого до 10 фото — анализ каждым фото.
+  // Эндпоинт за ADMIN/MANAGER-авторизацией, троттлер тут лишь страховка от
+  // зарезвившегося клиента, поэтому лимит высокий.
+  @Throttle({ default: { ttl: 60000, limit: 600 } })
   @ApiOperation({
     summary: 'Vision-анализ выбранных фото: что за вещь + подходящие сцены под концепцию магазина',
   })
@@ -42,7 +48,8 @@ export class ImageRegenController {
   }
 
   @Post('jobs')
-  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  // Bulk: один job на товар — выборка из многих товаров даёт пучок запросов
+  @Throttle({ default: { ttl: 60000, limit: 300 } })
   @ApiOperation({ summary: 'Запустить регенерацию выбранных фото товара' })
   @ApiResponse({ status: 201 })
   async start(
@@ -54,6 +61,7 @@ export class ImageRegenController {
   }
 
   @Get('jobs')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Список задач регенерации (опционально по товару)' })
   @ApiResponse({ status: 200 })
   async getJobs(
@@ -69,6 +77,9 @@ export class ImageRegenController {
   }
 
   @Get('jobs/:id')
+  // Поллинг статуса каждые 2с (× число job'ов при bulk) — без лимита,
+  // эндпоинт за ADMIN/MANAGER, чтение не мутирует ничего
+  @SkipThrottle()
   @ApiOperation({ summary: 'Задача регенерации по id (для поллинга статуса)' })
   @ApiResponse({ status: 200 })
   async getJob(@Param('id', ParseUUIDPipe) id: string) {
