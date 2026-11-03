@@ -186,6 +186,7 @@ describe('RouterAiImageDriver.analyzeGarment — vision-анализ фото', 
           styleMood: 'уютное',
           modelNote: 'девушка 25–30',
           notes: 'принт сохранить',
+          brandArtifacts: 'вышитый логотип на груди, водяной знак сайта внизу',
           scenes: [{ title: 'Чай', prompt: 'tea scene' }],
         }),
       ),
@@ -201,11 +202,14 @@ describe('RouterAiImageDriver.analyzeGarment — vision-анализ фото', 
     expect(body.model).toBe('google/gemini-2.5-flash');
     expect(body.messages[0].role).toBe('system');
     expect(body.messages[0].content).toContain('BASE STYLE CONCEPT');
+    // системный промпт требует искать брендовые артефакты
+    expect(body.messages[0].content).toContain('BRAND ARTIFACTS');
     const userContent = body.messages[1].content;
     expect(userContent[1].type).toBe('image_url');
     expect(userContent[1].image_url.url).toContain('data:image/webp;base64,');
 
     expect(analysis.garmentType).toBe('Пижама');
+    expect(analysis.brandArtifacts).toContain('логотип на груди');
     expect(analysis.scenes[0].prompt).toBe('tea scene');
   });
 

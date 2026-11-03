@@ -143,16 +143,22 @@ export class RouterAiImageDriver implements ImageGenDriver {
       `STORE PHOTO LOOK & FEEL (the visual style every scene must follow):\n"""${input.concept || 'Warm natural lifestyle photography, editorial quality.'}"""\n\n` +
       'Step 1 — identify the garment: type, category (sleepwear / loungewear / activewear / homewear), ' +
       'color, pattern, fabric mood, cut details, and who buys it.\n' +
-      'Step 2 — pick its REAL usage scenarios: the actual moments and places the buyer wears it ' +
+      'Step 2 — detect BRAND ARTIFACTS in the photo(s): brand logos on the garment or props, brand names, ' +
+      'website URLs, watermarks, price tags — anywhere in the frame. Report each with its location; ' +
+      'if the photos are clean, use an empty string. IMPORTANT: other text that is NOT branding — size markings, ' +
+      'care or info labels, decorative text prints — is NOT an artifact: it must be preserved as is ' +
+      '(mention significant ones in notes).\n' +
+      'Step 3 — pick its REAL usage scenarios: the actual moments and places the buyer wears it ' +
       '(morning routine, work-from-home, lounge & rest, sleep, yoga or home workout, walk outside, travel, spa, ' +
       'self-care — whatever truly fits THIS garment; do not default to one type of scene).\n' +
-      'Step 3 — propose exactly 3 scenes, each in a DIFFERENT scenario and setting, chosen to sell this item ' +
+      'Step 4 — propose exactly 3 scenes, each in a DIFFERENT scenario and setting, chosen to sell this item ' +
       'to women 25–40; vary time of day, activity and interior/place across scenes; each scene highlights ' +
       'what makes the garment desirable (comfort, fit, fabric, look).\n\n' +
       'Respond with ONLY valid JSON (no markdown fences, no extra text) with this exact shape:\n' +
       '{"garmentType":"<RU: что за вещь, кратко>","color":"<RU: цвет/принт>","styleMood":"<RU: настроение вещи>",' +
       '"modelNote":"<RU: кого показать в кадре — типаж/возраст/настроение, согласовано с вещью и сценарием>",' +
-      '"notes":"<RU: детали, которые важно сохранить при генерации: крой/принт/ткань>",' +
+      '"notes":"<RU: детали, которые важно сохранить при генерации: крой/принт/ткань/посадка>",' +
+      '"brandArtifacts":"<RU: найденные логотипы/названия брендов/сайты/водяные знаки и ГДЕ именно; пустая строка если чисто>",' +
       '"scenes":[{"title":"<RU: название сценария>","prompt":"<EN: detailed scene prompt — who, action, place, light, mood; the garment is the hero; a realistic natural moment, not posed stock>"}]}\n' +
       'Rules: scene prompts in English, 1-2 sentences; every scene follows the store look & feel above ' +
       '(light, palette, editorial quality); scenes must be distinctly different from each other; ' +
@@ -253,6 +259,7 @@ export class RouterAiImageDriver implements ImageGenDriver {
         styleMood: String(raw.styleMood ?? ''),
         modelNote: String(raw.modelNote ?? ''),
         notes: String(raw.notes ?? ''),
+        brandArtifacts: String(raw.brandArtifacts ?? ''),
         scenes: parsedScenes.slice(0, 3),
       };
     } catch {
