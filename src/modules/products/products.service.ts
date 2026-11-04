@@ -409,7 +409,114 @@ export class ProductsService implements OnModuleDestroy {
       name: s.name,
       color: s.color,
       colorHex: s.colorHex,
-      image: s.images?.[0]?.url,
+      // Превью = фото с минимальным order (баг: images[0] мог быть любым)
+      image: [...(s.images ?? [])].sort((a, b) => a.order - b.order)[0]?.url,
+    }));
+  }
+
+  /**
+   * Дублировать товар как новый цвет (юзер 2026-11-04):
+   * копируем базовые поля, очищаем цвет/фото/SEO/gtin/метрики,
+   * наследуем modelId (или генерируем если нет), варианты — те же размеры
+   * с новым SKU и stock=0.
+   */
+  async duplicateAsColor(productId: string): Promise<Product> {
+    const source = await this.productsRepository.findById(productId);
+    if (!source) throw new NotFoundException('Товар не найден');
+
+    // modelId: наследуем или генерируем обоим
+    let modelId = source.modelId;
+    if (!modelId) {
+      modelId = uuidv4();
+      await this.productsRepository.update(source.id, { modelId });
+    }
+
+    const newSlug = this.generateSlug(source.name);
+    const newSku = this.generateSku();
+
+    const copyData: Partial<Product> = {
+      name: source.name,
+      slug: newSlug,
+      sku: newSku,
+      description: source.description,
+      shortDescription: source.shortDescription,
+      categoryId: source.categoryId,
+      tags: source.tags ? [...source.tags] : undefined,
+      attributes: source.attributes ? { ...source.attributes } : undefined,
+      price: source.price,
+      compareAtPrice: source.compareAtPrice,
+      status: ProductStatus.DRAFT,
+      isVisible: true,
+      // Очищаем — админ заполнит для нового цвета
+      color: undefined,
+      colorHex: undefined,
+      images: [],
+      seo: { title: '', description: '', keywords: [] },
+      gtin: undefined,
+      soldCount: 0,
+      rating: undefined,
+      reviewsCount: 0,
+      modelId,
+      // Варианты: те же размеры, новый SKU, stock=0, gtin очищен
+      variants: (source.variants ?? []).map((v) => ({
+        size: v.size,
+        sku: this.generateSku(),
+        stock: 0,
+        price: v.price,
+        gtin: null,
+      })) as any,
+    };
+
+    const created = await this.productsRepository.create(copyData);
+    await this.invalidateCache();
+    this.searchService.onProductSaved(created);
+    return created;
+  }
+
+  /**
+   * Список моделей (связок цветов) для пикера в админке:
+   * группы по modelId, представитель = первый, члены — все товары группы.
+   */
+  async findModels(search?: string): Promise<
+    Array<{
+      modelId: string;
+      name: string;
+      products: Array<{
+        id: string;
+        name: string;
+        color?: string;
+        colorHex?: string;
+        image?: string;
+        status: string;
+      }>;
+    }>
+  > {
+    const all = await this.productsRepository.findAll({
+      limit: 500,
+      page: 1,
+    });
+    const withModel = all.data.filter(
+      (p) => p.modelId && (!search || p.name.toLowerCase().includes(search.toLowerCase())),
+    );
+
+    const groups = new Map<string, typeof withModel>();
+    for (const p of withModel) {
+      const list = groups.get(p.modelId!) ?? [];
+      list.push(p);
+      groups.set(p.modelId!, list);
+    }
+
+    return [...groups.entries()].map(([modelId, products]) => ({
+      modelId,
+      name: products[0].name,
+      products: products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        color: p.color ?? undefined,
+        colorHex: p.colorHex ?? undefined,
+        image: [...(p.images ?? [])].sort((a, b) => a.order - b.order)[0]?.url,
+        status: p.status,
+      })),
     }));
   }
 
