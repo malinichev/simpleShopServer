@@ -46,6 +46,7 @@ export class WishlistController {
       user.id,
       dto.productId,
       dto.variantId,
+      user,
     );
   }
 
@@ -60,7 +61,7 @@ export class WishlistController {
     @CurrentUser() user: User,
     @Param('productId') productId: string,
   ): Promise<void> {
-    await this.wishlistService.addProduct(user.id, productId);
+    await this.wishlistService.addProduct(user.id, productId, user);
   }
 
   @Delete(':productId')
@@ -73,7 +74,7 @@ export class WishlistController {
     @CurrentUser() user: User,
     @Param('productId') productId: string,
   ): Promise<void> {
-    await this.wishlistService.removeProduct(user.id, productId);
+    await this.wishlistService.removeProduct(user.id, productId, user);
   }
 
   @Delete()
@@ -81,6 +82,6 @@ export class WishlistController {
   @ApiOperation({ summary: 'Очистить список желаний' })
   @ApiResponse({ status: 204, description: 'Список желаний очищен' })
   async clearWishlist(@CurrentUser() user: User): Promise<void> {
-    await this.wishlistService.clearWishlist(user.id);
+    await this.wishlistService.clearWishlist(user.id, user);
   }
 }
