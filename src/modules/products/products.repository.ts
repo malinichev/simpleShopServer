@@ -142,10 +142,12 @@ export class ProductsRepository {
   }
 
   async findBySlug(slug: string): Promise<Product | null> {
-    return this.repository.findOne({
+    const product = await this.repository.findOne({
       where: { slug },
       relations: ['variants'],
     });
+    if (product) await this.attachColorSiblings([product]);
+    return product;
   }
 
   async findById(id: string): Promise<Product | null> {
@@ -599,7 +601,8 @@ export class ProductsRepository {
             name: s.name,
             color: s.color,
             colorHex: s.colorHex,
-            image: s.images?.[0]?.url,
+            // Превью = фото с минимальным order (баг: images[0] мог быть любым)
+            image: [...(s.images ?? [])].sort((a, b) => a.order - b.order)[0]?.url,
           }));
       }
     }

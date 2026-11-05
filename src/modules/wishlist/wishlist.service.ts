@@ -8,6 +8,7 @@ import { UpdateUserDto } from '@/modules/users/dto';
 import { ProductsService } from '@/modules/products/products.service';
 import { CartService } from '@/modules/cart/cart.service';
 import { WishlistResponseDto, WishlistItemDto } from './dto';
+import type { User } from '@/modules/users/entities/user.entity';
 
 @Injectable()
 export class WishlistService {
@@ -47,7 +48,11 @@ export class WishlistService {
     return { items, total: items.length };
   }
 
-  async addProduct(userId: string, productId: string): Promise<void> {
+  async addProduct(
+    userId: string,
+    productId: string,
+    currentUser?: User,
+  ): Promise<void> {
     const user = await this.usersService.findByIdOrFail(userId);
 
     // Проверяем существование товара
@@ -60,12 +65,21 @@ export class WishlistService {
     }
 
     wishlist.push(productId);
-    await this.usersService.update(userId, {
-      wishlist,
-    } as unknown as UpdateUserDto);
+    // currentUser обязателен: usersService.update запрещает менять
+    // super_admin без контекста — иначе super_admin не может самостоятельно
+    // собрать избранное (баг 2026-11-04: 403 на POST /wishlist у Яndex-аккаунта)
+    await this.usersService.update(
+      userId,
+      { wishlist } as unknown as UpdateUserDto,
+      currentUser,
+    );
   }
 
-  async removeProduct(userId: string, productId: string): Promise<void> {
+  async removeProduct(
+    userId: string,
+    productId: string,
+    currentUser?: User,
+  ): Promise<void> {
     const user = await this.usersService.findByIdOrFail(userId);
     const wishlist = user.wishlist || [];
 
@@ -75,9 +89,11 @@ export class WishlistService {
     }
 
     wishlist.splice(index, 1);
-    await this.usersService.update(userId, {
-      wishlist,
-    } as unknown as UpdateUserDto);
+    await this.usersService.update(
+      userId,
+      { wishlist } as unknown as UpdateUserDto,
+      currentUser,
+    );
   }
 
   async isInWishlist(userId: string, productId: string): Promise<boolean> {
@@ -90,6 +106,7 @@ export class WishlistService {
     userId: string,
     productId: string,
     variantId: string,
+    currentUser?: User,
   ): Promise<void> {
     const user = await this.usersService.findByIdOrFail(userId);
     const wishlist = user.wishlist || [];
@@ -108,15 +125,19 @@ export class WishlistService {
     // Удаляем из wishlist
     const index = wishlist.indexOf(productId);
     wishlist.splice(index, 1);
-    await this.usersService.update(userId, {
-      wishlist,
-    } as unknown as UpdateUserDto);
+    await this.usersService.update(
+      userId,
+      { wishlist } as unknown as UpdateUserDto,
+      currentUser,
+    );
   }
 
-  async clearWishlist(userId: string): Promise<void> {
+  async clearWishlist(userId: string, currentUser?: User): Promise<void> {
     await this.usersService.findByIdOrFail(userId);
-    await this.usersService.update(userId, {
-      wishlist: [],
-    } as unknown as UpdateUserDto);
+    await this.usersService.update(
+      userId,
+      { wishlist: [] } as unknown as UpdateUserDto,
+      currentUser,
+    );
   }
 }

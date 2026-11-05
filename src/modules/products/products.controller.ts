@@ -23,6 +23,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
+import type { Product } from './entities/product.entity';
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -48,6 +49,28 @@ export class ProductsController {
 
   // Публичные каталог-эндпоинты: черновики/скрытые товары видны только
   // админам из панели (OptionalJwtAuthGuard заполняет req.user, если токен есть).
+
+  /** Дублировать товар как новый цвет (админ, план п.1) */
+  @Post(':id/duplicate')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Дублировать товар как новый цвет той же модели' })
+  @ApiParam({ name: 'id', description: 'ID исходного товара' })
+  @ApiResponse({ status: 201, description: 'Черновик-копия создана', type: ProductResponseDto })
+  async duplicateAsColor(@Param('id') id: string): Promise<Product> {
+    return this.productsService.duplicateAsColor(id);
+  }
+
+  /** Список моделей (связок цветов) для пикера в админке (план п.2) */
+  @Get('models')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Группы товаров по modelId (связки цветов)' })
+  @ApiQuery({ name: 'search', required: false, description: 'Поиск по имени' })
+  @ApiResponse({ status: 200, description: 'Список моделей с участниками' })
+  async findModels(@Query('search') search?: string) {
+    return this.productsService.findModels(search);
+  }
+
   @Public()
   @UseGuards(OptionalJwtAuthGuard)
   @Get()
