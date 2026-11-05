@@ -4,6 +4,7 @@ import { Job } from 'bullmq';
 import { parse } from 'csv-parse/sync';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { v5 as uuidv5 } from 'uuid';
 import { ProductsService } from '@/modules/products/products.service';
 import { CategoriesService } from '@/modules/categories/categories.service';
 import { UploadService } from '@/modules/upload/upload.service';
@@ -13,13 +14,28 @@ import {
 } from '@/modules/import/entities/import-job.entity';
 import { ProductStatus } from '@/modules/products/entities/product.entity';
 
-interface ImportJobData {
+export interface ImportJobData {
   jobId: string;
   fileKey: string;
   mapping: Record<string, string>;
   defaultStatus: string;
   skipDuplicates: boolean;
   duplicateResolutions?: Record<string, 'db' | 'csv'>;
+}
+
+/**
+ * Пространство имён для детерминированного modelId из modelKey (uuidv5).
+ * Одинаково для всех импортов: повторный импорт/синк с тем же modelKey
+ * попадает в ту же цветовую группу. Источник modelKey для Сималенда —
+ * «Варианты» со страниц товаров (fetch_model_links.py), НЕ имя товара.
+ */
+const MODEL_KEY_NAMESPACE = '1e9d3a20-6f4b-4c2e-8d5f-0a1b2c3d4e5f';
+
+/** modelId для ключа модели; без ключа — undefined (товар без цветовой группы). */
+export function modelIdFromKey(modelKey: string | undefined): string | undefined {
+  const key = (modelKey || '').trim();
+  if (!key) return undefined;
+  return uuidv5(key, MODEL_KEY_NAMESPACE);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -132,6 +148,7 @@ export class ImportProcessor extends WorkerHost {
         try {
           const firstRow = rows[0];
           const mapped = this.mapRow(headers, firstRow.data, mapping);
+          const modelId = modelIdFromKey(mapped.modelKey);
 
           // Resolve category
           let categoryId = '';
@@ -176,6 +193,9 @@ export class ImportProcessor extends WorkerHost {
               ? parseFloat(mapped.compareAtPrice)
               : undefined,
             categoryId,
+            // Цветовая группа: товары с одним modelKey получают один modelId,
+            // пикер цветов в карточке связывает их между собой
+            modelId,
             status: (mapped.status || defaultStatus) as ProductStatus,
             tags: mapped.tags
               ? mapped.tags.split('|').map((t: string) => t.trim())
@@ -208,6 +228,15 @@ export class ImportProcessor extends WorkerHost {
             // Remove sku to avoid uniqueness conflict on self-update
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             delete updateDto.sku;
+
+            // modelId: не перетираем уже выставленную связь (ручную или прошлую),
+            // заполняем только если у товара группы ещё нет
+            if (updateDto.modelId !== undefined) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              updateDto.modelId =
+                (await this.productsService.findById(existingMatch.id))
+                  ?.modelId || updateDto.modelId;
+            }
 
             if (existingMatch.resolution === 'db') {
               // Keep name, description, images from DB — only update other fields

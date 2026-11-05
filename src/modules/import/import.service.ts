@@ -28,6 +28,7 @@ const CSV_TEMPLATE_COLUMNS = [
   'features',
   'color',
   'colorHex',
+  'modelKey',
   'status',
   'tags',
   'gtin',
