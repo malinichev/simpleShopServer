@@ -22,6 +22,7 @@ import {
   CreateReviewDto,
   UpdateReviewDto,
   AdminReplyDto,
+  ExternalVisibilityDto,
   ReviewQueryDto,
   ReviewResponseDto,
   ReviewEligibilityDto,
@@ -172,5 +173,27 @@ export class ReviewsController {
     @Body() dto: AdminReplyDto,
   ) {
     return this.reviewsService.addReply(id, user.id, dto.text);
+  }
+
+  // === Admin: видимость внешнего отзыва ===
+
+  @Patch('reviews/external/:id/visibility')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Скрыть/показать внешний отзыв поставщика (admin)',
+  })
+  @ApiParam({ name: 'id', description: 'External review ID' })
+  @ApiResponse({ status: 200, type: ReviewResponseDto })
+  @ApiResponse({ status: 404, description: 'External review not found' })
+  async setExternalVisibility(
+    @Param('id') id: string,
+    @Body() dto: ExternalVisibilityDto,
+  ) {
+    const review = await this.reviewsService.setExternalHidden(
+      id,
+      dto.isHidden,
+    );
+    return this.reviewsService.toExternalResponseDto(review);
   }
 }

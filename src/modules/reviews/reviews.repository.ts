@@ -128,4 +128,34 @@ export class ReviewsRepository {
 
     return { rating, count };
   }
+
+  /**
+   * Агрегаты одобренных своих отзывов по товарам: productId → {count, sum}.
+   * productIds не задан — по всем товарам (полный пересчёт после синка).
+   */
+  async ratingStats(
+    productIds?: string[],
+  ): Promise<Map<string, { count: number; sum: number }>> {
+    const qb = this.repository
+      .createQueryBuilder('r')
+      .select('r.productId', 'productId')
+      .addSelect('COUNT(*)', 'cnt')
+      .addSelect('SUM(r.rating)', 'total')
+      .where('r.isApproved = true')
+      .groupBy('r.productId');
+    if (productIds) {
+      qb.andWhere('r.productId IN (:...productIds)', { productIds });
+    }
+    const rows = await qb.getRawMany<{
+      productId: string;
+      cnt: string;
+      total: string;
+    }>();
+    return new Map(
+      rows.map((row) => [
+        row.productId,
+        { count: Number(row.cnt), sum: Number(row.total) },
+      ]),
+    );
+  }
 }

@@ -25,6 +25,7 @@ import { PagesModule } from './modules/pages/pages.module';
 import { MarkingModule } from './modules/marking/marking.module';
 import { ImportModule } from './modules/import/import.module';
 import { StockSyncModule } from './modules/stock-sync/stock-sync.module';
+import { ReviewsSyncModule } from './modules/reviews-sync/reviews-sync.module';
 import { ImageRegenModule } from './modules/image-regen/image-regen.module';
 import { JobsModule } from './jobs/jobs.module';
 import { BackupModule } from './modules/backup/backup.module';
@@ -139,6 +140,7 @@ import {
     MarkingModule,
     ImportModule,
     StockSyncModule,
+    ReviewsSyncModule,
     ImageRegenModule,
     JobsModule,
     BackupModule,

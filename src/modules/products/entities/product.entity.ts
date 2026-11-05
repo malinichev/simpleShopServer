@@ -120,6 +120,28 @@ export class Product extends BaseEntity {
   @Column({ default: 0 })
   reviewsCount: number;
 
+  /**
+   * Агрегаты внешних отзывов поставщика (поддерживаются reviews-sync).
+   * rating/reviewsCount выше — комбинированные: свои одобренные + внешние
+   * нескрытые (см. ReviewsRepository.recalculateCombinedRating).
+   */
+  @Column('decimal', {
+    precision: 3,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (v: number | null) => v,
+      from: (v: string | null) => (v === null ? null : parseFloat(v) || 0),
+    },
+  })
+  externalRating?: number | null;
+
+  @Column({ default: 0 })
+  externalReviewsCount: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reviewsSyncedAt?: Date | null;
+
   @Column({ default: 0 })
   soldCount: number;
 

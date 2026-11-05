@@ -265,6 +265,19 @@ export class ProductsRepository {
     await this.repository.update(id, { rating, reviewsCount: count });
   }
 
+  /** Агрегаты внешних отзывов поставщика (поддерживает reviews-sync). */
+  async updateExternalRating(
+    id: string,
+    externalRating: number | null,
+    externalReviewsCount: number,
+  ): Promise<void> {
+    await this.repository.update(id, {
+      externalRating,
+      externalReviewsCount,
+      reviewsSyncedAt: new Date(),
+    });
+  }
+
   async count(): Promise<number> {
     return this.repository.count();
   }

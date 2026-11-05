@@ -9,22 +9,37 @@ import {
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { ReviewsRepository } from './reviews.repository';
+import { ExternalReviewsRepository } from './external-reviews.repository';
 import { OrdersService } from '@/modules/orders/orders.service';
 import { ProductsService } from '@/modules/products/products.service';
+import { ProductsRepository } from '@/modules/products/products.repository';
 import { UsersService } from '@/modules/users/users.service';
 import { Review } from './entities/review.entity';
+import { ExternalReview } from './entities/external-review.entity';
 import {
   CreateReviewDto,
   UpdateReviewDto,
   ReviewQueryDto,
   ReviewResponseDto,
+  ReviewsSummaryDto,
   ReviewEligibilityDto,
 } from './dto';
-import { PaginatedResult } from '@/common/types/pagination.types';
+import {
+  PaginatedResult,
+  createPaginationMeta,
+  DEFAULT_PAGE,
+  DEFAULT_LIMIT,
+} from '@/common/types/pagination.types';
 import { OrderStatus } from '@/modules/orders/entities/order.entity';
 
 const CACHE_PREFIX = 'reviews';
 const CACHE_TTL = 300; // 5 minutes
+
+interface RatingUpdate {
+  id: string;
+  rating: number;
+  count: number;
+}
 
 @Injectable()
 export class ReviewsService implements OnModuleDestroy {
@@ -32,8 +47,10 @@ export class ReviewsService implements OnModuleDestroy {
 
   constructor(
     private readonly reviewsRepository: ReviewsRepository,
+    private readonly externalReviewsRepository: ExternalReviewsRepository,
     private readonly ordersService: OrdersService,
     private readonly productsService: ProductsService,
+    private readonly productsRepository: ProductsRepository,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
   ) {
@@ -96,40 +113,125 @@ export class ReviewsService implements OnModuleDestroy {
       isApproved: false,
     });
 
-    await this.invalidateCache();
+    await this.invalidateReviewsCache();
     return review;
   }
 
+  /**
+   * Публичные отзывы товара: свои одобренные + нескрытые внешние, единая
+   * лента по дате. В ответе summary — разбивка по источникам и общий рейтинг.
+   */
   async findByProduct(
     productId: string,
     query: ReviewQueryDto,
-  ): Promise<PaginatedResult<ReviewResponseDto>> {
+  ): Promise<PaginatedResult<ReviewResponseDto> & { summary: ReviewsSummaryDto }> {
     const cacheKey = `${CACHE_PREFIX}:product:${productId}:${JSON.stringify(query)}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return JSON.parse(cached) as PaginatedResult<ReviewResponseDto>;
+      return JSON.parse(cached) as PaginatedResult<ReviewResponseDto> & {
+        summary: ReviewsSummaryDto;
+      };
     }
 
-    const result = await this.reviewsRepository.findByProduct(productId, query);
+    const page = query.page || DEFAULT_PAGE;
+    const limit = query.limit || DEFAULT_LIMIT;
 
-    // Populate user data
-    const userIds = [...new Set(result.data.map((r) => r.userId))];
+    const [localReviews, externalReviews] = await Promise.all([
+      this.reviewsRepository.findByProduct(productId, {
+        page: 1,
+        limit: 100,
+        rating: query.rating,
+      } as ReviewQueryDto),
+      this.externalReviewsRepository.findVisibleByProduct(productId),
+    ]);
+
+    const userIds = [
+      ...new Set(localReviews.data.map((r) => r.userId)),
+    ];
     const users = await this.usersService.findByIds(userIds);
     const usersMap = new Map(users.map((u) => [u.id, u]));
 
-    const data = result.data.map((review) => {
+    const localDtos = localReviews.data.map((review) => {
       const user = usersMap.get(review.userId);
       return this.toResponseDto(review, user);
     });
+    const externalDtos = (query.rating
+      ? externalReviews.filter((er) => er.rating === query.rating)
+      : externalReviews
+    ).map((er) => this.toExternalResponseDto(er));
 
-    const response = { data, meta: result.meta };
+    // Единая лента: свежие сверху (у внешних дата — sourceCreatedAt)
+    const merged = [...localDtos, ...externalDtos].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    const response = {
+      data: merged.slice((page - 1) * limit, page * limit),
+      meta: createPaginationMeta(page, limit, merged.length),
+      summary: await this.buildSummary(productId),
+    };
     await this.redis.set(cacheKey, JSON.stringify(response), 'EX', CACHE_TTL);
     return response;
   }
 
-  async findAll(query: ReviewQueryDto): Promise<PaginatedResult<Review>> {
-    return this.reviewsRepository.findAll(query);
+  /** Админ-лента отзывов: свои, поставщика или все вместе (source). */
+  async findAll(
+    query: ReviewQueryDto,
+  ): Promise<PaginatedResult<ReviewResponseDto>> {
+    const page = query.page || DEFAULT_PAGE;
+    const limit = query.limit || DEFAULT_LIMIT;
+
+    if (query.source === 'sima-land') {
+      const { data, total } = await this.externalReviewsRepository.findForAdmin(
+        { page, limit, rating: query.rating },
+      );
+      return {
+        data: data.map((er) => this.toExternalResponseDto(er)),
+        meta: createPaginationMeta(page, limit, total),
+      };
+    }
+
+    if (query.source === 'local') {
+      const result = await this.reviewsRepository.findAll({
+        ...query,
+        source: undefined,
+      });
+      const userIds = [...new Set(result.data.map((r) => r.userId))];
+      const users = await this.usersService.findByIds(userIds);
+      const usersMap = new Map(users.map((u) => [u.id, u]));
+      return {
+        data: result.data.map((review) =>
+          this.toResponseDto(review, usersMap.get(review.userId)),
+        ),
+        meta: result.meta,
+      };
+    }
+
+    // Все источники вместе: обе страницы → общий сортированный срез
+    const [localResult, externalResult] = await Promise.all([
+      this.reviewsRepository.findAll({ ...query, source: undefined }),
+      this.externalReviewsRepository.findForAdmin({ page, limit, rating: query.rating }),
+    ]);
+    const userIds = [...new Set(localResult.data.map((r) => r.userId))];
+    const users = await this.usersService.findByIds(userIds);
+    const usersMap = new Map(users.map((u) => [u.id, u]));
+
+    const localDtos = localResult.data.map((review) =>
+      this.toResponseDto(review, usersMap.get(review.userId)),
+    );
+    const merged = [
+      ...localDtos,
+      ...externalResult.data.map((er) => this.toExternalResponseDto(er)),
+    ].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    const total = localResult.meta.total + externalResult.total;
+    return {
+      data: merged.slice(0, limit),
+      meta: createPaginationMeta(page, limit, total),
+    };
   }
 
   async findById(id: string): Promise<Review> {
@@ -166,8 +268,8 @@ export class ReviewsService implements OnModuleDestroy {
     }
 
     // Пересчитать рейтинг товара (отзыв стал неодобренным)
-    await this.recalculateProductRating(review.productId);
-    await this.invalidateCache();
+    await this.recalculateCombinedRatings([review.productId]);
+    await this.invalidateReviewsCache();
 
     return updated;
   }
@@ -182,8 +284,8 @@ export class ReviewsService implements OnModuleDestroy {
     await this.reviewsRepository.delete(id);
 
     // Пересчитать рейтинг товара
-    await this.recalculateProductRating(review.productId);
-    await this.invalidateCache();
+    await this.recalculateCombinedRatings([review.productId]);
+    await this.invalidateReviewsCache();
   }
 
   async approve(id: string): Promise<Review> {
@@ -197,8 +299,8 @@ export class ReviewsService implements OnModuleDestroy {
     }
 
     // Пересчитать рейтинг товара
-    await this.recalculateProductRating(review.productId);
-    await this.invalidateCache();
+    await this.recalculateCombinedRatings([review.productId]);
+    await this.invalidateReviewsCache();
 
     return updated;
   }
@@ -209,8 +311,23 @@ export class ReviewsService implements OnModuleDestroy {
     await this.reviewsRepository.update(id, { isApproved: false });
 
     // Пересчитать рейтинг товара
-    await this.recalculateProductRating(review.productId);
-    await this.invalidateCache();
+    await this.recalculateCombinedRatings([review.productId]);
+    await this.invalidateReviewsCache();
+  }
+
+  /** Скрыть/показать внешний отзыв (модерация витрины без удаления). */
+  async setExternalHidden(id: string, isHidden: boolean): Promise<ExternalReview> {
+    const existing = await this.externalReviewsRepository.findById(id);
+    if (!existing) {
+      throw new NotFoundException('Внешний отзыв не найден');
+    }
+
+    await this.externalReviewsRepository.setHidden(id, isHidden);
+    await this.recalculateCombinedRatings([existing.productId]);
+    await this.invalidateReviewsCache();
+    await this.productsService.invalidateCache();
+
+    return { ...existing, isHidden };
   }
 
   async addReply(id: string, adminId: string, text: string): Promise<Review> {
@@ -224,7 +341,7 @@ export class ReviewsService implements OnModuleDestroy {
       throw new NotFoundException('Отзыв не найден');
     }
 
-    await this.invalidateCache();
+    await this.invalidateReviewsCache();
     return updated;
   }
 
@@ -232,6 +349,48 @@ export class ReviewsService implements OnModuleDestroy {
     productId: string,
   ): Promise<{ rating: number; count: number }> {
     return this.reviewsRepository.calculateProductRating(productId);
+  }
+
+  /**
+   * Комбинированный рейтинг товаров: products.rating/reviewsCount = свои
+   * одобренные + внешние нескрытые. Вызывается после изменений отзывов
+   * (свои: create/approve/reject/delete, внешние: скрытие) и после
+   * прогона reviews-sync (productIds = undefined — полный пересчёт).
+   */
+  async recalculateCombinedRatings(productIds?: string[]): Promise<void> {
+    const [local, external] = await Promise.all([
+      this.reviewsRepository.ratingStats(productIds),
+      this.externalReviewsRepository.ratingStats(productIds),
+    ]);
+
+    const ids = new Set<string>([
+      ...local.keys(),
+      ...external.keys(),
+      ...(productIds ?? []),
+    ]);
+
+    const updates: RatingUpdate[] = [];
+    for (const id of ids) {
+      const l = local.get(id) ?? { count: 0, sum: 0 };
+      const e = external.get(id) ?? { count: 0, sum: 0 };
+      const count = l.count + e.count;
+      const rating =
+        count > 0 ? Math.round(((l.sum + e.sum) / count) * 10) / 10 : 0;
+      updates.push({ id, rating, count });
+    }
+
+    for (const entry of updates) {
+      await this.productsRepository.updateRating(entry.id, entry.rating, entry.count);
+    }
+    await this.productsService.invalidateCache();
+  }
+
+  /** Кэш отзывов (публичный — сбрасывается и reviews-sync'ом). */
+  async invalidateReviewsCache(): Promise<void> {
+    const keys = await this.redis.keys(`${CACHE_PREFIX}:*`);
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
+    }
   }
 
   toResponseDto(
@@ -243,6 +402,7 @@ export class ReviewsService implements OnModuleDestroy {
     return {
       id: review.id,
       productId: review.productId,
+      source: 'local',
       userId: review.userId,
       user: isAnonymous
         ? undefined
@@ -259,11 +419,56 @@ export class ReviewsService implements OnModuleDestroy {
       text: review.text,
       images: review.images || [],
       isAnonymous,
+      isVerifiedPurchase: true, // свой отзыв возможен только после заказа
       isApproved: review.isApproved,
       adminReply: review.adminReply,
       adminReplyAt: review.adminReplyAt,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
+    };
+  }
+
+  toExternalResponseDto(er: ExternalReview): ReviewResponseDto {
+    return {
+      id: er.id,
+      productId: er.productId,
+      source: er.source,
+      authorName: er.authorName,
+      rating: er.rating,
+      text: er.message,
+      pros: er.pros ?? undefined,
+      cons: er.cons ?? undefined,
+      images: er.images || [],
+      isAnonymous: er.authorName === 'Анонимно',
+      isVerifiedPurchase: er.isVerifiedPurchase,
+      isApproved: true, // внешние отзывы уже опубликованы поставщиком
+      isHidden: er.isHidden,
+      adminReply: er.reply ?? undefined,
+      createdAt: (er.sourceCreatedAt ?? er.createdAt) as Date,
+      updatedAt: er.updatedAt,
+    };
+  }
+
+  private async buildSummary(productId: string): Promise<ReviewsSummaryDto> {
+    const [local, external, product] = await Promise.all([
+      this.reviewsRepository.calculateProductRating(productId),
+      this.externalReviewsRepository
+        .ratingStats([productId])
+        .then((stats) => stats.get(productId)),
+      this.productsService.findById(productId).catch(() => null),
+    ]);
+    const ext = external ?? { count: 0, sum: 0 };
+    const externalRating =
+      ext.count > 0 ? Math.round((ext.sum / ext.count) * 10) / 10 : 0;
+    const total = local.count + ext.count;
+
+    return {
+      localCount: local.count,
+      localRating: local.rating,
+      externalCount: ext.count,
+      externalRating,
+      rating: product?.rating ?? (total > 0 ? local.rating : 0),
+      total,
     };
   }
 
@@ -310,17 +515,5 @@ export class ReviewsService implements OnModuleDestroy {
       eligibleOrders,
       hasReviewed: false,
     };
-  }
-
-  private async recalculateProductRating(productId: string): Promise<void> {
-    const { rating, count } = await this.calculateProductRating(productId);
-    await this.productsService.updateRating(productId, rating, count);
-  }
-
-  private async invalidateCache(): Promise<void> {
-    const keys = await this.redis.keys(`${CACHE_PREFIX}:*`);
-    if (keys.length > 0) {
-      await this.redis.del(...keys);
-    }
   }
 }

@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsIn,
   IsOptional,
   IsString,
   IsInt,
@@ -8,6 +9,9 @@ import {
   Max,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
+
+/** Источник отзыва: свой (покупатель магазина) или поставщик (Сима-ленд). */
+export type ReviewSource = 'local' | 'sima-land';
 
 export class ReviewQueryDto {
   @ApiPropertyOptional({ description: 'Filter by product ID' })
@@ -25,6 +29,15 @@ export class ReviewQueryDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isApproved?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter by source: local — свои отзывы, sima-land — поставщик (по умолчанию все)',
+    enum: ['local', 'sima-land'],
+  })
+  @IsOptional()
+  @IsIn(['local', 'sima-land'])
+  source?: ReviewSource;
 
   @ApiPropertyOptional({
     description: 'Filter by rating (1-5)',

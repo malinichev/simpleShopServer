@@ -17,6 +17,42 @@ export type SimaItemResult =
   | { found: true; item: SimaItem }
   | { found: false; reason: 'not_found' };
 
+/** Фото отзыва поставщика (item_comment_photos[].file_path_url — прямой URL). */
+export interface SimaItemCommentPhoto {
+  file_path_url?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Отзыв товара (item-comment API v3). Форма подтверждена живой пробой
+ * 2026-11-05: rating.value — оценка 1..5, item_comment_status_id 3 —
+ * опубликован, user null у анонимных, has_item_purchased — реальная покупка.
+ */
+export interface SimaItemComment {
+  id: number;
+  item_id: number;
+  rating_id: number;
+  rating?: { value?: number } | null;
+  message: string;
+  is_anonymously?: boolean;
+  item_comment_status_id?: number;
+  created_at?: string;
+  pros?: string | null;
+  cons?: string | null;
+  message_reply?: string | null;
+  has_item_purchased?: boolean;
+  only_raiting_review?: boolean;
+  user?: { name?: string } | null;
+  item_comment_photos?: SimaItemCommentPhoto[];
+  [key: string]: unknown;
+}
+
+export interface SimaCommentsPage {
+  items: SimaItemComment[];
+  pageCount: number;
+  totalCount: number;
+}
+
 const REQUEST_TIMEOUT_MS = 15_000;
 /** Точечная проверка при checkout: быстро ответили или сразу fail-open. */
 const FAST_CHECK_TIMEOUT_MS = 5_000;
@@ -25,6 +61,8 @@ const RETRY_ATTEMPTS = 2;
 // десятки секунд. Ретраим 403 с длинной паузой, прочее — короткий backoff.
 const RETRY_DELAYS_MS = [3_000, 10_000];
 const WAF_BAN_PAUSE_MS = 45_000;
+/** Лимит скачивания фото отзывов поставщика. */
+const MAX_DOWNLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_PAGE_REDIRECTS = 3;
 // WAF Сималенда с датацентровых IP режет запросы по TLS-фингерпринту undici
 // (глобальный fetch) и не-браузерным UA — оба дают мгновенный 403. node:https
@@ -137,6 +175,83 @@ export class SimaLandClient {
       return body as SimaItem[];
     }
     return [];
+  }
+
+  /**
+   * Отзывы товара (модели) поставщика. ВАЖНО: фильтр item_id у Сималенда
+   * групповой — по одному размеру возвращаются отзывы всей модели (в ответе
+   * встречаются соседние item_id; проверено 2026-11-05), поэтому на наш
+   * товар (модель из нескольких sid) достаточно запроса по одному sid.
+   * Пагинация: per-page=100, pageCount берём из _meta тела ответа.
+   */
+  async getItemComments(itemId: number, page = 1): Promise<SimaCommentsPage> {
+    const url =
+      `${this.base}item-comment/?item_id=${itemId}` +
+      `&per-page=100&page=${page}&expand=user,rating,item_comment_photos`;
+    const { json } = await this.fetchJson(url);
+    const container = json as {
+      items?: unknown;
+      _meta?: { pageCount?: number; totalCount?: number };
+    };
+    const items = Array.isArray(container?.items)
+      ? (container.items as SimaItemComment[])
+      : Array.isArray(json)
+        ? (json as SimaItemComment[])
+        : [];
+    return {
+      items,
+      pageCount: Math.max(1, Number(container?._meta?.pageCount) || 1),
+      totalCount: Number(container?._meta?.totalCount) || items.length,
+    };
+  }
+
+  /**
+   * Скачивание фото отзыва с CDN поставщика (user-content.static1-sima-land…)
+   * тем же транспортом (node:https + браузерный UA), без X-Api-Key: это
+   * публичная статика. Лимит 10 МБ; не-2xx → ошибка.
+   */
+  async fetchFile(
+    url: string,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    assertFetchableApiUrl(url);
+    return new Promise((resolve, reject) => {
+      const transport = url.startsWith('https:') ? https : http;
+      const req = transport.request(
+        url,
+        {
+          headers: { 'User-Agent': USER_AGENT },
+          timeout: timeoutMs,
+        },
+        (res) => {
+          const status = res.statusCode ?? 0;
+          if (status < 200 || status >= 300) {
+            res.resume(); // слить тело, не оставлять сокет висеть
+            reject(new Error(`файл ${url}: HTTP ${status}`));
+            return;
+          }
+          const chunks: Buffer[] = [];
+          let size = 0;
+          res.on('data', (chunk: Buffer) => {
+            size += chunk.length;
+            if (size > MAX_DOWNLOAD_BYTES) {
+              req.destroy(new Error(`файл ${url} больше 10 МБ`));
+              return;
+            }
+            chunks.push(chunk);
+          });
+          res.on('end', () =>
+            resolve({
+              buffer: Buffer.concat(chunks),
+              contentType: String(res.headers['content-type'] || ''),
+            }),
+          );
+        },
+      );
+      req.on('timeout', () => req.destroy(new Error('timeout')));
+      req.on('error', (error: Error) => reject(error));
+      req.end();
+    });
   }
 
   /**
