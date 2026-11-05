@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -6,6 +12,7 @@ import { Repository } from 'typeorm';
 import {
   SimaImportJob,
   SimaImportJobStatus,
+  SimaImportPhase,
 } from './entities/sima-import-job.entity';
 import { parseSimaExport, SimaExportRow } from './sima-export.parser';
 import { mapStoreCategory } from './sima-import.utils';
@@ -27,8 +34,41 @@ export interface SimaPreviewResult {
   sample: Array<{ sid: number; title: string; color: string }>;
 }
 
+/**
+ * Задача считается зависшей, если воркер давно не отзывал прогресс: процессор
+ * пишет прогресс минимум раз в ~20с (каждая страница склейки / каждые 10
+ * картинок-товаров), поэтому 90с тишины = воркер мёртв (перезапуск сервера).
+ */
+const STALE_PROCESSING_MS = 90_000;
+
 @Injectable()
-export class SimaImportService {
+export class SimaImportService implements OnModuleInit {
+  private readonly logger = new Logger(SimaImportService.name);
+
+  /**
+   * Жнец при старте: единственный воркер обрабатывает очередь, значит любая
+   * задача в processing после (пере)запуска сервера — осиротевшая. Помечаем
+   * failed, чтобы не висела «выполняется» вечно (как у зомби после рестарта).
+   */
+  async onModuleInit(): Promise<void> {
+    const zombies = await this.jobsRepo.find({
+      where: { status: SimaImportJobStatus.PROCESSING },
+    });
+    for (const job of zombies) {
+      await this.jobsRepo.update(job.id, {
+        status: SimaImportJobStatus.FAILED,
+        phase: SimaImportPhase.DONE,
+        finishedAt: new Date(),
+        errorCount: job.errorCount + 1,
+        errors: [
+          ...job.errors.slice(0, 99),
+          { row: '-', message: 'Воркер перезапущен — задача прервана, перезапустите загрузку' },
+        ],
+      });
+      this.logger.warn(`зомби-задача ${job.id} помечена failed после рестарта воркера`);
+    }
+  }
+
   constructor(
     @InjectRepository(SimaImportJob)
     private readonly jobsRepo: Repository<SimaImportJob>,
@@ -148,14 +188,31 @@ export class SimaImportService {
     });
   }
 
-  /** Отмена: флаг читает процессор (статус ставит он сам, с итогами). */
+  /**
+   * Отмена: живому воркеру ставим флаг (он завершит сам с итогами), а зависшую
+   * задачу (прогресс молчит дольше STALE_PROCESSING_MS — воркер умер) финализируем
+   * сразу, иначе «выполняется» висит вечно и её нечем убить.
+   */
   async requestCancel(id: string): Promise<SimaImportJob> {
     const job = await this.findJob(id);
     if (
       job.status === SimaImportJobStatus.PROCESSING ||
       job.status === SimaImportJobStatus.PENDING
     ) {
-      await this.jobsRepo.update(id, { cancelRequested: true });
+      const silentMs = Date.now() - new Date(job.updatedAt).getTime();
+      if (silentMs > STALE_PROCESSING_MS) {
+        await this.jobsRepo.update(id, {
+          status: SimaImportJobStatus.CANCELED,
+          cancelRequested: true,
+          phase: SimaImportPhase.DONE,
+          finishedAt: new Date(),
+        });
+        this.logger.warn(
+          `задача ${id} отменена принудительно: прогресс молчал ${Math.round(silentMs / 1000)}с`,
+        );
+      } else {
+        await this.jobsRepo.update(id, { cancelRequested: true });
+      }
       return this.findJob(id);
     }
     return job;
