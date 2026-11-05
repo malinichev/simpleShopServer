@@ -296,10 +296,19 @@ export class ProductsRepository {
     allParams.push(...qgFilters.params);
     paramIdx = qgFilters.nextIdx;
 
-    // candidates: product-level filters only (no variant joins needed)
-    const candFilters = this.buildRawFilters(query, false, paramIdx);
-    allParams.push(...candFilters.params);
-    paramIdx = candFilters.nextIdx;
+      // candidates: product-level filters only (no variant joins needed)
+      const candFilters = this.buildRawFilters(query, false, paramIdx);
+      allParams.push(...candFilters.params);
+      paramIdx = candFilters.nextIdx;
+
+      // Наличие кандидата: при ин-сток фильтре группа проходит, если ЛЮБОЙ
+      // её товар в наличии, но показывать покупателю должен представителя
+      // со стоком — иначе распроданный топ-soldCount цвет модели
+      // «протекает» на витрину как «Нет в наличии» (юзер 2026-11-05)
+      const inStockColumn = `EXISTS (
+        SELECT 1 FROM product_variants pv
+        WHERE pv."productId" = p.id AND pv.stock > 0
+      ) AS in_stock`;
 
     // Color preference in ranking ORDER BY
     let colorOrderCase = '';
@@ -319,7 +328,8 @@ export class ProductsRepository {
       ),
       candidates AS (
         SELECT p.id, COALESCE(p."modelId"::text, p.id::text) AS group_key,
-               p."soldCount", p.color
+               p."soldCount", p.color,
+               ${inStockColumn}
         FROM products p
         WHERE ${candFilters.clauses.join(' AND ')}
           AND COALESCE(p."modelId"::text, p.id::text) IN (SELECT group_key FROM qualifying_groups)
@@ -328,7 +338,7 @@ export class ProductsRepository {
         SELECT id, group_key,
           ROW_NUMBER() OVER (
             PARTITION BY group_key
-            ORDER BY ${colorOrderCase} "soldCount" DESC
+            ORDER BY in_stock DESC, ${colorOrderCase} "soldCount" DESC
           ) AS rn
         FROM candidates c
       )
