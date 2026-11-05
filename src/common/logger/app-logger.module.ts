@@ -23,7 +23,7 @@ function genReqId(req: Request, res: Response): string {
   return id;
 }
 
-function buildParams(configService: ConfigService): Params {
+export function buildParams(configService: ConfigService): Params {
   const isProd = process.env.NODE_ENV === 'production';
   const level = configService.get<string>(
     'logging.level',
@@ -56,10 +56,10 @@ function buildParams(configService: ConfigService): Params {
       'https://platform-api2.max.ru',
     ),
   };
-  // Алерты выключены в тестах и без env-конфигурации
-  const maxEnabled =
-    process.env.NODE_ENV !== 'test' &&
-    Boolean(maxConfig.token && maxConfig.chatId);
+  // Алерты в MAX — только production или явный MAX_ALERTS_ENABLED=true
+  // (политика в max-bot.config.ts): локальная разработка и e2e молчат,
+  // даже если dev-env случайно синхронизирован с продовым.
+  const maxEnabled = configService.get<boolean>('maxBot.enabled', false);
 
   const gate = new AlertGate({
     cooldownMs: 10 * 60 * 1000,

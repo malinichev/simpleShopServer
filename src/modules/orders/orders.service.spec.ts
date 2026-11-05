@@ -148,6 +148,22 @@ describe('OrdersService.create — целостность корзины', () =>
     expect(deps.cartService.clearCart).toHaveBeenCalledWith(USER_ID, undefined);
   });
 
+  it('шлёт бизнес-алерт о новом заказе: warn + alert:true (гейт MAX)', async () => {
+    const deps = makeDeps();
+    const service = makeService(deps);
+
+    await service.create(USER_ID, ORDER_DTO);
+
+    const logger = (
+      service as unknown as { logger: { warn: jest.Mock } }
+    ).logger;
+    const alertCall = logger.warn.mock.calls.find(
+      (call) => typeof call[1] === 'string' && call[1].includes('Новый заказ'),
+    );
+    expect(alertCall).toBeDefined();
+    expect(alertCall?.[0]).toMatchObject({ alert: true, orderId: 'order-1' });
+  });
+
   it('сбой инициализации оплаты не очищает корзину (заказ уже создан)', async () => {
     const deps = makeDeps();
     deps.paymentsService.initializeForOrder = jest

@@ -239,8 +239,9 @@ export class OrdersService {
       dto.paymentMethod,
     );
 
-    // 10.5 Аудит + алерт о новом заказе (alert:true → сообщение в MAX)
-    this.logger.log(
+    // 10.5 Аудит + алерт о новом заказе (warn + alert:true → сообщение в MAX;
+    // уровнем log/info гейт алертов не пропускает)
+    this.logger.warn(
       {
         alert: true,
         orderId: order.id,
