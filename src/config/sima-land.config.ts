@@ -12,4 +12,11 @@ export default registerAs('simaLand', () => ({
   apiBaseUrl:
     process.env.SIMA_LAND_API_URL || 'https://www.sima-land.ru/api/v3/',
   apiKey: process.env.KEY_SIMA_LAND || '',
+  /**
+   * База страниц товаров (скрейп «Вариантов» для импорта Сималенда).
+   * SIMA_LAND_PAGES_URL переопределяется на локальный мок в e2e; в проде
+   * не задавать — действует SSRF-гард (assertFetchableApiUrl).
+   */
+  pagesBaseUrl:
+    process.env.SIMA_LAND_PAGES_URL || 'https://www.sima-land.ru/',
 }));

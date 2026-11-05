@@ -9,10 +9,16 @@ import { UploadModule } from '@/modules/upload/upload.module';
 import { ImportJob } from '@/modules/import/entities/import-job.entity';
 import { ImageRegenJob } from '@/modules/image-regen/entities/image-regen-job.entity';
 import { ImageRegenModule } from '@/modules/image-regen/image-regen.module';
+import { SimaImportModule } from '@/modules/sima-import/sima-import.module';
+import {
+  SimaImportJob,
+  SimaModelLink,
+} from '@/modules/sima-import/entities/sima-import-job.entity';
 import { EmailProcessor } from './processors/email.processor';
 import { AnalyticsProcessor } from './processors/analytics.processor';
 import { ImportProcessor } from './processors/import.processor';
 import { ImageRegenProcessor } from './processors/image-regen.processor';
+import { SimaImportProcessor } from './processors/sima-import.processor';
 
 @Module({
   imports: [
@@ -22,16 +28,29 @@ import { ImageRegenProcessor } from './processors/image-regen.processor';
       { name: 'analytics' },
       { name: 'import' },
       { name: 'image-regen' },
+      { name: 'sima-import' },
     ),
-    TypeOrmModule.forFeature([ImportJob, ImageRegenJob]),
+    TypeOrmModule.forFeature([
+      ImportJob,
+      ImageRegenJob,
+      SimaImportJob,
+      SimaModelLink,
+    ]),
     MailModule,
     forwardRef(() => AnalyticsModule),
     ProductsModule,
     CategoriesModule,
     UploadModule,
     ImageRegenModule,
+    SimaImportModule,
   ],
-  providers: [EmailProcessor, AnalyticsProcessor, ImportProcessor, ImageRegenProcessor],
+  providers: [
+    EmailProcessor,
+    AnalyticsProcessor,
+    ImportProcessor,
+    ImageRegenProcessor,
+    SimaImportProcessor,
+  ],
   exports: [BullModule],
 })
 export class JobsModule {}

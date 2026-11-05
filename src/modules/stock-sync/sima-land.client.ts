@@ -25,6 +25,7 @@ const RETRY_ATTEMPTS = 2;
 // десятки секунд. Ретраим 403 с длинной паузой, прочее — короткий backoff.
 const RETRY_DELAYS_MS = [3_000, 10_000];
 const WAF_BAN_PAUSE_MS = 45_000;
+const MAX_PAGE_REDIRECTS = 3;
 // WAF Сималенда с датацентровых IP режет запросы по TLS-фингерпринту undici
 // (глобальный fetch) и не-браузерным UA — оба дают мгновенный 403. node:https
 // с браузерным UA проходит (проверено на прод-VPS 2026-11-03).
@@ -55,6 +56,52 @@ export class SimaLandClient {
   /** Ключ не настроен — синк не может работать (о конфигурации, не о товаре). */
   isConfigured(): boolean {
     return this.apiKey.length > 0;
+  }
+
+  /**
+   * HTML-страница товара по голому sid (`/{sid}/` → 301 на слаг → 200).
+   * Для скрейпа «Вариантов» (modifier-elements) импортом Сималенда.
+   * Редиректы валидируем вручную: Location бывает относительным, а цель
+   * обязана оставаться в пределах настроенного pagesBaseUrl.
+   */
+  async getPageHtml(sid: number): Promise<{ found: true; html: string } | { found: false; reason: 'not_found' }> {
+    const origin = new URL(this.pagesBase).origin;
+    let url = `${this.pagesBase.replace(/\/$/, '')}/${sid}/`;
+    for (let hop = 0; hop <= MAX_PAGE_REDIRECTS; hop++) {
+      assertFetchableApiUrl(url);
+      if (new URL(url).origin !== origin) {
+        throw new Error(`редирект за пределы Сималенда: ${url}`);
+      }
+      const response = await this.requestText(url, REQUEST_TIMEOUT_MS);
+      if (response.status === 404) {
+        return { found: false, reason: 'not_found' };
+      }
+      if (response.status >= 200 && response.status < 300) {
+        return { found: true, html: response.text };
+      }
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.location;
+        if (!location) {
+          throw new Error(`редирект без Location: ${url}`);
+        }
+        url = new URL(location, url).toString(); // относительный Location склеиваем
+        continue;
+      }
+      // 403/429/5xx — один короткий повтор без 45с-паузы (тротлинг делает вызывающий)
+      if (hop === 0 && (response.status === 403 || response.status === 429 || response.status >= 500)) {
+        await sleep(RETRY_DELAYS_MS[0]);
+        hop--;
+        continue;
+      }
+      throw new Error(`страница товара ${sid}: HTTP ${response.status}`);
+    }
+    throw new Error(`страница товара ${sid}: слишком много редиректов`);
+  }
+
+  private get pagesBase(): string {
+    const url = this.configService.get<string>('simaLand.pagesBaseUrl') || '';
+    assertFetchableApiUrl(url);
+    return url.endsWith('/') ? url : `${url}/`;
   }
 
   /**
@@ -90,6 +137,44 @@ export class SimaLandClient {
       return body as SimaItem[];
     }
     return [];
+  }
+
+  /**
+   * Текстовый транспорт для страниц товара (см. getPageHtml): без X-Api-Key
+   * (публичные страницы), редиректы НЕ следуются автоматически — Location
+   * возвращает вызывающему для ручной валидации.
+   */
+  private requestText(
+    url: string,
+    timeoutMs: number,
+  ): Promise<{ status: number; text: string; location?: string }> {
+    return new Promise((resolve, reject) => {
+      const transport = url.startsWith('https:') ? https : http;
+      const req = transport.request(
+        url,
+        {
+          headers: {
+            Accept: 'text/html',
+            'User-Agent': USER_AGENT,
+          },
+          timeout: timeoutMs,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk: Buffer) => chunks.push(chunk));
+          res.on('end', () => {
+            resolve({
+              status: res.statusCode ?? 0,
+              text: Buffer.concat(chunks).toString('utf8'),
+              location: res.headers.location,
+            });
+          });
+        },
+      );
+      req.on('timeout', () => req.destroy(new Error('timeout')));
+      req.on('error', (error: Error) => reject(error));
+      req.end();
+    });
   }
 
   /**

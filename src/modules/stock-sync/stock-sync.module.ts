@@ -16,6 +16,6 @@ import { SearchModule } from '@/modules/search/search.module';
   ],
   providers: [SimaLandClient, StockSyncService],
   controllers: [StockSyncController],
-  exports: [StockSyncService],
+  exports: [StockSyncService, SimaLandClient],
 })
 export class StockSyncModule {}
